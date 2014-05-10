@@ -5,14 +5,14 @@
 #ifndef SSVOB_CESYSTEM_CES
 #define SSVOB_CESYSTEM_CES
 
-#include "SSVBloodshed/CESystem/Common.hpp"
-#include "SSVBloodshed/CESystem/IdPool.hpp"
-#include "SSVBloodshed/CESystem/SystemBase.hpp"
-#include "SSVBloodshed/CESystem/System.hpp"
-#include "SSVBloodshed/CESystem/Entity.hpp"
-#include "SSVBloodshed/CESystem/EntityHandle.hpp"
-#include "SSVBloodshed/CESystem/Manager.hpp"
-#include "SSVBloodshed/CESystem/Entity.inl"
-#include "SSVBloodshed/CESystem/EntityHandle.inl"
+#include "CESystem/Common.hpp"
+#include "CESystem/IdPool.hpp"
+#include "CESystem/SystemBase.hpp"
+#include "CESystem/System.hpp"
+#include "CESystem/Entity.hpp"
+#include "CESystem/EntityHandle.hpp"
+#include "CESystem/Manager.hpp"
+#include "CESystem/Entity.inl"
+#include "CESystem/EntityHandle.inl"
 
 #endif

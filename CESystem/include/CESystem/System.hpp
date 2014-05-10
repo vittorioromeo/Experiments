@@ -5,9 +5,9 @@
 #ifndef SSVOB_CESYSTEM_SYSTEM
 #define SSVOB_CESYSTEM_SYSTEM
 
-#include "SSVBloodshed/CESystem/Common.hpp"
-#include "SSVBloodshed/CESystem/Entity.hpp"
-#include "SSVBloodshed/CESystem/SystemBase.hpp"
+#include "CESystem/Common.hpp"
+#include "CESystem/Entity.hpp"
+#include "CESystem/SystemBase.hpp"
 
 namespace ssvces
 {

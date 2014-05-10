@@ -5,8 +5,8 @@
 #ifndef SSVOB_CESYSTEM_ENTITYHANDLE
 #define SSVOB_CESYSTEM_ENTITYHANDLE
 
-#include "SSVBloodshed/CESystem/Common.hpp"
-#include "SSVBloodshed/CESystem/Entity.hpp"
+#include "CESystem/Common.hpp"
+#include "CESystem/Entity.hpp"
 
 namespace ssvces
 {

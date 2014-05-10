@@ -5,7 +5,7 @@
 #ifndef SSVOB_CESYSTEM_IDPOOL
 #define SSVOB_CESYSTEM_IDPOOL
 
-#include "SSVBloodshed/CESystem/Common.hpp"
+#include "CESystem/Common.hpp"
 
 namespace ssvces
 {

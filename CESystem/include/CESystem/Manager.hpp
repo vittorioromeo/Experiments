@@ -5,11 +5,11 @@
 #ifndef SSVOB_CESYSTEM_MANAGER
 #define SSVOB_CESYSTEM_MANAGER
 
-#include "SSVBloodshed/CESystem/Common.hpp"
-#include "SSVBloodshed/CESystem/Entity.hpp"
-#include "SSVBloodshed/CESystem/EntityHandle.hpp"
-#include "SSVBloodshed/CESystem/IdPool.hpp"
-#include "SSVBloodshed/CESystem/System.hpp"
+#include "CESystem/Common.hpp"
+#include "CESystem/Entity.hpp"
+#include "CESystem/EntityHandle.hpp"
+#include "CESystem/IdPool.hpp"
+#include "CESystem/System.hpp"
 
 namespace ssvces
 {
