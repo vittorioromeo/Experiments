@@ -194,4 +194,5 @@ asanlogs
 
 ./*/build/*
 ./*/lib/*
-./*/_RELEASE/*
+./*/_RELEASE/*/Random/WIP/testManager
+/Random/WIP/testManager
