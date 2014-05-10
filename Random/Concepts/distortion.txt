@@ -1,0 +1,19 @@
+Distortion
+
+----------
+
+Reflex-based timewaster game
+
+Move with WSAD, aim with mouse.
+
+Q flashes the player forward, and leaves a mark on your original position. 
+You can use Q multiple times, leaving multiple marks (a queue of marks).
+
+Pressing R flashes the player to the previous mark, deleting the mark.
+
+After using Q, the player has a small invicibility window. Multiple Q usages
+in rapid succession can allow the player to flash over large obstacles.
+
+There is a limit on Q, to avoid spamming the ability.
+
+Pressing E returns to the first mark, deleting all other marks.
