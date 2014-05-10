@@ -5,8 +5,8 @@
 #ifndef SSVVM_PARAMS
 #define SSVVM_PARAMS
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Value.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/Value.hpp"
 
 namespace ssvvm
 {

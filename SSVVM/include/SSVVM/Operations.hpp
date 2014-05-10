@@ -5,8 +5,8 @@
 #ifndef SSVVM_OPERATIONS
 #define SSVVM_OPERATIONS
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Value.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/Value.hpp"
 
 namespace ssvvm
 {

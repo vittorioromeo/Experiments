@@ -5,8 +5,8 @@
 #ifndef SSVVM_PROGRAM
 #define SSVVM_PROGRAM
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Instruction.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/Instruction.hpp"
 
 namespace ssvvm
 {

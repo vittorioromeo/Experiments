@@ -5,20 +5,21 @@
 #ifndef SSVVM
 #define SSVVM
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Value.hpp"
-#include "SSVBloodshed/SSVVM/Register.hpp"
-#include "SSVBloodshed/SSVVM/Params.hpp"
-#include "SSVBloodshed/SSVVM/Registry.hpp"
-#include "SSVBloodshed/SSVVM/Stack.hpp"
-#include "SSVBloodshed/SSVVM/OpCodes.hpp"
-#include "SSVBloodshed/SSVVM/Instruction.hpp"
-#include "SSVBloodshed/SSVVM/Program.hpp"
-#include "SSVBloodshed/SSVVM/Operations.hpp"
-#include "SSVBloodshed/SSVVM/BoundFunction.hpp"
-#include "SSVBloodshed/SSVVM/VirtualMachine.hpp"
-#include "SSVBloodshed/SSVVM/UtilsStringifier.hpp"
-#include "SSVBloodshed/SSVVM/Preprocessor.hpp"
-#include "SSVBloodshed/SSVVM/Assembler.hpp"
+#include <SSVUtils/SSVUtils.hpp>
+
+#include "SSVVM/Value.hpp"
+#include "SSVVM/Register.hpp"
+#include "SSVVM/Params.hpp"
+#include "SSVVM/Registry.hpp"
+#include "SSVVM/Stack.hpp"
+#include "SSVVM/OpCodes.hpp"
+#include "SSVVM/Instruction.hpp"
+#include "SSVVM/Program.hpp"
+#include "SSVVM/Operations.hpp"
+#include "SSVVM/BoundFunction.hpp"
+#include "SSVVM/VirtualMachine.hpp"
+#include "SSVVM/UtilsStringifier.hpp"
+#include "SSVVM/Preprocessor.hpp"
+#include "SSVVM/Assembler.hpp"
 
 #endif

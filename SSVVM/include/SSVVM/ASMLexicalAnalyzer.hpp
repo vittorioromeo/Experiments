@@ -5,13 +5,13 @@
 #ifndef SSVVM_ASMLEXICALANALYZER
 #define SSVVM_ASMLEXICALANALYZER
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Value.hpp"
-#include "SSVBloodshed/SSVVM/Params.hpp"
-#include "SSVBloodshed/Other/Graph.hpp"
-#include "SSVBloodshed/Other/FSM.hpp"
-#include "SSVBloodshed/Other/LexicalFSM.hpp"
-#include "SSVBloodshed/Other/LexicalAnalyzer.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/Value.hpp"
+#include "SSVVM/Params.hpp"
+#include "SSVVM/Other/Graph.hpp"
+#include "SSVVM/Other/FSM.hpp"
+#include "SSVVM/Other/LexicalFSM.hpp"
+#include "SSVVM/Other/LexicalAnalyzer.hpp"
 
 namespace ssvvm
 {

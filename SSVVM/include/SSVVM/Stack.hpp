@@ -5,8 +5,8 @@
 #ifndef SSVVM_STACK
 #define SSVVM_STACK
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Value.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/Value.hpp"
 
 namespace ssvvm
 {

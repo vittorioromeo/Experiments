@@ -5,13 +5,13 @@
 #ifndef SSVVM_VIRTUALMACHINE
 #define SSVVM_VIRTUALMACHINE
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Value.hpp"
-#include "SSVBloodshed/SSVVM/Params.hpp"
-#include "SSVBloodshed/SSVVM/Registry.hpp"
-#include "SSVBloodshed/SSVVM/Stack.hpp"
-#include "SSVBloodshed/SSVVM/Instruction.hpp"
-#include "SSVBloodshed/SSVVM/Program.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/Value.hpp"
+#include "SSVVM/Params.hpp"
+#include "SSVVM/Registry.hpp"
+#include "SSVVM/Stack.hpp"
+#include "SSVVM/Instruction.hpp"
+#include "SSVVM/Program.hpp"
 
 namespace ssvvm
 {

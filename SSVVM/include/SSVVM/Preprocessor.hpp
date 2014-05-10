@@ -5,8 +5,8 @@
 #ifndef SSVVM_ASMPREPROCESSOR
 #define SSVVM_ASMPREPROCESSOR
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/ASMLexicalAnalyzer.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/ASMLexicalAnalyzer.hpp"
 
 namespace ssvvm
 {

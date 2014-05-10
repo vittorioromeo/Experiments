@@ -1,6 +1,6 @@
 #include <array>
-#include "SSVBloodshed/OBCommon.hpp"
-#include "SSVBloodshed/SSVVM/SSVVM.hpp"
+#include <SSVUtils/SSVUtils.hpp>
+#include "SSVVM/SSVVM.hpp"
 
 std::string source{
 	R"(

@@ -5,9 +5,9 @@
 #ifndef SSVVM_BOUNDFUNCTION
 #define SSVVM_BOUNDFUNCTION
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Value.hpp"
-#include "SSVBloodshed/SSVVM/Params.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/Value.hpp"
+#include "SSVVM/Params.hpp"
 
 namespace ssvvm
 {

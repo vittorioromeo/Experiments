@@ -5,8 +5,8 @@
 #ifndef SSVVM_UTILS_STRINGIFIER
 #define SSVVM_UTILS_STRINGIFIER
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Value.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/Value.hpp"
 
 namespace ssvu
 {

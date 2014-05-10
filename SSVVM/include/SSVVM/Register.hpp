@@ -5,8 +5,8 @@
 #ifndef SSVVM_REGISTER
 #define SSVVM_REGISTER
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/Value.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/Value.hpp"
 
 namespace ssvvm
 {

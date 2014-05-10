@@ -5,7 +5,7 @@
 #ifndef SSVVM_VALUE
 #define SSVVM_VALUE
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
+#include "SSVVM/Common.hpp"
 
 namespace ssvvm
 {

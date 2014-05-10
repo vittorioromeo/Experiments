@@ -5,9 +5,9 @@
 #ifndef SSVVM_ASMASSEMBLER
 #define SSVVM_ASMASSEMBLER
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/ASMLexicalAnalyzer.hpp"
-#include "SSVBloodshed/SSVVM/Program.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/ASMLexicalAnalyzer.hpp"
+#include "SSVVM/Program.hpp"
 
 namespace ssvvm
 {

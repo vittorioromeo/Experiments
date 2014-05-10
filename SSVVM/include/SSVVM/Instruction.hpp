@@ -5,9 +5,9 @@
 #ifndef SSVVM_INSTRUCTION
 #define SSVVM_INSTRUCTION
 
-#include "SSVBloodshed/SSVVM/Common.hpp"
-#include "SSVBloodshed/SSVVM/OpCodes.hpp"
-#include "SSVBloodshed/SSVVM/Params.hpp"
+#include "SSVVM/Common.hpp"
+#include "SSVVM/OpCodes.hpp"
+#include "SSVVM/Params.hpp"
 
 namespace ssvvm
 {
