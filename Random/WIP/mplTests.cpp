@@ -1,38 +1,3 @@
-#ifdef WAT
-
-#include <string>
-#include <future>
-#include <SSVUtils/Core/Core.hpp>
-#include <SSVUtils/Test/Test.hpp>
-#include <SSVUtils/Benchmark/Benchmark.hpp>
-
-int main()
-{
-	ssvu::Benchmark::start("Outer");
-	{
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-
-		ssvu::Benchmark::start("Inner 1");
-		{
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-		}
-		ssvu::Benchmark::endLo();
-
-		ssvu::Benchmark::start("Inner 2");
-		{
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-		}
-		ssvu::Benchmark::endLo();
-	}
-	ssvu::Benchmark::endLo();
-
-	return 0;
-}
-
-#endif
-
-#ifdef TESTINGMPL
-
 #include <tuple>
 #include <SSVUtils/SSVUtils.hpp>
 
@@ -178,7 +143,7 @@ namespace ssvu
 				SSVU_ASSERT_STATIC(isSame<List<char>::PopFront, List<>>(), "");
 				SSVU_ASSERT_STATIC(isSame<List<>::PopFront, List<>>(), "");
 
-				//						  0    1      2     3      4
+				//						         0      1     2      3    4
 				SSVU_ASSERT_STATIC(isSame<List<int, float, char, float, int>::SubList<0, 0>, List<>>(), "");
 				SSVU_ASSERT_STATIC(isSame<List<int, float, char, float, int>::SubList<0, 1>, List<int>>(), "");
 				SSVU_ASSERT_STATIC(isSame<List<int, float, char, float, int>::SubList<0, 3>, List<int, float, char>>(), "");
@@ -189,77 +154,9 @@ namespace ssvu
 	}
 }
 
-
 int main()
 {
-SSVUT_RUN();
+	SSVUT_RUN();	
 	return 0;
 
 }
-
-#endif
-
-#ifdef TESTING
-
-#include <map>
-#include <unordered_map>
-#include <SSVUtils/SSVUtils.hpp>
-
-int main()
-{
-	SSVUT_RUN();
-
-	std::map<int, std::string> m{{1, "aa"}, {2, "bb"}, {3, "cc"}};
-	std::unordered_map<int, std::string> um{{1, "aa"}, {2, "bb"}, {3, "cc"}};
-	ssvu::Bimap<int, std::string> bm{{1, "aa"}, {2, "bb"}, {3, "cc"}};
-
-	ssvu::lo() << std::vector<int>{1, 2, 3} << std::endl;
-	ssvu::lo() << m << std::endl;
-	ssvu::lo() << um << std::endl;
-	ssvu::lo() << bm << std::endl;
-
-	return 0;
-}
-
-#endif
-
-#ifdef TESTING2
-
-#include "SSVBloodshed/OBCommon.hpp"
-
-/*
-#define RECURSION_DISPATCHER_IMPL(mFunc, ...) SSVPP_TKNCAT_3(mFunc, _, SSVPP_EXPAND(SSVPP_BOOL(SSVPP_DECREMENT(SSVPP_ARGCOUNT(__VA_ARGS__)))))
-#define RECURSION_DISPATCHER(mFunc, ...) RECURSION_DISPATCHER_IMPL(mFunc, __VA_ARGS__)
-
-#define CALL_RECURSION_DISPATCHED_FUNC(mFunc, ...) RECURSION_DISPATCHER(mFunc, __VA_ARGS__) ( __VA_ARGS__ )
-
-#define EXAMPLE_IMPL_0(mArg)	WELP
-#define EXAMPLE_IMPL_1(mArg0, mArg1, ...) EXAMPLE_IMPL_0(mArg0) CALL_RECURSION_DISPATCHED_FUNC(EXAMPLE_IMPL, mArg1, __VA_ARGS__)
-
-#define SSVPP_IMPL_VA_ARGS_0(...)
-#define SSVPP_IMPL_VA_ARGS_1(...) __VA_ARGS__
-#define SSVPP_VA_ARGS(...) SSVPP_EXPAND(SSVPP_TKNCAT_2(SSVPP_IMPL_VA_ARGS_, SSVPP_IMPL_HAS_ZERO_OR_ONE_ARGS(__VA_ARGS__))) ( __VA_ARGS__ )
-*/
-int main()
-{
-/*
-	std::cout << SSVPP_TOSTR(CALL_RECURSION_DISPATCHED_FUNC(EXAMPLE_IMPL, 1, 2, 3)) << std::endl;
-	std::cout << SSVPP_TOSTR(CALL_RECURSION_DISPATCHED_FUNC(EXAMPLE_IMPL, 1, 2)) << std::endl;
-	std::cout << SSVPP_TOSTR(CALL_RECURSION_DISPATCHED_FUNC(EXAMPLE_IMPL, 1)) << std::endl;
-
-	std::cout << SSVPP_TOSTR(SSVPP_IMPL_HAS_ZERO_OR_ONE_ARGS(1, 1, 1)) << std::endl;
-	std::cout << SSVPP_TOSTR(SSVPP_IMPL_HAS_ZERO_OR_ONE_ARGS(1, 1)) << std::endl;
-	std::cout << SSVPP_TOSTR(SSVPP_IMPL_HAS_ZERO_OR_ONE_ARGS(1)) << std::endl;
-	std::cout << SSVPP_TOSTR(SSVPP_IMPL_HAS_ZERO_OR_ONE_ARGS()) << std::endl;
-
-	std::cout << SSVPP_TOSTR_SEP(", ", SSVPP_VA_ARGS(1, 1, 1)) << std::endl;
-	std::cout << SSVPP_TOSTR_SEP(", ", SSVPP_VA_ARGS(1, 1)) << std::endl;
-	std::cout << SSVPP_TOSTR_SEP(", ", SSVPP_VA_ARGS(1)) << std::endl;
-	std::cout << SSVPP_TOSTR(SSVPP_VA_ARGS()) << std::endl;
-*/
-
-	//std::cout << SSVPP_TOSTR(SSVPP_ARGCOUNT()) << std::endl;
-	return 0;
-}
-
-#endif

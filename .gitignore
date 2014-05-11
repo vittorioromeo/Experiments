@@ -196,3 +196,6 @@ asanlogs
 ./*/lib/*
 ./*/_RELEASE/*/Random/WIP/testManager
 /Random/WIP/testManager
+/CESystem/_RELEASE/CESystem
+/Random/WIP/mplTests
+/SSVVM/_RELEASE/SSVVM

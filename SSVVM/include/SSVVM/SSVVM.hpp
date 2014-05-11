@@ -7,6 +7,8 @@
 
 #include <SSVUtils/SSVUtils.hpp>
 
+#include "SSVVM/Common.hpp"
+#include "SSVVM/SourceVeeAsm.hpp"
 #include "SSVVM/Value.hpp"
 #include "SSVVM/Register.hpp"
 #include "SSVVM/Params.hpp"
