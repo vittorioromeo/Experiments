@@ -48,7 +48,7 @@ namespace Internal
 			}
 
 		public:
-			inline Atom() = default;	
+			inline Atom(Idx mMarkIdx) noexcept : markIdx{mMarkIdx} { }	
 			inline Atom(Atom&&) = default;
 			inline Atom& operator=(Atom&&) = default;
 
@@ -102,7 +102,13 @@ template<typename T> class HManager
 	template<typename> friend class Handle;
 
 	private:
-		struct Mark { Idx atomIdx; Ctr ctr; };
+		struct Mark 
+		{ 
+			Idx atomIdx; 
+			Ctr ctr; 
+
+			inline Mark(Idx mAtomIdx) noexcept : atomIdx{mAtomIdx} { }
+		};
 
 	public:
 		using AtomType = typename Internal::Atom<T>;
@@ -119,11 +125,15 @@ template<typename T> class HManager
 			auto i(getCapacity()), newCapacity(getCapacity() + mAmount);
 			SSVU_ASSERT(newCapacity >= 0 && newCapacity >= getCapacity());
 
-			atoms.resize(newCapacity);
-			marks.resize(newCapacity);
+			atoms.reserve(newCapacity);
+			marks.reserve(newCapacity);
 
 			// Initialize resized storage
-			for(; i < newCapacity; ++i) atoms[i].markIdx = marks[i].atomIdx = i;									
+			for(; i < newCapacity; ++i) 
+			{
+				atoms.emplace_back(i);
+				marks.emplace_back(i);
+			}
 		}
 
 		inline void growCapacityTo(std::size_t mCapacity) 
