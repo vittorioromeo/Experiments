@@ -4,66 +4,6 @@ namespace ssvu
 {
 	namespace Internal
 	{
-		template<typename T> class PtrRecycler
-		{
-			private:
-				std::vector<T*> ptrs;
-
-			public:
-				std::allocator<T> alloc;
-
-				inline PtrRecycler() noexcept = default;
-				inline ~PtrRecycler() noexcept { for(auto p : ptrs) alloc.deallocate(p, 1); }
-
-				inline void push(T* mPtr) noexcept 
-				{
-					SSVU_ASSERT(mPtr != nullptr);
-
-					ptrs.emplace_back(mPtr);
-				}
-				inline T* pop() noexcept
-				{
-					SSVU_ASSERT(ptrs.size() > 0);
-					
-					auto result(ptrs.back());
-					ptrs.pop_back();
-					return result;
-				}
-				inline bool isEmpty() const noexcept { return ptrs.size() == 0; }
-		};
-
-		template<typename T> inline PtrRecycler<T>& getPtrRecycler() 
-		{
-			static PtrRecycler<T> result;
-			return result;
-		}
-
-
-		template<typename T, typename... TArgs> inline T* makePtr(TArgs&&... mArgs) 
-		{
-			auto& pr(getPtrRecycler<T>());
-			T* result{pr.isEmpty() ? pr.allocator.allocate(1) : pr.pop()};
-			pr.allocator.construct(result, std::forward<TArgs>(mArgs)...);
-			return result;
-		}
-	}
-
-	template<typename T> using RecUptr = Uptr<T, void(*)(T*)>;
-	template<typename T, typename... TArgs> inline RecUptr<T> makeRecUptr(TArgs&&... mArgs) 
-	{
-		return RecUptr<T>(Internal::makePtr<T>(std::forward<TArgs>(mArgs)...), [](T* mPtr) 
-		{
-			auto& pr(Internal::getPtrRecycler<T>());
-			pr.allocator.destroy(mPtr);
-			pr.push(mPtr);			
-		});
-	}
-}
-
-namespace ssvu
-{
-	namespace Internal
-	{
 		template<typename T, typename TBase> class PolyPtrRecycler
 		{
 			private:
@@ -71,12 +11,21 @@ namespace ssvu
 				std::allocator<T> alloc;
 
 			public:
-				inline PolyPtrRecycler() noexcept = default;
+				inline PolyPtrRecycler() = default;
 				inline ~PolyPtrRecycler() noexcept { for(auto p : ptrs) alloc.deallocate(reinterpret_cast<T*>(p), 1); }
 
-				inline T* allocate() { return alloc.allocate(1); }
-				template<typename... TArgs> inline void construct(T* mPtr, TArgs&&... mArgs) { alloc.construct(mPtr, std::forward<TArgs>(mArgs)...); }
-				inline void destroy(TBase* mPtr) { alloc.destroy(mPtr); }
+				inline T* allocate() noexcept(noexcept(alloc.allocate(1))) { return alloc.allocate(1); }
+
+				template<typename... TArgs> inline void construct(T* mPtr, TArgs&&... mArgs) 
+					noexcept(noexcept(alloc.construct(mPtr, std::forward<TArgs>(mArgs)...)))
+				{ 
+					alloc.construct(mPtr, std::forward<TArgs>(mArgs)...); 
+				}
+
+				inline void destroy(TBase* mPtr) noexcept(noexcept(alloc.destroy(mPtr))) 
+				{ 
+					alloc.destroy(mPtr); 
+				}
 
 				inline void push(TBase* mPtr) noexcept 
 				{
@@ -95,12 +44,11 @@ namespace ssvu
 				inline bool isEmpty() const noexcept { return ptrs.size() == 0; }
 		};
 
-		template<typename T, typename TBase> inline PolyPtrRecycler<T, TBase>& getPolyPtrRecycler() 
+		template<typename T, typename TBase> inline PolyPtrRecycler<T, TBase>& getPolyPtrRecycler() noexcept
 		{
 			static PolyPtrRecycler<T, TBase> result;
 			return result;
 		}
-
 
 		template<typename T, typename TBase, typename... TArgs> inline T* makePolyPtr(TArgs&&... mArgs) 
 		{
@@ -119,6 +67,14 @@ namespace ssvu
 			auto& pr(Internal::getPolyPtrRecycler<T, TBase>());
 			pr.destroy(mPtr); pr.push(mPtr);			
 		});
+	}
+
+	template<typename T, typename TBase, typename... TArgs, typename TC> inline T& getEmplaceRecPolyUptr(TC& mContainer, TArgs&&... mArgs)
+	{
+		auto uptr(makeRecPolyUptr<T, TBase>(std::forward<TArgs>(mArgs)...));
+		auto result(uptr.get());
+		mContainer.emplace_back(std::move(uptr));
+		return *result;
 	}
 }
 
