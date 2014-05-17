@@ -12,7 +12,7 @@ namespace ssvces
 		SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "Type must derive from Component");
 		SSVU_ASSERT(!hasComponent<T>() && componentCount <= maxComponents);
 
-		components[Internal::getTypeIdBitIdx<T>()] = std::make_unique<T>(std::forward<TArgs>(mArgs)...);
+		components[Internal::getTypeIdBitIdx<T>()] = ssvu::makeUnique<T>(std::forward<TArgs>(mArgs)...);
 		typeIds[Internal::getTypeIdBitIdx<T>()] = true;
 		++componentCount;
 

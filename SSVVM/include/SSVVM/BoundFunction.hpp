@@ -71,7 +71,7 @@ namespace ssvvm
 
 		public:
 			template<typename TReturn, typename... TArgs> inline BoundFunction(TReturn(*mFnPtr)(TArgs...))
-				: returnType{getVMVal<TReturn>()}, cFunction{std::unique_ptr<Internal::CFunctionBase>(new Internal::CFunction<TReturn(TArgs...)>(mFnPtr))}
+				: returnType{getVMVal<TReturn>()}, cFunction{ssvu::Uptr<Internal::CFunctionBase>(new Internal::CFunction<TReturn(TArgs...)>(mFnPtr))}
 			{
 				Internal::bfArrayFillHelper<0, TArgs...>(paramTypes);
 			}
