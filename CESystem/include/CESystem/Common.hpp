@@ -5,16 +5,6 @@
 #ifndef SSVOB_CESYSTEM_COMMON
 #define SSVOB_CESYSTEM_COMMON
 
-#include <vector>
-#include <tuple>
-#include <numeric>
-#include <cstdint>
-#include <array>
-#include <cassert>
-#include <unordered_map>
-#include <bitset>
-#include <SSVUtils/SSVUtils.hpp>
-
 namespace ssvces
 {
 	struct Component { inline virtual ~Component() noexcept { } };

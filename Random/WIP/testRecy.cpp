@@ -1,5 +1,6 @@
 #include <SSVUtils/SSVUtils.hpp>
 
+/*
 namespace ssvu
 {
 	namespace Internal
@@ -76,7 +77,7 @@ namespace ssvu
 		mContainer.emplace_back(std::move(uptr));
 		return *result;
 	}
-}
+}*/
 
 struct Base
 {
@@ -110,18 +111,12 @@ void doBench()
 			{
 				for(int i{0}; i < s; ++i)
 				{
-					if(i % 2 == 0) v.emplace_back(makeUnique<Der1>());
-					else v.emplace_back(makeUnique<Der2>());
+					if(i % 2 == 0) v.emplace_back(makeUptr<Der1>());
+					else v.emplace_back(makeUptr<Der2>());
 				}
 			}
 			Benchmark::endLo();
-
-			Benchmark::start("Iterate");
-			{
-				for(int i{0}; i < s; ++i) v[i]->call();
-			}
-			Benchmark::endLo();
-
+		
 			Benchmark::start("Clear");
 			{
 				v.clear();
@@ -153,12 +148,6 @@ void doBench()
 					if(i % 2 == 0) v.emplace_back(makeRecPolyUptr<Der1, Base>());
 					else v.emplace_back(makeRecPolyUptr<Der2, Base>());
 				}
-			}
-			Benchmark::endLo();
-
-			Benchmark::start("Iterate");
-			{
-				for(int i{0}; i < s; ++i) v[i]->call();
 			}
 			Benchmark::endLo();
 

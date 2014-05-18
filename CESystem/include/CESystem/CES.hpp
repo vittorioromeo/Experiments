@@ -5,11 +5,14 @@
 #ifndef SSVOB_CESYSTEM_CES
 #define SSVOB_CESYSTEM_CES
 
+#include <numeric>
+#include <bitset>
+#include <SSVUtils/SSVUtils.hpp>
 #include "CESystem/Common.hpp"
 #include "CESystem/IdPool.hpp"
 #include "CESystem/SystemBase.hpp"
-#include "CESystem/System.hpp"
 #include "CESystem/Entity.hpp"
+#include "CESystem/System.hpp"
 #include "CESystem/EntityHandle.hpp"
 #include "CESystem/Manager.hpp"
 #include "CESystem/Entity.inl"

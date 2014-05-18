@@ -5,18 +5,12 @@
 #ifndef SSVOB_CESYSTEM_MANAGER
 #define SSVOB_CESYSTEM_MANAGER
 
-#include "CESystem/Common.hpp"
-#include "CESystem/Entity.hpp"
-#include "CESystem/EntityHandle.hpp"
-#include "CESystem/IdPool.hpp"
-#include "CESystem/System.hpp"
-
 namespace ssvces
 {
 	class Manager : ssvu::NoCopy
 	{
-		friend class Entity;
-		friend class EntityHandle;
+		friend Entity;
+		friend EntityHandle;
 
 		private:
 			Internal::IdPool entityIdPool;

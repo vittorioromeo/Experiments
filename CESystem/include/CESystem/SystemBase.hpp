@@ -5,8 +5,6 @@
 #ifndef SSVOB_CESYSTEM_SYSTEMBASE
 #define SSVOB_CESYSTEM_SYSTEMBASE
 
-#include "CESystem/Common.hpp"
-
 namespace ssvces
 {
 	class Manager;
@@ -17,7 +15,7 @@ namespace ssvces
 		class SystemBase : ssvu::NoCopy
 		{
 			friend bool matchesSystem(const TypeIdsBitset&, const SystemBase&) noexcept;
-			friend class ssvces::Manager;
+			friend ssvces::Manager;
 
 			private:
 				TypeIdsBitset typeIdsReq, typeIdsNot;

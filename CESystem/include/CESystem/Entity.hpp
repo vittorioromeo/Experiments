@@ -5,8 +5,6 @@
 #ifndef SSVOB_CESYSTEM_ENTITY
 #define SSVOB_CESYSTEM_ENTITY
 
-#include "CESystem/Common.hpp"
-
 namespace ssvces
 {
 	class Manager;
@@ -15,9 +13,9 @@ namespace ssvces
 
 	class Entity : ssvu::NoCopy
 	{
-		friend class Manager;
-		friend class EntityHandle;
-		friend class Internal::SystemBase;
+		friend Manager;
+		friend EntityHandle;
+		friend Internal::SystemBase;
 		template<typename, typename, typename> friend class System;
 
 		private:

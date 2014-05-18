@@ -5,10 +5,6 @@
 #ifndef SSVOB_CESYSTEM_SYSTEM
 #define SSVOB_CESYSTEM_SYSTEM
 
-#include "CESystem/Common.hpp"
-#include "CESystem/Entity.hpp"
-#include "CESystem/SystemBase.hpp"
-
 namespace ssvces
 {
 	namespace Internal

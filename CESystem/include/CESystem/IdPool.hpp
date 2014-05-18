@@ -5,8 +5,6 @@
 #ifndef SSVOB_CESYSTEM_IDPOOL
 #define SSVOB_CESYSTEM_IDPOOL
 
-#include "CESystem/Common.hpp"
-
 namespace ssvces
 {
 	namespace Internal
