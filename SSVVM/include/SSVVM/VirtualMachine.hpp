@@ -5,14 +5,6 @@
 #ifndef SSVVM_VIRTUALMACHINE
 #define SSVVM_VIRTUALMACHINE
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Value.hpp"
-#include "SSVVM/Params.hpp"
-#include "SSVVM/Registry.hpp"
-#include "SSVVM/Stack.hpp"
-#include "SSVVM/Instruction.hpp"
-#include "SSVVM/Program.hpp"
-
 namespace ssvvm
 {
 	namespace Internal

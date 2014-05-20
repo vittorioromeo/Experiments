@@ -5,9 +5,6 @@
 #ifndef SSVVM_REGISTER
 #define SSVVM_REGISTER
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Value.hpp"
-
 namespace ssvvm
 {
 	struct Register { using Idx = int; Value value; };

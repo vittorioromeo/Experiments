@@ -5,10 +5,6 @@
 #ifndef SSVVM_INSTRUCTION
 #define SSVVM_INSTRUCTION
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/OpCodes.hpp"
-#include "SSVVM/Params.hpp"
-
 namespace ssvvm
 {
 	struct Instruction

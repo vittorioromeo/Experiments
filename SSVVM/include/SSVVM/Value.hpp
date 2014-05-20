@@ -5,8 +5,6 @@
 #ifndef SSVVM_VALUE
 #define SSVVM_VALUE
 
-#include "SSVVM/Common.hpp"
-
 namespace ssvvm
 {
 	class Value

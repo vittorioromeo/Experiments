@@ -5,10 +5,6 @@
 #ifndef SSVVM_BOUNDFUNCTION
 #define SSVVM_BOUNDFUNCTION
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Value.hpp"
-#include "SSVVM/Params.hpp"
-
 namespace ssvvm
 {
 	namespace Internal

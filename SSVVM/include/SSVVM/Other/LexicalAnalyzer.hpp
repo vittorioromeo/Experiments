@@ -5,13 +5,6 @@
 #ifndef OB_TESTING_OTHER_LEXICALANALYZER
 #define OB_TESTING_OTHER_LEXICALANALYZER
 
-#include <vector>
-#include <memory>
-#include <SSVUtils/SSVUtils.hpp>
-#include "SSVVM/Other/Graph.hpp"
-#include "SSVVM/Other/FSM.hpp"
-#include "SSVVM/Other/LexicalFSM.hpp"
-
 namespace ssvut
 {
 	template<typename TTType, typename TTData> class LexicalAnalyzer

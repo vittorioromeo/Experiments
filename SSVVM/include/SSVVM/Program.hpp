@@ -5,9 +5,6 @@
 #ifndef SSVVM_PROGRAM
 #define SSVVM_PROGRAM
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Instruction.hpp"
-
 namespace ssvvm
 {
 	struct Program

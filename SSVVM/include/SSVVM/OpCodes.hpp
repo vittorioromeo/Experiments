@@ -5,8 +5,6 @@
 #ifndef SSVVM_OPCODES
 #define SSVVM_OPCODES
 
-#include "SSVVM/Common.hpp"
-
 namespace ssvvm
 {
 	SSVU_FATENUM_MGR(ReflectedEnum);

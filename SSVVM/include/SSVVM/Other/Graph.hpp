@@ -5,10 +5,6 @@
 #ifndef OB_TESTING_OTHER_GRAPH
 #define OB_TESTING_OTHER_GRAPH
 
-#include <vector>
-#include <memory>
-#include <SSVUtils/SSVUtils.hpp>
-
 namespace ssvut
 {
 	namespace Internal

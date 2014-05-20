@@ -5,10 +5,6 @@
 #ifndef SSVVM_ASMASSEMBLER
 #define SSVVM_ASMASSEMBLER
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/ASMLexicalAnalyzer.hpp"
-#include "SSVVM/Program.hpp"
-
 namespace ssvvm
 {
 	namespace Internal

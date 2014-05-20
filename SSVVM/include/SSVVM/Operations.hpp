@@ -5,9 +5,6 @@
 #ifndef SSVVM_OPERATIONS
 #define SSVVM_OPERATIONS
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Value.hpp"
-
 namespace ssvvm
 {
 	class VMOperations

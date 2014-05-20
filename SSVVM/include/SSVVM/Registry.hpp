@@ -5,10 +5,6 @@
 #ifndef SSVVM_REGISTRY
 #define SSVVM_REGISTRY
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Value.hpp"
-#include "SSVVM/Register.hpp"
-
 namespace ssvvm
 {
 	template<std::size_t TSize> class Registry

@@ -5,12 +5,6 @@
 #ifndef OB_TESTING_OTHER_LEXICALFSM
 #define OB_TESTING_OTHER_LEXICALFSM
 
-#include <vector>
-#include <memory>
-#include <SSVUtils/SSVUtils.hpp>
-#include "SSVVM/Other/Graph.hpp"
-#include "SSVVM/Other/FSM.hpp"
-
 namespace ssvut
 {
 	template<typename T> class LexicalFSM : public FSM

@@ -5,9 +5,6 @@
 #ifndef SSVVM_PARAMS
 #define SSVVM_PARAMS
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Value.hpp"
-
 namespace ssvvm
 {
 	namespace Internal

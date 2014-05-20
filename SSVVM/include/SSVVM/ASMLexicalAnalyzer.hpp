@@ -5,9 +5,6 @@
 #ifndef SSVVM_ASMLEXICALANALYZER
 #define SSVVM_ASMLEXICALANALYZER
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Value.hpp"
-#include "SSVVM/Params.hpp"
 #include "SSVVM/Other/Graph.hpp"
 #include "SSVVM/Other/FSM.hpp"
 #include "SSVVM/Other/LexicalFSM.hpp"

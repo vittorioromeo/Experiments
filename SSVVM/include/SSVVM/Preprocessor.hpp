@@ -5,9 +5,6 @@
 #ifndef SSVVM_ASMPREPROCESSOR
 #define SSVVM_ASMPREPROCESSOR
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/ASMLexicalAnalyzer.hpp"
-
 namespace ssvvm
 {
 	template<bool TDebug> inline void preprocessSourceRaw(SourceVeeAsm& mSource)

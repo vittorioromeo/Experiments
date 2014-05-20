@@ -5,14 +5,6 @@
 #ifndef SSVVM_COMMON
 #define SSVVM_COMMON
 
-#include <cassert>
-#include <array>
-#include <vector>
-#include <memory>
-#include <tuple>
-#include <string>
-#include <SSVUtils/SSVUtils.hpp>
-
 namespace ssvvm
 {
 	template<typename T> using VMFnPtr = void(T::*)();

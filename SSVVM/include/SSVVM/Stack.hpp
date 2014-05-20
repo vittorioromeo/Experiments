@@ -5,9 +5,6 @@
 #ifndef SSVVM_STACK
 #define SSVVM_STACK
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Value.hpp"
-
 namespace ssvvm
 {
 	class Stack

@@ -6,7 +6,6 @@
 #define SSVVM
 
 #include <SSVUtils/SSVUtils.hpp>
-
 #include "SSVVM/Common.hpp"
 #include "SSVVM/SourceVeeAsm.hpp"
 #include "SSVVM/Value.hpp"
@@ -21,6 +20,7 @@
 #include "SSVVM/BoundFunction.hpp"
 #include "SSVVM/VirtualMachine.hpp"
 #include "SSVVM/UtilsStringifier.hpp"
+#include "SSVVM/ASMLexicalAnalyzer.hpp"
 #include "SSVVM/Preprocessor.hpp"
 #include "SSVVM/Assembler.hpp"
 

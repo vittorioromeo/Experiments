@@ -5,9 +5,6 @@
 #ifndef SSVVM_UTILS_STRINGIFIER
 #define SSVVM_UTILS_STRINGIFIER
 
-#include "SSVVM/Common.hpp"
-#include "SSVVM/Value.hpp"
-
 namespace ssvu
 {
 	template<> struct Stringifier<ssvvm::Value>
