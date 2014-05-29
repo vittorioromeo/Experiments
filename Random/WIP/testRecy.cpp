@@ -84,13 +84,13 @@ namespace ssvu
 {
 	namespace Internal
 	{
-		template<typename TDerived, typename TBase> class RecMemoryManagerBase : protected VectorUptrRecPoly<TBase>
+		template<typename TDerived, typename TBase> class RecMemoryManagerBase : protected VecUptrRecPoly<TBase>
 		{
 			template<typename T, typename P> friend void ssvu::eraseRemoveIf(T&, const P&);
 
 			protected:
 				using TUptr = UptrRec<TBase>;
-				using Container = VectorUptrRecPoly<TBase>;
+				using Container = VecUptrRecPoly<TBase>;
 				Container toAdd;
 
 			public:
