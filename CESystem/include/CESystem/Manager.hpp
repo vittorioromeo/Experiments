@@ -15,7 +15,7 @@ namespace ssvces
 		private:
 			Internal::IdPool entityIdPool;
 			std::vector<Internal::SystemBase*> systems;
-			std::vector<Uptr<Entity>> entities;
+			ssvu::VecUptr<Entity> entities;
 			std::array<std::vector<Entity*>, maxGroups> grouped;
 
 			inline Entity* create(Manager& mManager, Internal::IdPool& mIdPool)
