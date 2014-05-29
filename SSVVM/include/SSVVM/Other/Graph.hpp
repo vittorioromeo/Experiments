@@ -55,7 +55,7 @@ namespace ssvut
 			};
 			struct LinkBase { };
 
-			std::vector<ssvu::Uptr<NodeDerived>> nodes;
+			ssvu::VectorUptr<NodeDerived> nodes;
 
 			inline static const NodePtr& getNodeNull() noexcept { static NodePtr result{nullptr}; return result; }
 			inline static constexpr bool isNodeValid(const NodePtr& mNode) noexcept { return mNode != getNodeNull(); }

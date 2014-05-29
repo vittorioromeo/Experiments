@@ -60,19 +60,19 @@ namespace ssvu
 		}
 	}
 .
-	template<typename T, typename TBase> using RecPolyUptr = Uptr<T, void(*)(TBase*)>;
-	template<typename T, typename TBase, typename... TArgs> inline RecPolyUptr<T, TBase> makeRecPolyUptr(TArgs&&... mArgs) 
+	template<typename T, typename TBase> using UptrRecPoly = Uptr<T, void(*)(TBase*)>;
+	template<typename T, typename TBase, typename... TArgs> inline UptrRecPoly<T, TBase> makeUptrRecPoly(TArgs&&... mArgs) 
 	{
-		return RecPolyUptr<T, TBase>(Internal::makePolyPtr<T, TBase>(std::forward<TArgs>(mArgs)...), [](TBase* mPtr) 
+		return UptrRecPoly<T, TBase>(Internal::makePolyPtr<T, TBase>(std::forward<TArgs>(mArgs)...), [](TBase* mPtr) 
 		{
 			auto& pr(Internal::getPolyPtrRecycler<T, TBase>());
 			pr.destroy(mPtr); pr.push(mPtr);			
 		});
 	}
 
-	template<typename T, typename TBase, typename... TArgs, typename TC> inline T& getEmplaceRecPolyUptr(TC& mContainer, TArgs&&... mArgs)
+	template<typename T, typename TBase, typename... TArgs, typename TC> inline T& getEmplaceUptrRecPoly(TC& mContainer, TArgs&&... mArgs)
 	{
-		auto uptr(makeRecPolyUptr<T, TBase>(std::forward<TArgs>(mArgs)...));
+		auto uptr(makeUptrRecPoly<T, TBase>(std::forward<TArgs>(mArgs)...));
 		auto result(uptr.get());
 		mContainer.emplace_back(std::move(uptr));
 		return *result;
@@ -84,13 +84,13 @@ namespace ssvu
 {
 	namespace Internal
 	{
-		template<typename TDerived, typename TBase> class RecMemoryManagerBase : protected RecPolyUptrVector<TBase>
+		template<typename TDerived, typename TBase> class RecMemoryManagerBase : protected VectorUptrRecPoly<TBase>
 		{
 			template<typename T, typename P> friend void ssvu::eraseRemoveIf(T&, const P&);
 
 			protected:
-				using TUptr = RecUptr<TBase>;
-				using Container = RecPolyUptrVector<TBase>;
+				using TUptr = UptrRec<TBase>;
+				using Container = VectorUptrRecPoly<TBase>;
 				Container toAdd;
 
 			public:
@@ -119,11 +119,11 @@ namespace ssvu
 			inline void refreshImpl()
 			{
 				for(auto& i : this->toAdd) this->emplace_back(std::move(i)); this->toAdd.clear();
-				eraseRemoveIf(*this, this->template isDead<RecUptr<TBase>>);
+				eraseRemoveIf(*this, this->template isDead<UptrRec<TBase>>);
 			}
 			template<typename TType = TBase, typename... TArgs> inline TType& createTImpl(TArgs&&... mArgs)
 			{
-				return ssvu::getEmplaceRecPolyUptr<TType, TBase>(this->toAdd, std::forward<TArgs>(mArgs)...);
+				return ssvu::getEmplaceUptrRecPoly<TType, TBase>(this->toAdd, std::forward<TArgs>(mArgs)...);
 			}
 	};
 }
@@ -179,11 +179,11 @@ void doBench()
 
 	ssvu::lo() << "" << std::endl;
 
-	Benchmark::start("Vector<RecPolyUptr>");
+	Benchmark::start("Vector<UptrRecPoly>");
 	{
 		Benchmark::start("Create");
 				
-			std::vector<RecPolyUptr<Base, Base>> v;
+			std::vector<UptrRecPoly<Base, Base>> v;
 			v.reserve(s);
 		
 		Benchmark::endLo();
@@ -195,8 +195,8 @@ void doBench()
 			{
 				for(int i{0}; i < s; ++i)
 				{
-					if(i % 2 == 0) v.emplace_back(makeRecPolyUptr<Der1, Base>());
-					else v.emplace_back(makeRecPolyUptr<Der2, Base>());
+					if(i % 2 == 0) v.emplace_back(makeUptrRecPoly<Der1, Base>());
+					else v.emplace_back(makeUptrRecPoly<Der2, Base>());
 				}
 			}
 			Benchmark::endLo();
@@ -336,7 +336,7 @@ int main()
 {
 
 	ssvu::lo("N") << sizeof(ssvu::Uptr<Base>) << std::endl;
-	ssvu::lo("R") << sizeof(ssvu::RecUptr<Base>) << std::endl;
+	ssvu::lo("R") << sizeof(ssvu::UptrRec<Base>) << std::endl;
 	SSVU_ASSERT(false);
 	//doBench();
 	doBench2();
@@ -408,14 +408,14 @@ namespace ssvu
 	}
 
 
-	template<typename T> using RecUptr = Uptr<T, void(*)(T*)>;
+	template<typename T> using UptrRec = Uptr<T, void(*)(T*)>;
 	template<typename T> using RecSptr = std::shared_ptr<T>;
 
-	template<typename T, typename TBase> using RecPolyUptr = Uptr<T, void(*)(TBase*)>;
+	template<typename T, typename TBase> using UptrRecPoly = Uptr<T, void(*)(TBase*)>;
 
-	template<typename T, typename... TArgs> inline RecUptr<T> makeRecUptr(TArgs&&... mArgs) 
+	template<typename T, typename... TArgs> inline UptrRec<T> makeUptrRec(TArgs&&... mArgs) 
 	{
-		return Internal::makeSmart<T, RecUptr<T>, std::allocator<T>>(std::forward<TArgs>(mArgs)...);
+		return Internal::makeSmart<T, UptrRec<T>, std::allocator<T>>(std::forward<TArgs>(mArgs)...);
 	}
 
 	template<typename T, typename... TArgs> inline RecSptr<T> makeRecSptr(TArgs&&... mArgs) 
@@ -434,10 +434,10 @@ struct Der2 : Base { };
 
 int main()
 {
-	std::vector<ssvu::RecUptr<Base>> v;
+	std::vector<ssvu::UptrRec<Base>> v;
 
-	v.emplace_back(ssvu::makeRecUptr<Base>());
-	v.emplace_back(ssvu::makeRecUptr<Der1>());
+	v.emplace_back(ssvu::makeUptrRec<Base>());
+	v.emplace_back(ssvu::makeUptrRec<Der1>());
 }
 
 */
