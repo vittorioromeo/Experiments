@@ -215,7 +215,7 @@ void doBench()
 void doBench2()
 {
 	using namespace ssvu;
-	constexpr std::size_t s(10000000);
+	constexpr std::size_t s(1000000);
 	constexpr int jj{20};
 
 for(int n{0}; n < 2; ++n){
@@ -310,6 +310,61 @@ for(int n{0}; n < 2; ++n){
 				{
 					++i;
 					if(i % 3 == 0) v.del(*r);
+				}
+			}
+		//	Benchmark::endLo();
+
+		//	Benchmark::start("Refresh");
+			{
+				v.refresh();
+			}
+		//	Benchmark::endLo();
+
+		//	Benchmark::start("Clear");
+			{
+				v.clear();
+			}
+		//	Benchmark::endLo();
+		}
+		//Benchmark::endLo();
+	}
+	Benchmark::endLo();
+
+
+	Benchmark::start("MR2");
+	{
+		//Benchmark::start("Create");
+				
+			MemoryManager2<Base> v;
+		
+		//Benchmark::endLo();
+
+		//Benchmark::start("Loop");
+		for(int j{0}; j < jj; ++j)
+		{
+			//Benchmark::start("Fill");
+			{
+				for(int i{0}; i < s; ++i)
+				{
+					if(i % 2 == 0) v.create<Der1>();
+					else v.create<Der2>();
+				}
+			}
+		//	Benchmark::endLo();
+		
+		//	Benchmark::start("Refresh");
+			{
+				v.refresh();
+			}
+		//	Benchmark::endLo();
+
+		//	Benchmark::start("SetDead");
+			{
+				int i{0};
+				for(auto& r : v)
+				{
+					++i;
+					if(i % 3 == 0) v.del(r);
 				}
 			}
 		//	Benchmark::endLo();
