@@ -331,62 +331,6 @@ for(int n{0}; n < 3; ++n){
 	Benchmark::endLo();
 
 
-	Benchmark::start("MR2");
-	{
-		//Benchmark::start("Create");
-				
-			MemoryManager2<Base> v;
-		
-		//Benchmark::endLo();
-
-		//Benchmark::start("Loop");
-		for(int j{0}; j < jj; ++j)
-		{
-			//Benchmark::start("Fill");
-			{
-				for(int i{0}; i < s; ++i)
-				{
-					if(i % 2 == 0) v.create<Der1>();
-					else v.create<Der2>();
-				}
-			}
-		//	Benchmark::endLo();
-		
-		//	Benchmark::start("Refresh");
-			{
-				v.refresh();
-			}
-		//	Benchmark::endLo();
-
-		//	Benchmark::start("SetDead");
-			{
-				int i{0};
-				for(auto& r : v)
-				{
-					++i;
-					if(i % 3 == 0) v.del(*r);
-				}
-			}
-		//	Benchmark::endLo();
-
-		//	Benchmark::start("Refresh");
-			{
-				v.refresh();
-			}
-		//	Benchmark::endLo();
-
-		//	Benchmark::start("Clear");
-			{
-				v.clear();
-			}
-		//	Benchmark::endLo();
-		}
-		//Benchmark::endLo();
-	}
-	Benchmark::endLo();
-
-
-
 	Benchmark::start("MR2Rec");
 	{
 		//Benchmark::start("Create");
