@@ -8,16 +8,16 @@ std::string source{
 
 	$require_registers(4);
 
-	$define(R0, 		0);
-	$define(R1, 		1);
-	$define(R2, 		2);
+	$define(R0,			0);
+	$define(R1,			1);
+	$define(R2,			2);
 	$define(ROutput,	3);
 
 
 
 
 	// _______________________________
-	// 	FN_MAIN function
+	//	FN_MAIN function
 	//		* entrypoint
 	//		* returns in ROutput
 	// _______________________________
@@ -60,7 +60,7 @@ std::string source{
 
 
 	// _______________________________
-	// 	FN_FIB function
+	//	FN_FIB function
 	//		* needs 1 int argument
 	//		* uses R0, R1
 	//		* returns in R0
