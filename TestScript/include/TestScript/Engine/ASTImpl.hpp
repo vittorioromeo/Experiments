@@ -7,13 +7,13 @@
 
 namespace Eng
 {
-	template<typename TL> class ASTTokenNodeImpl : public ASTNode<TL>
+	template<typename TL> class ASTTokenNode : public ASTNode<TL>
 	{
 		private:
 			Token<TL> token;
 
 		public:
-			inline ASTTokenNodeImpl(Token<TL> mToken) : token{std::move(mToken)} { }
+			inline ASTTokenNode(Token<TL> mToken) : token{std::move(mToken)} { }
 			inline decltype(token)& getToken() noexcept { return token; }
 	};
 }

@@ -9,7 +9,6 @@ namespace Eng
 {
 	template<typename TL> class ASTNode
 	{
-		template<typename> friend class NodeCtx;
 		template<typename> friend class Parser;
 
 		private:

@@ -13,11 +13,10 @@ template<bool TFmt, typename TN> inline void printNode(std::ostream& mStream, TN
 	{
 		ssvu::Internal::callStringifyImpl<TFmt>(mStream, mValue.template getAs<Lang::ASTExpr>().getName());
 	}
-	else if(dynamic_cast<Eng::ASTTokenNodeImpl<Lang::Spec>*>(&mValue))
+	else if(dynamic_cast<Eng::ASTTokenNode<Lang::Spec>*>(&mValue))
 	{
-		ssvu::Internal::callStringifyImpl<TFmt>(mStream, Lang::tknToStr(mValue.template getAs<Eng::ASTTokenNodeImpl<Lang::Spec>>().getToken().getType()));
+		ssvu::Internal::callStringifyImpl<TFmt>(mStream, Lang::tknToStr(mValue.template getAs<Eng::ASTTokenNode<Lang::Spec>>().getToken().getType()));
 	}
-
 
 	ssvu::Internal::callStringifyImpl<TFmt>(mStream, "\n");
 
@@ -32,6 +31,8 @@ template<bool TFmt, typename TN> inline void printNode(std::ostream& mStream, TN
 	}
 }
 
+
+
 int main()
 {
 	using namespace Eng;
@@ -39,57 +40,103 @@ int main()
 
 
 	Parser<Spec> parser;
-	auto& ruleSet(parser.getRuleSet());
 
-	ruleSet.createRule(RuleKey<Spec>{Tkn::Number}, [](NodeCtx<Spec>& mCtx) -> ASTNode<Spec>&
+	auto& numberToExpr(parser.createRule());
+	numberToExpr.setPredicate([](Ctx<Spec>& mCtx)
 	{
-		ssvu::lo("NUMB") << "" << std::endl;
-		return mCtx.createReduction<ASTNumber>(15);
+		if(mCtx.getSize() < 1) return false;
+
+		return mCtx[0].isTknNode(Tkn::Number);
 	});
-	ruleSet.createRule(RuleKey<Spec>{Tkn::POpen, getASTTypeId<ASTExpr>(), Tkn::PClose}, [](NodeCtx<Spec>& mCtx) -> ASTNode<Spec>&
+	numberToExpr.setAction([](Ctx<Spec>& mCtx)
 	{
-		ssvu::lo("PEXPR") << "" << std::endl;
-		return mCtx.createReduction<ASTParenthesizedExpr>(mCtx.get<ASTExpr>(1));
-	});
-	ruleSet.createRule(RuleKey<Spec>{getASTTypeId<ASTNumber>()}, [](NodeCtx<Spec>& mCtx) -> ASTNode<Spec>&
-	{
-		ssvu::lo("EXPR") << "" << std::endl;
-		return mCtx.createReduction<ASTExpr>();
-	});
-	ruleSet.createRule(RuleKey<Spec>{getASTTypeId<ASTBinaryOp<OpAddition<int>>>()}, [](NodeCtx<Spec>& mCtx) -> ASTNode<Spec>&
-	{
-		ssvu::lo("EXPR") << "" << std::endl;
-		return mCtx.createReduction<ASTExpr>();
-	});
-	ruleSet.createRule(RuleKey<Spec>{getASTTypeId<ASTExpr>(), Tkn::OpPlus, getASTTypeId<ASTExpr>()}, [](NodeCtx<Spec>& mCtx) -> ASTNode<Spec>&
-	{
-		ssvu::lo("PLUSEXPR") << "" << std::endl;
-		return mCtx.createReduction<ASTBinaryOp<OpAddition<int>>>(mCtx.get<ASTExpr>(0), mCtx.get<ASTExpr>(2));
+		mCtx.pop();
+		mCtx.pushCreate<ASTNumber>(2);
 	});
 
-// figure a way of not having to specify all inherited class of a certain class for expansions
+	auto& parenthesizedExpr(parser.createRule());
+	parenthesizedExpr.setPredicate([](Ctx<Spec>& mCtx)
+	{
+		if(mCtx.getSize() < 3) return false;
+		return mCtx[0].isTknNode(Tkn::POpen) && mCtx[1].isDerivedFrom<ASTExpr>() && mCtx[2].isTknNode(Tkn::PClose);
+	});
+	parenthesizedExpr.setAction([](Ctx<Spec>& mCtx)
+	{
+		mCtx.pop();
+		auto& expr1(mCtx.popAs<ASTExpr>());
+		mCtx.pop();
+		mCtx.pushCreate<ASTParenthesizedExpr>(expr1);
+	});
+
+	#define RULE_CREATE_BIN_OP(mName, mTknName, mOpName, mLookAhead) \
+		auto& mName(parser.createRule()); \
+		mName.setPredicate([](Ctx<Spec>& mCtx) \
+		{ \
+			if(mCtx.getSize() < 3) return false; \
+			return mCtx[0].isDerivedFrom<ASTExpr>() && mCtx[1].isTknNode(Tkn::mTknName) && mCtx[2].isDerivedFrom<ASTExpr>(); \
+		}); \
+		mName.setAction([](Ctx<Spec>& mCtx) \
+		{ \
+			auto& expr1(mCtx.popAs<ASTExpr>()); \
+			mCtx.pop(); \
+			auto& expr2(mCtx.popAs<ASTExpr>()); \
+			mCtx.pushCreate<ASTBinaryOp<mOpName<int>>>(expr1, expr2); \
+		}); \
+		if(mLookAhead) mName.setLookAhead([](Ctx<Spec>& mCtx, LookAheadResults& mResults) \
+		{ \
+			if(!mCtx.canLookAhead(3)) return; \
+			if(mCtx.getAhead(3).isTknNode(Tkn::OpMul) || mCtx.getAhead(3).isTknNode(Tkn::OpDiv) || mCtx.getAhead(3).isTknNode(Tkn::OpMod)) \
+			{ \
+				mResults.forceShift = true; \
+			} \
+		})
+
+	RULE_CREATE_BIN_OP(binMul, OpMul, OpMul, false);
+	RULE_CREATE_BIN_OP(binDiv, OpDiv, OpDiv, false);
+	RULE_CREATE_BIN_OP(binMod, OpMod, OpMod, false);
+	RULE_CREATE_BIN_OP(binAdd, OpAdd, OpAdd, true);
+	RULE_CREATE_BIN_OP(binSub, OpSub, OpSub, true);
 
 	std::vector<Token<Spec>> src
 	{
+		{Tkn::Number},
+		{Tkn::OpAdd},
+		{Tkn::Number},
+		{Tkn::OpMul},
+		{Tkn::Number},
+		{Tkn::OpAdd},
+		{Tkn::Number},
+		{Tkn::OpAdd},
+		{Tkn::Number},
+		{Tkn::OpDiv},
+		{Tkn::Number},
+		{Tkn::OpAdd},
+		{Tkn::Number}
+	};
+
+	std::vector<Token<Spec>> src2
+	{
+		{Tkn::POpen},
 		{Tkn::POpen},
 		{Tkn::Number},
-		{Tkn::OpPlus},
+		{Tkn::OpAdd},
 		{Tkn::Number},
 		{Tkn::PClose},
-		{Tkn::OpPlus},
+		{Tkn::OpMul},
 		{Tkn::POpen},
 		{Tkn::Number},
-		{Tkn::OpPlus},
+		{Tkn::OpAdd},
 		{Tkn::Number},
-		{Tkn::PClose}
+		{Tkn::PClose},
+		{Tkn::PClose},
+		{Tkn::OpMul},
+		{Tkn::Number}
 	};
 
 	parser.run(src);
 
-	auto& b(parser.getNodeStack().back());
+	auto& b(parser.getParseStack().back());
 	ssvu::lo("RESULT") <<	b->getAs<ASTExpr>().eval() << std::endl;
-	//ssvu::lo() << b->getAsNode().getNode().getChildren().size() << std::endl;
-	//ssvu::lo() << int(b->getAsNode().getNode().getType());
 	b->getAs<ASTExpr>().toBytecode();
 
 	printNode<true>(std::cout, *b, 0);
@@ -99,8 +146,3 @@ int main()
 	return 0;
 }
 
-/*
-OpMinus,
-		OpMult,
-		OpDiv,
-		OpMod*/

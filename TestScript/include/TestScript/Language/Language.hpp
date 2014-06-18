@@ -12,9 +12,9 @@ namespace Lang
 		Number,
 		POpen,
 		PClose,
-		OpPlus,
-		OpMinus,
-		OpMult,
+		OpAdd,
+		OpSub,
+		OpMul,
 		OpDiv,
 		OpMod
 	};
@@ -28,9 +28,9 @@ namespace Lang
 			"Number",
 			"POpen",
 			"PClose",
-			"OpPlus",
-			"OpMinus",
-			"OpMult",
+			"OpAdd",
+			"OpSub",
+			"OpMul",
 			"OpDiv",
 			"OpMod"
 		};
@@ -45,16 +45,8 @@ namespace Lang
 	struct ASTExpr : public Eng::ASTNode<Spec>
 	{
 		inline virtual std::string getName() { return "ASTExpr"; }
-		inline virtual int eval()
-		{
-			auto& child(getChildren()[0]->getAs<ASTExpr>());
-			return child.eval();
-		}
-		inline virtual void toBytecode()
-		{
-			auto& child(getChildren()[0]->getAs<ASTExpr>());
-			child.toBytecode();
-		}
+		virtual int eval() = 0;
+		virtual void toBytecode() = 0;
 	};
 
 
@@ -64,47 +56,57 @@ namespace Lang
 
 		inline ASTNumber(int mValue) : value{mValue} { }
 
-		inline std::string getName() override { return "ASTNumber"; }
+		inline std::string getName() override { return ssvu::toStr(value); }
 		inline int eval() override
 		{
 			return value;
 		}
 
-		inline void toBytecode() override { ssvu::lo() << "push Number" << std::endl; }
+		inline void toBytecode() override { ssvu::lo() << "push(" << value << ");" << std::endl; }
 	};
 
 	struct ASTParenthesizedExpr : public ASTExpr
 	{
 		ASTExpr* innerExpr{nullptr};
 
-		inline ASTParenthesizedExpr(ASTExpr& mInnerExpr) : innerExpr{&mInnerExpr} { }
+		inline ASTParenthesizedExpr(ASTExpr& mInnerExpr) : innerExpr{&mInnerExpr}
+		{
+			emplaceChild(innerExpr);
+		}
 
-		inline std::string getName() override { return "ASTParenthesizedExpr"; }
+		inline std::string getName() override { return "( ... )"; }
 		inline int eval() override { return innerExpr->eval(); }
 		inline void toBytecode() override { innerExpr->toBytecode(); }
 	};
 
-	template<typename T> struct OpAddition			{ inline static T get(const T& mA, const T& mB) noexcept { return mA + mB; } };
-	template<typename T> struct OpSubtraction		{ inline static T get(const T& mA, const T& mB) noexcept { return mA - mB; } };
-	template<typename T> struct OpMultiplication	{ inline static T get(const T& mA, const T& mB) noexcept { return mA * mB; } };
-	template<typename T> struct OpDivision			{ inline static T get(const T& mA, const T& mB) noexcept { return mA / mB; } };
-	template<typename T> struct OpRemainder			{ inline static T get(const T& mA, const T& mB) noexcept { return mA % mB; } };
+	#define CREATE_OP_STRUCT(mName, mOp) \
+		template<typename T> struct mName \
+		{ \
+			inline static T get(const T& mA, const T& mB) noexcept { return mA mOp mB; } \
+			inline static std::string getStr() noexcept { return SSVPP_TOSTR(mOp); } \
+		}
+
+	CREATE_OP_STRUCT(OpAdd, +);
+	CREATE_OP_STRUCT(OpSub, -);
+	CREATE_OP_STRUCT(OpMul, *);
+	CREATE_OP_STRUCT(OpDiv, /);
+	CREATE_OP_STRUCT(OpMod, %);
 
 	template<typename TOp> struct ASTBinaryOp : public ASTExpr
 	{
 		ASTExpr* lhs{nullptr};
 		ASTExpr* rhs{nullptr};
 
-		inline ASTBinaryOp(ASTExpr& mLhs, ASTExpr& mRhs) : lhs{&mLhs}, rhs{&mRhs} { }
-
-		inline std::string getName() override { return "ASTBinaryOp"; }
-		inline int eval() override
+		inline ASTBinaryOp(ASTExpr& mLhs, ASTExpr& mRhs) : lhs{&mLhs}, rhs{&mRhs}
 		{
-			ssvu::lo("+EXP") << std::endl;
-			return TOp::get(lhs->eval(), rhs->eval());
+			emplaceChild(lhs);
+			emplaceChild(rhs);
 		}
 
-		inline void toBytecode() override { lhs->toBytecode(); rhs->toBytecode(); ssvu::lo() << "pop Sum" << std::endl; }
+		inline std::string getName() override { return TOp::getStr(); }
+		inline int eval() override { return TOp::get(lhs->eval(), rhs->eval()); }
+
+		inline void toBytecode() override { lhs->toBytecode(); rhs->toBytecode(); ssvu::lo() << "popOp(" << TOp::getStr() << ");" << std::endl; }
 	};
 }
 
