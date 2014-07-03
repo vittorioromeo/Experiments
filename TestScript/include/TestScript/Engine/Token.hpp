@@ -20,6 +20,16 @@ namespace Eng
 			inline const TokenType<TL>& getType() const noexcept { return type; }
 			inline const TokenData<TL>& getData() const noexcept { return data; }
 	};
+
+	template<typename TL> class ASTTokenNode : public Node<TL>
+	{
+		private:
+			Token<TL> token;
+
+		public:
+			inline ASTTokenNode(Token<TL> mToken) : token{std::move(mToken)} { }
+			inline decltype(token)& getToken() noexcept { return token; }
+	};
 }
 
 #endif

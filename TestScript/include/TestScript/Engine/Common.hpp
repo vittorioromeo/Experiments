@@ -7,16 +7,14 @@
 
 namespace Eng
 {
-	enum class RPType{Token, Node};
-
-	using ASTTypeId = std::size_t;
+	using NodeTID = std::size_t;
 
 	namespace Internal
 	{
-		inline ASTTypeId getNextASTTypeId() noexcept { static ASTTypeId lastId{0}; return lastId++; }
+		inline NodeTID getNextNodeTID() noexcept { static NodeTID lastId{0}; return lastId++; }
 	}
 
-	template<typename T> inline const ASTTypeId& getASTTypeId() noexcept { static ASTTypeId id{Internal::getNextASTTypeId()}; return id; }
+	template<typename T> inline const NodeTID& getNodeTID() noexcept { static NodeTID id{Internal::getNextNodeTID()}; return id; }
 
 	template<typename TTokenType, typename TTokenData> struct LangSpec
 	{
@@ -27,10 +25,12 @@ namespace Eng
 	template<typename TL> using TokenType = typename TL::TokenType;
 	template<typename TL> using TokenData = typename TL::TokenData;
 
-	template<typename TL> class ASTNode;
+	template<typename TL> class Node;
 
-	template<typename TL> using ASTNodePtr = ASTNode<TL>*;
-	template<typename TL> using ASTNodeUptr = ssvu::Uptr<ASTNode<TL>>;
+	template<typename TL> using NodePtr = Node<TL>*;
+	template<typename TL> using NodeUptr = ssvu::Uptr<Node<TL>>;
+
+	template<typename TL> class Parser;
 }
 
 #endif

@@ -7,13 +7,9 @@
 
 #include "TestScript/Engine/Common.hpp"
 #include "TestScript/Engine/Token.hpp"
-#include "TestScript/Engine/ASTImpl.hpp"
-#include "TestScript/Engine/ASTNode.hpp"
-#include "TestScript/Engine/RulePart.hpp"
-#include "TestScript/Engine/RuleKey.hpp"
-#include "TestScript/Engine/NodeCtx.hpp"
+#include "TestScript/Engine/Node.hpp"
+#include "TestScript/Engine/Ctx.hpp"
 #include "TestScript/Engine/Rule.hpp"
-#include "TestScript/Engine/RuleSet.hpp"
 #include "TestScript/Engine/Parser.hpp"
 
 #endif

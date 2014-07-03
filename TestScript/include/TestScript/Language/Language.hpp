@@ -42,7 +42,7 @@ namespace Lang
 
 	using Spec = Eng::LangSpec<Tkn, TknData>;
 
-	struct ASTExpr : public Eng::ASTNode<Spec>
+	struct ASTExpr : public Eng::Node<Spec>
 	{
 		inline virtual std::string getName() { return "ASTExpr"; }
 		virtual int eval() = 0;
