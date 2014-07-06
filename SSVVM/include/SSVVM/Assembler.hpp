@@ -179,7 +179,7 @@ namespace ssvvm
 
 			if(!Internal::hasInstructionTemplate(i.identifier))
 			{
-				ssvu::lo("ASSEMBLER ERROR") << "No OpCode with name '" << i.identifier << "'" << std::endl;
+				ssvu::lo("ASSEMBLER ERROR") << "No OpCode with name '" << i.identifier << "'\n";
 				throw;
 			}
 
@@ -187,7 +187,7 @@ namespace ssvvm
 
 			if(it.requiredArgs != i.args.size())
 			{
-				ssvu::lo("ASSEMBLER ERROR") << "OpCode '" << i.identifier << "' requires '" << it.requiredArgs << "' arguments" << std::endl;
+				ssvu::lo("ASSEMBLER ERROR") << "OpCode '" << i.identifier << "' requires '" << it.requiredArgs << "' arguments\n";
 				throw;
 			}
 
