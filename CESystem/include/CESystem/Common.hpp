@@ -30,7 +30,12 @@ namespace ssvces
 		class SystemBase;
 
 		// Returns the next unique bit index for a type
-		inline TypeIdIdx getNextTypeIdBitIdx() noexcept { static TypeIdIdx lastIdx{0}; return lastIdx++; }
+		inline TypeIdIdx getNextTypeIdBitIdx() noexcept
+		{
+			static TypeIdIdx lastIdx{0};
+			SSVU_ASSERT(lastIdx < maxComponents);
+			return lastIdx++;
+		}
 
 		// Shortcut to get the bit index of a Component type
 		template<typename T> inline const TypeIdIdx& getTypeIdBitIdx() noexcept
