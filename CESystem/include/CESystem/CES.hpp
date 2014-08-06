@@ -5,8 +5,6 @@
 #ifndef SSVOB_CESYSTEM_CES
 #define SSVOB_CESYSTEM_CES
 
-#include <numeric>
-#include <bitset>
 #include <SSVUtils/SSVUtils.hpp>
 #include "CESystem/Common.hpp"
 #include "CESystem/IdPool.hpp"
