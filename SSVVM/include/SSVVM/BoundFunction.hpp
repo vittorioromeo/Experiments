@@ -63,11 +63,11 @@ namespace ssvvm
 		private:
 			VMVal returnType;
 			std::array<VMVal, Params::valueCount> paramTypes;
-			ssvu::Uptr<Internal::CFunctionBase> cFunction;
+			ssvu::UPtr<Internal::CFunctionBase> cFunction;
 
 		public:
 			template<typename TReturn, typename... TArgs> inline BoundFunction(TReturn(*mFnPtr)(TArgs...))
-				: returnType{getVMVal<TReturn>()}, cFunction{ssvu::Uptr<Internal::CFunctionBase>(new Internal::CFunction<TReturn(TArgs...)>(mFnPtr))}
+				: returnType{getVMVal<TReturn>()}, cFunction{ssvu::UPtr<Internal::CFunctionBase>(new Internal::CFunction<TReturn(TArgs...)>(mFnPtr))}
 			{
 				Internal::bfArrayFillHelper<0, TArgs...>(paramTypes);
 			}

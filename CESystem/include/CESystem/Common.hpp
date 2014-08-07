@@ -23,7 +23,7 @@ namespace ssvces
 	using Group = std::size_t;
 	using GroupBitset = std::bitset<maxGroups>;
 
-	template<typename T, typename TDeleter = std::default_delete<T>> using Uptr = ssvu::Uptr<T, TDeleter>;
+	template<typename T, typename TDeleter = std::default_delete<T>> using UPtr = ssvu::UPtr<T, TDeleter>;
 
 	namespace Internal
 	{

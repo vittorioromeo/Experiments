@@ -15,10 +15,10 @@ namespace Eng
 		private:
 			ssvu::PolyManager<Node<TL>> nodeManager;
 			std::vector<NodePtr<TL>> sourceStack, parseStack;//, nodeStack;
-			ssvu::VecUptr<Rule<TL>> rules;
+			ssvu::VecUPtr<Rule<TL>> rules;
 
 		public:
-			inline Rule<TL>& createRule() { return ssvu::getEmplaceUptr<Rule<TL>>(rules); }
+			inline Rule<TL>& createRule() { return ssvu::getEmplaceUPtr<Rule<TL>>(rules); }
 
 			inline void shift()
 			{

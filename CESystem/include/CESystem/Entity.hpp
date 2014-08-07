@@ -20,7 +20,7 @@ namespace ssvces
 
 		private:
 			Manager& manager;
-			std::array<Uptr<Component>, maxComponents> components;
+			std::array<UPtr<Component>, maxComponents> components;
 			TypeIdsBitset typeIds;
 			bool mustDestroy{false}, mustRematch{true};
 			GroupBitset groups;

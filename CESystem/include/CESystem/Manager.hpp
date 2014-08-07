@@ -15,12 +15,12 @@ namespace ssvces
 		private:
 			Internal::IdPool entityIdPool;
 			std::vector<Internal::SystemBase*> systems;
-			ssvu::VecUptr<Entity> entities;
+			ssvu::VecUPtr<Entity> entities;
 			std::array<std::vector<Entity*>, maxGroups> grouped;
 
 			inline Entity* create(Manager& mManager, Internal::IdPool& mIdPool)
 			{
-				return &ssvu::getEmplaceUptr<Entity>(entities, mManager, mIdPool.getAvailable());
+				return &ssvu::getEmplaceUPtr<Entity>(entities, mManager, mIdPool.getAvailable());
 			}
 
 			inline void addToGroup(Entity* mEntity, Group mGroup) { SSVU_ASSERT(mGroup <= maxGroups); grouped[mGroup].emplace_back(mEntity); }

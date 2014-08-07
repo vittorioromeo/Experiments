@@ -55,7 +55,7 @@ namespace ssvut
 			};
 			struct LinkBase { };
 
-			ssvu::VecUptr<NodeDerived> nodes;
+			ssvu::VecUPtr<NodeDerived> nodes;
 
 			inline static const NodePtr& getNodeNull() noexcept { static NodePtr result{nullptr}; return result; }
 			inline static constexpr bool isNodeValid(const NodePtr& mNode) noexcept { return mNode != getNodeNull(); }
@@ -63,7 +63,7 @@ namespace ssvut
 			template<typename... TArgs> inline NodePtr createNode(TArgs&&... mArgs)
 			{
 				SSVU_ASSERT_STATIC(ssvu::isBaseOf<GraphNode<TGraph>, NodeDerived>(), "TNode must be derived from Graph::Node");
-				return &ssvu::getEmplaceUptr<NodeDerived>(nodes, std::forward<TArgs>(mArgs)...);
+				return &ssvu::getEmplaceUPtr<NodeDerived>(nodes, std::forward<TArgs>(mArgs)...);
 			}
 		};
 	}

@@ -28,7 +28,7 @@ namespace Eng
 	template<typename TL> class Node;
 
 	template<typename TL> using NodePtr = Node<TL>*;
-	template<typename TL> using NodeUptr = ssvu::Uptr<Node<TL>>;
+	template<typename TL> using NodeUPtr = ssvu::UPtr<Node<TL>>;
 
 	template<typename TL> class Parser;
 }
