@@ -17,45 +17,45 @@ void doBench()
 	constexpr std::size_t s(1000000);
 	constexpr int jj{10};
 
-	Benchmark::start("VecUptr");
+	Benchmark::start("VecUPtr");
 	{
-		VecUptr<Base> v;
+		VecUPtr<Base> v;
 		v.reserve(s);
 		
 		for(int j{0}; j < jj; ++j)
 		{
 			for(int i{0}; i < s; ++i)
 			{
-				if(i % 2 == 0) v.emplace_back(makeUptr<Der1>());
-				else v.emplace_back(makeUptr<Der2>());
+				if(i % 2 == 0) v.emplace_back(makeUPtr<Der1>());
+				else v.emplace_back(makeUPtr<Der2>());
 			}
 
 			int i{0};
 			for(auto& r : v) if(i++ % 3 == 0) r->dead = true;
 			
-			eraseRemoveIf(v, [](const Uptr<Base>& mP){ return mP->dead; });
+			eraseRemoveIf(v, [](const UPtr<Base>& mP){ return mP->dead; });
 			v.clear();	
 		}
 	}
 	Benchmark::endLo();
 
-	Benchmark::start("VecUptrRec");
+	Benchmark::start("VecUPtrRec");
 	{	
-		VecUptrRec<Base> v;
+		VecUPtrRec<Base> v;
 		v.reserve(s);
 		
 		for(int j{0}; j < jj; ++j)
 		{
 			for(int i{0}; i < s; ++i)
 			{
-				if(i % 2 == 0) v.emplace_back(makeUptrRecPoly<Der1, Base>());
-				else v.emplace_back(makeUptrRecPoly<Der2, Base>());
+				if(i % 2 == 0) v.emplace_back(makeUPtrRecPoly<Der1, Base>());
+				else v.emplace_back(makeUPtrRecPoly<Der2, Base>());
 			}
 
 			int i{0};
 			for(auto& r : v) if(i++ % 3 == 0) r->dead = true;
 	
-			eraseRemoveIf(v, [](const UptrRec<Base>& mP){ return mP->dead; });
+			eraseRemoveIf(v, [](const UPtrRec<Base>& mP){ return mP->dead; });
 			v.clear();
 		}
 	}
@@ -88,8 +88,8 @@ void doBench()
 
 int main()
 {
-	ssvu::lo("N") << sizeof(ssvu::Uptr<Base>) << std::endl;
-	ssvu::lo("R") << sizeof(ssvu::UptrRec<Base>) << std::endl;
+	ssvu::lo("N") << sizeof(ssvu::UPtr<Base>) << std::endl;
+	ssvu::lo("R") << sizeof(ssvu::UPtrRec<Base>) << std::endl;
 	SSVU_ASSERT(false);
 	for(int n{0}; n < 3; ++n) doBench();	
 }

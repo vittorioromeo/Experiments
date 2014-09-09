@@ -36,9 +36,9 @@ void doBench()
 	constexpr std::size_t s(10000000);
 	constexpr std::size_t nn(6);
 
-	Benchmark::start("VecUptr");
+	Benchmark::start("VecUPtr");
 	{
-		VecUptr<OBase> v;
+		VecUPtr<OBase> v;
 
 		for(int n = 0; n < nn; ++n)
 		{
@@ -46,25 +46,25 @@ void doBench()
 			for(int i = 0; i < m * 1; ++i)
 			{
 				int k = i % 3;
- 				if(k == 0) v.emplace_back(makeUptr<OSmall>());
- 				else if(k == 1) v.emplace_back(makeUptr<OBig>());
- 				else if(k == 2) v.emplace_back(makeUptr<OHuge>());
+ 				if(k == 0) v.emplace_back(makeUPtr<OSmall>());
+ 				else if(k == 1) v.emplace_back(makeUPtr<OBig>());
+ 				else if(k == 2) v.emplace_back(makeUPtr<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 2; ++i)
 			{
 				int k = i % 3;
- 				if(k == 0) v.emplace_back(makeUptr<OSmall>());
- 				else if(k == 1) v.emplace_back(makeUptr<OBig>());
- 				else if(k == 2) v.emplace_back(makeUptr<OHuge>());
+ 				if(k == 0) v.emplace_back(makeUPtr<OSmall>());
+ 				else if(k == 1) v.emplace_back(makeUPtr<OBig>());
+ 				else if(k == 2) v.emplace_back(makeUPtr<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 3; ++i)
 			{
 				int k = i % 3;
- 				if(k == 0) v.emplace_back(makeUptr<OSmall>());
- 				else if(k == 1) v.emplace_back(makeUptr<OBig>());
- 				else if(k == 2) v.emplace_back(makeUptr<OHuge>());
+ 				if(k == 0) v.emplace_back(makeUPtr<OSmall>());
+ 				else if(k == 1) v.emplace_back(makeUPtr<OBig>());
+ 				else if(k == 2) v.emplace_back(makeUPtr<OHuge>());
 			}
 			v.clear();
 		}

@@ -25,10 +25,10 @@ namespace Eng
 
 	template<typename TL> using ASTNodePtr = ASTNode<TL>*;
 	template<typename TL> using ASTImplPtr = ASTImpl<TL>*;
-	template<typename TL> using ASTNodeUptr = ssvu::Uptr<ASTNode<TL>>;
-	template<typename TL> using ASTImplUptr = ssvu::Uptr<ASTImpl<TL>>;
+	template<typename TL> using ASTNodeUPtr = ssvu::UPtr<ASTNode<TL>>;
+	template<typename TL> using ASTImplUPtr = ssvu::UPtr<ASTImpl<TL>>;
 
-	template<typename TL, typename T, typename... TArgs> inline ASTImplUptr<TL> createASTImpl(TArgs&&... mArgs);
+	template<typename TL, typename T, typename... TArgs> inline ASTImplUPtr<TL> createASTImpl(TArgs&&... mArgs);
 
 	template<typename TL> class Token
 	{
@@ -47,7 +47,7 @@ namespace Eng
 	template<typename TL> class ASTImpl 
 	{
 		template<typename> friend class ASTNode;
-		template<typename TL2, typename T, typename... TArgs> friend ASTImplUptr<TL2> createASTImpl(TArgs&&... mArgs); 
+		template<typename TL2, typename T, typename... TArgs> friend ASTImplUPtr<TL2> createASTImpl(TArgs&&... mArgs); 
 
 		private:
 			ASTTypeId typeId;
@@ -75,7 +75,7 @@ namespace Eng
 	template<typename TL> class ASTNode
 	{
 		private:
-			ASTImplUptr<TL> impl;
+			ASTImplUPtr<TL> impl;
 			ASTNodePtr<TL> parent{nullptr};
 			std::vector<ASTNodePtr<TL>> children;
 
@@ -203,7 +203,7 @@ namespace Eng
 	template<typename TL> class Rule
 	{
 		public:
-			using RuleFunc = ssvu::Func<ASTImplUptr<TL>(NodeCtx<TL>&)>;
+			using RuleFunc = ssvu::Func<ASTImplUPtr<TL>(NodeCtx<TL>&)>;
 
 		private:
 			RuleKey<TL> ruleKey;
@@ -221,29 +221,29 @@ namespace Eng
 	template<typename TL> class RuleSet
 	{
 		private:
-			std::vector<ssvu::Uptr<Rule<TL>>> rules;
+			std::vector<ssvu::UPtr<Rule<TL>>> rules;
 	
 		public:
 			template<typename... TArgs> inline Rule<TL>& createRule(TArgs&&... mArgs)
 			{
-				return ssvu::getEmplaceUptr<Rule<TL>>(rules, std::forward<TArgs>(mArgs)...);
+				return ssvu::getEmplaceUPtr<Rule<TL>>(rules, std::forward<TArgs>(mArgs)...);
 			}
 
 			inline const decltype(rules)& getRules() const noexcept { return rules; }
 	};
 
 
-	template<typename TL, typename T, typename... TArgs> inline ASTImplUptr<TL> createASTImpl(TArgs&&... mArgs)
+	template<typename TL, typename T, typename... TArgs> inline ASTImplUPtr<TL> createASTImpl(TArgs&&... mArgs)
 	{
 		auto ptr(new T(std::forward<TArgs>(mArgs)...));
 		ptr->typeId = Eng::getASTTypeId<T>();
-		return ASTImplUptr<TL>(ptr);
+		return ASTImplUPtr<TL>(ptr);
 	}	
 
 	template<typename TL> class Parser
 	{
 		private:
-			std::vector<ssvu::Uptr<ASTNode<TL>>> nodeManager;
+			std::vector<ssvu::UPtr<ASTNode<TL>>> nodeManager;
 
 			RuleSet<TL> ruleSet;
 			std::vector<ASTNodePtr<TL>> sourceStack, parseStack, nodeStack;
@@ -304,7 +304,7 @@ namespace Eng
 						}
 
 						// Create reduction result node						
-						auto& reductionResult(ssvu::getEmplaceUptr<ASTNode<TL>>(nodeManager));
+						auto& reductionResult(ssvu::getEmplaceUPtr<ASTNode<TL>>(nodeManager));
 						
 						NodeCtx<TL> nodeCtx{usedNodes};
 						reductionResult.setImpl(std::move(r->getFunc()(nodeCtx)));	
@@ -347,7 +347,7 @@ namespace Eng
 				for(const auto& t : mTokens) 
 				{
 					auto tokenImpl(createASTImpl<TL, ASTTokenNodeImpl<TL>>(t));
-					auto& tokenNode(ssvu::getEmplaceUptr<ASTNode<TL>>(nodeManager));				
+					auto& tokenNode(ssvu::getEmplaceUPtr<ASTNode<TL>>(nodeManager));				
 					tokenNode.setImpl(std::move(tokenImpl));
 	
 					sourceStack.emplace(std::begin(sourceStack), &tokenNode);

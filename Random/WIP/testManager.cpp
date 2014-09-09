@@ -27,10 +27,10 @@ void doBench()
 	constexpr std::size_t s(10000000);
 
 	{
-		Benchmark::start("VecUptr - small");
+		Benchmark::start("VecUPtr - small");
 		{
 			Benchmark::start("creation");
-			VecUptr<OV<OSmall>> storage;
+			VecUPtr<OV<OSmall>> storage;
 			storage.reserve(s + 10000);
 			Benchmark::endLo();
 
@@ -50,7 +50,7 @@ void doBench()
 			Benchmark::endLo();
 
 			Benchmark::start("refresh");
-			eraseRemoveIf(storage, [](const Uptr<OV<OSmall>>& mO){ return !mO->alive; });
+			eraseRemoveIf(storage, [](const UPtr<OV<OSmall>>& mO){ return !mO->alive; });
 			Benchmark::endLo();
 
 			Benchmark::start("add/rem");
@@ -58,11 +58,11 @@ void doBench()
 			{
 				for(auto j(0u); j < 10000; ++j) 
 				{
-					auto& u(getEmplaceUptr<OV<OSmall>>(storage));	
+					auto& u(getEmplaceUPtr<OV<OSmall>>(storage));	
 					u.alive = false;
 				}
 
-				eraseRemoveIf(storage, [](const Uptr<OV<OSmall>>& mO){ return !mO->alive; });
+				eraseRemoveIf(storage, [](const UPtr<OV<OSmall>>& mO){ return !mO->alive; });
 			}
 			Benchmark::endLo();
 
@@ -194,10 +194,10 @@ void doBench()
 	ssvu::lo() << "" << std::endl;
 
 	{
-		Benchmark::start("VecUptr - big");
+		Benchmark::start("VecUPtr - big");
 		{
 			Benchmark::start("creation");
-			VecUptr<OV<OBig>> storage;
+			VecUPtr<OV<OBig>> storage;
 			storage.reserve(s + 10000);
 			Benchmark::endLo();
 
@@ -217,7 +217,7 @@ void doBench()
 			Benchmark::endLo();
 
 			Benchmark::start("refresh");
-			eraseRemoveIf(storage, [](const Uptr<OV<OBig>>& mO){ return !mO->alive; });
+			eraseRemoveIf(storage, [](const UPtr<OV<OBig>>& mO){ return !mO->alive; });
 			Benchmark::endLo();
 
 			Benchmark::start("add/rem");
@@ -225,11 +225,11 @@ void doBench()
 			{
 				for(auto j(0u); j < 10000; ++j) 
 				{
-					auto& u(getEmplaceUptr<OV<OBig>>(storage));	
+					auto& u(getEmplaceUPtr<OV<OBig>>(storage));	
 					u.alive = false;
 				}
 
-				eraseRemoveIf(storage, [](const Uptr<OV<OBig>>& mO){ return !mO->alive; });
+				eraseRemoveIf(storage, [](const UPtr<OV<OBig>>& mO){ return !mO->alive; });
 			}
 			Benchmark::endLo();
 
