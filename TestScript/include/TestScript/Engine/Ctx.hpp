@@ -64,7 +64,7 @@ namespace Eng
 			}
 			template<typename T, typename... TArgs> inline T& pushCreate(TArgs&&... mArgs)
 			{
-				auto& node(parser.template createNode<T>(std::forward<TArgs>(mArgs)...));
+				auto& node(parser.template createNode<T>(ssvu::fwd<TArgs>(mArgs)...));
 				parser.parseStack.insert(std::begin(parser.parseStack) + offset, &node);
 				return reinterpret_cast<T&>(node);
 			}

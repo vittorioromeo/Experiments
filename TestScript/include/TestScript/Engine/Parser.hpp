@@ -33,7 +33,7 @@ namespace Eng
 
 			template<typename T, typename... TArgs> inline Node<TL>& createNode(TArgs&&... mArgs)
 			{
-				auto& result(nodeManager.template create<T>(std::forward<TArgs>(mArgs)...));
+				auto& result(nodeManager.template create<T>(ssvu::fwd<TArgs>(mArgs)...));
 				nodeManager.refresh();
 
 				result.typeId = Eng::getNodeTID<T>();

@@ -19,7 +19,7 @@ namespace ssvces
 		public:
 			inline EntityHandle(Entity& mEntity) noexcept : entity(mEntity), manager(entity.getManager()), stat(entity.stat) { }
 
-			template<typename T, typename... TArgs> inline void createComponent(TArgs&&... mArgs)	{ SSVU_ASSERT(isAlive()); entity.createComponent<T>(std::forward<TArgs>(mArgs)...); }
+			template<typename T, typename... TArgs> inline void createComponent(TArgs&&... mArgs)	{ SSVU_ASSERT(isAlive()); entity.createComponent<T>(ssvu::fwd<TArgs>(mArgs)...); }
 			template<typename T> inline bool hasComponent() const noexcept							{ SSVU_ASSERT(isAlive()); return entity.hasComponent<T>(); }
 			template<typename T> inline T& getComponent()											{ SSVU_ASSERT(isAlive()); return entity.getComponent<T>(); }
 

@@ -29,12 +29,12 @@ namespace ssvut
 			public:
 				template<typename... TArgs> inline void linkToSelf(TArgs&&... mArgs)
 				{
-					TGraph::StorageNodeBase::emplaceLink(TGraph::StorageNodeBase::getNodePtr(this), std::forward<TArgs>(mArgs)...);
+					TGraph::StorageNodeBase::emplaceLink(TGraph::StorageNodeBase::getNodePtr(this), ssvu::fwd<TArgs>(mArgs)...);
 				}
 				template<typename... TArgs> inline void linkTo(const NodePtr& mNode, TArgs&&... mArgs)
 				{
 					SSVU_ASSERT(TGraph::isNodeValid(mNode));
-					TGraph::StorageNodeBase::emplaceLink(mNode, std::forward<TArgs>(mArgs)...);
+					TGraph::StorageNodeBase::emplaceLink(mNode, ssvu::fwd<TArgs>(mArgs)...);
 				}
 
 				inline const decltype(TGraph::StorageNodeBase::links)& getLinks() const	{ return TGraph::StorageNodeBase::links; }
@@ -50,7 +50,7 @@ namespace ssvut
 			struct NodeBase
 			{
 				std::vector<LinkDerived> links;
-				template<typename... TArgs> inline void emplaceLink(TArgs&&... mArgs) { links.emplace_back(std::forward<TArgs>(mArgs)...); }
+				template<typename... TArgs> inline void emplaceLink(TArgs&&... mArgs) { links.emplace_back(ssvu::fwd<TArgs>(mArgs)...); }
 				inline static NodePtr getNodePtr(GraphNode<TGraph>* mNode) noexcept { return reinterpret_cast<NodeDerived*>(mNode); }
 			};
 			struct LinkBase { };
@@ -63,7 +63,7 @@ namespace ssvut
 			template<typename... TArgs> inline NodePtr createNode(TArgs&&... mArgs)
 			{
 				SSVU_ASSERT_STATIC(ssvu::isBaseOf<GraphNode<TGraph>, NodeDerived>(), "TNode must be derived from Graph::Node");
-				return &ssvu::getEmplaceUPtr<NodeDerived>(nodes, std::forward<TArgs>(mArgs)...);
+				return &ssvu::getEmplaceUPtr<NodeDerived>(nodes, ssvu::fwd<TArgs>(mArgs)...);
 			}
 		};
 	}
@@ -90,7 +90,7 @@ namespace ssvut
 		protected:
 			template<typename... TArgs> inline NodePtr createNode(TArgs&&... mArgs)
 			{
-				auto result(storage.createNode(std::forward<TArgs>(mArgs)...));
+				auto result(storage.createNode(ssvu::fwd<TArgs>(mArgs)...));
 				nodes.emplace_back(result); return result;
 			}
 
