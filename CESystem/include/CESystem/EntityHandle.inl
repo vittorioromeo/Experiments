@@ -2,8 +2,8 @@
 // License: Academic Free License ("AFL") v. 3.0
 // AFL License page: http://opensource.org/licenses/AFL-3.0
 
-#ifndef SSVOB_CESYSTEM_ENTITYHANDLE_INL
-#define SSVOB_CESYSTEM_ENTITYHANDLE_INL
+#ifndef CESYSTEM_ENTITYHANDLE_INL
+#define CESYSTEM_ENTITYHANDLE_INL
 
 namespace ssvces
 {

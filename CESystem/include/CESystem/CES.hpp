@@ -2,8 +2,8 @@
 // License: Academic Free License ("AFL") v. 3.0
 // AFL License page: http://opensource.org/licenses/AFL-3.0
 
-#ifndef SSVOB_CESYSTEM_CES
-#define SSVOB_CESYSTEM_CES
+#ifndef CESYSTEM_CES
+#define CESYSTEM_CES
 
 #include <SSVUtils/SSVUtils.hpp>
 #include "CESystem/Common.hpp"

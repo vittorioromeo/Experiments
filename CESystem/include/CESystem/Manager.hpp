@@ -2,8 +2,8 @@
 // License: Academic Free License ("AFL") v. 3.0
 // AFL License page: http://opensource.org/licenses/AFL-3.0
 
-#ifndef SSVOB_CESYSTEM_MANAGER
-#define SSVOB_CESYSTEM_MANAGER
+#ifndef CESYSTEM_MANAGER
+#define CESYSTEM_MANAGER
 
 namespace ssvces
 {
