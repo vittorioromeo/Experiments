@@ -33,8 +33,8 @@ void doBench()
 		~OHuge() override { ++state; }
 	};
 
-	constexpr std::size_t s(10000000);
-	constexpr std::size_t nn(6);
+	constexpr std::size_t s(5000000);
+	constexpr std::size_t nn(5);
 
 	Benchmark::start("VecUPtr");
 	{
@@ -74,6 +74,42 @@ void doBench()
 	Benchmark::start("PolyRec");
 	{
 		PolyRecycler<OBase> r;
+		std::vector<decltype(r)::PtrType> v;
+
+		for(int n = 0; n < nn; ++n)
+		{
+			int m = s / 3;
+			for(int i = 0; i < m * 1; ++i)
+			{
+				int k = i % 3;
+ 				if(k == 0) v.emplace_back(r.create<OSmall>());
+ 				else if(k == 1) v.emplace_back(r.create<OBig>());
+ 				else if(k == 2) v.emplace_back(r.create<OHuge>());
+			}
+			v.clear();
+			for(int i = 0; i < m * 2; ++i)
+			{
+				int k = i % 3;
+ 				if(k == 0) v.emplace_back(r.create<OSmall>());
+ 				else if(k == 1) v.emplace_back(r.create<OBig>());
+ 				else if(k == 2) v.emplace_back(r.create<OHuge>());
+			}
+			v.clear();
+			for(int i = 0; i < m * 3; ++i)
+			{
+				int k = i % 3;
+ 				if(k == 0) v.emplace_back(r.create<OSmall>());
+ 				else if(k == 1) v.emplace_back(r.create<OBig>());
+ 				else if(k == 2) v.emplace_back(r.create<OHuge>());
+			}
+			v.clear();
+		}
+	}
+	Benchmark::endLo();
+
+	Benchmark::start("PolyFixedRec");
+	{
+		PolyFixedRecycler<OBase, 5> r;
 		std::vector<decltype(r)::PtrType> v;
 
 		for(int n = 0; n < nn; ++n)

@@ -14,7 +14,7 @@ int main()
 	}
 
 	{
-		SSVU_BENCHMARK_SCOPELOGBENCHMARK("Test, 1 second (scope syntax)"); 
+		SSVU_BENCHMARK_LOG_SCOPE_EXIT("Test, 1 second (scope syntax)"); 
 		std::this_thread::sleep_for(std::chrono::seconds(1));		
 	}
 
@@ -30,11 +30,26 @@ int main()
 	}
 
 	{
-		SSVU_BENCHMARK_SCOPELOGBENCHMARK("Test nested, 1 second (scope syntax)"); 
+		SSVU_BENCHMARK_LOG_SCOPE_EXIT("Test nested0, 1 second (scope syntax)"); 
 		std::this_thread::sleep_for(std::chrono::seconds(1));		
 	
 		{
-			SSVU_BENCHMARK_SCOPELOGBENCHMARK("Test nested, 1 second (scope syntax)"); 
+			SSVU_BENCHMARK_LOG_SCOPE_EXIT("Test nested1, 1 second (scope syntax)"); 
+			std::this_thread::sleep_for(std::chrono::seconds(1));	
+
+			{
+				SSVU_BENCHMARK_LOG_SCOPE_EXIT("Test nested2, 1 second (scope syntax)"); 
+				std::this_thread::sleep_for(std::chrono::seconds(1));		
+			}	
+
+			{
+				SSVU_BENCHMARK_LOG_SCOPE_EXIT("Test nested2, 1 second (scope syntax)"); 
+				std::this_thread::sleep_for(std::chrono::seconds(1));		
+			}
+		}
+
+		{
+			SSVU_BENCHMARK_LOG_SCOPE_EXIT("Test nested1, 1 second (scope syntax)"); 
 			std::this_thread::sleep_for(std::chrono::seconds(1));		
 		}
 	}
