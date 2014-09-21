@@ -11,7 +11,7 @@ namespace ssvces
 	{
 		template<typename... TArgs> struct Filter
 		{
-			static constexpr const TypeIdsBitset& getTypeIds() noexcept { return Internal::getTypeIdsBitset<TArgs...>(); }
+			static constexpr const TypeIdxBitset& getTypeIds() noexcept { return Internal::getTypeIdxBitset<TArgs...>(); }
 		};
 
 		template<typename TPReq, typename TPArgs> struct ExpHelper;

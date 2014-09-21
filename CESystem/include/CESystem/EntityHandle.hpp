@@ -7,8 +7,6 @@
 
 namespace ssvces
 {
-	class Manager;
-
 	class EntityHandle
 	{
 		private:

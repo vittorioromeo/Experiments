@@ -9,22 +9,22 @@ namespace ssvces
 {
 	template<typename T, typename... TArgs> inline void Entity::createComponent(TArgs&&... mArgs)
 	{
-		SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "Type must derive from Component");
+		SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "`T` must derive from `Component`");
 		SSVU_ASSERT(!hasComponent<T>() && componentCount <= maxComponents);
 
-		components[Internal::getTypeIdBitIdx<T>()] = ssvu::makeUPtr<T>(ssvu::fwd<TArgs>(mArgs)...);
-		typeIds[Internal::getTypeIdBitIdx<T>()] = true;
+		components[Internal::getTypeIdx<T>()] = manager.componentRecycler.create<T>(ssvu::fwd<TArgs>(mArgs)...);
+		typeIds[Internal::getTypeIdx<T>()] = true;
 		++componentCount;
 
 		mustRematch = true;
 	}
 	template<typename T> inline void Entity::removeComponent()
 	{
-		SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "Type must derive from Component");
+		SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "`T` must derive from `Component`");
 		SSVU_ASSERT(hasComponent<T>() && componentCount > 0);
 
-		components[Internal::getTypeIdBitIdx<T>()].reset();
-		typeIds[Internal::getTypeIdBitIdx<T>()] = false;
+		components[Internal::getTypeIdx<T>()].reset();
+		typeIds[Internal::getTypeIdx<T>()] = false;
 		--componentCount;
 
 		mustRematch = true;

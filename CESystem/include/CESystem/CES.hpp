@@ -5,7 +5,9 @@
 #ifndef CESYSTEM_CES
 #define CESYSTEM_CES
 
-#include <SSVUtils/SSVUtils.hpp>
+#include <SSVUtils/Core/Core.hpp>
+#include <SSVUtils/MemoryManager/MemoryManager.hpp>
+
 #include "CESystem/Common.hpp"
 #include "CESystem/IdPool.hpp"
 #include "CESystem/SystemBase.hpp"

@@ -13,14 +13,23 @@ namespace ssvces
 		friend EntityHandle;
 
 		private:
+			EntityRecycler entityRecycler;
+			ComponentRecycler componentRecycler;
+
 			Internal::IdPool entityIdPool;
 			std::vector<Internal::SystemBase*> systems;
-			ssvu::VecUPtr<Entity> entities;
+			std::vector<EntityRecyclerPtr> entities;
 			std::array<std::vector<Entity*>, maxGroups> grouped;
 
 			inline Entity* create(Manager& mManager, Internal::IdPool& mIdPool)
 			{
-				return &ssvu::getEmplaceUPtr<Entity>(entities, mManager, mIdPool.getAvailable());
+				// TODO: recycler::getCreateEmplace(containter, ...)?
+				auto uPtr(entityRecycler.create<Entity>(mManager, mIdPool.getAvailable()));
+				auto result(reinterpret_cast<Entity*>(uPtr.get()));
+
+				entities.emplace_back(std::move(uPtr));
+
+				return result;
 			}
 
 			inline void addToGroup(Entity* mEntity, Group mGroup) { SSVU_ASSERT(mGroup <= maxGroups); grouped[mGroup].emplace_back(mEntity); }
@@ -53,7 +62,7 @@ namespace ssvces
 			inline EntityHandle createEntity() { return {*create(*this, entityIdPool)}; }
 			template<typename T> inline void registerSystem(T& mSystem)
 			{
-				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Internal::SystemBase, T>(), "Type must derive from SystemBase");
+				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Internal::SystemBase, T>(), "`T` must derive from `SystemBase`");
 				systems.emplace_back(&mSystem);
 			}
 
@@ -78,7 +87,7 @@ namespace ssvces
 
 	namespace Internal
 	{
-		inline bool matchesSystem(const TypeIdsBitset& mTypeIds, const SystemBase& mSystem) noexcept
+		inline bool matchesSystem(const TypeIdxBitset& mTypeIds, const SystemBase& mSystem) noexcept
 		{
 			return (mTypeIds & mSystem.typeIdsNot).none() && containsAll(mTypeIds, mSystem.typeIdsReq);
 		}

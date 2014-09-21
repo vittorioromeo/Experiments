@@ -7,10 +7,6 @@
 
 namespace ssvces
 {
-	class Manager;
-	class EntityHandle;
-	template<typename, typename, typename> class System;
-
 	class Entity : ssvu::NoCopy
 	{
 		friend Manager;
@@ -20,8 +16,8 @@ namespace ssvces
 
 		private:
 			Manager& manager;
-			std::array<UPtr<Component>, maxComponents> components;
-			TypeIdsBitset typeIds;
+			std::array<ComponentRecyclerPtr, maxComponents> components;
+			TypeIdxBitset typeIds;
 			bool mustDestroy{false}, mustRematch{true};
 			GroupBitset groups;
 			EntityStat stat;
@@ -34,14 +30,14 @@ namespace ssvces
 			template<typename T> inline void removeComponent();
 			template<typename T> inline bool hasComponent() const noexcept
 			{
-				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "Type must derive from Component");
-				return typeIds[Internal::getTypeIdBitIdx<T>()];
+				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "`T` must derive from `Component`");
+				return typeIds[Internal::getTypeIdx<T>()];
 			}
 			template<typename T> inline T& getComponent() noexcept
 			{
-				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "Type must derive from Component");
+				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "`T` must derive from `Component`");
 				SSVU_ASSERT(componentCount > 0 && hasComponent<T>());
-				return reinterpret_cast<T&>(*components[Internal::getTypeIdBitIdx<T>()]);
+				return reinterpret_cast<T&>(*components[Internal::getTypeIdx<T>()]);
 			}
 
 			inline void destroy() noexcept;
