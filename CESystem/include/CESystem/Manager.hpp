@@ -21,15 +21,9 @@ namespace ssvces
 			std::vector<EntityRecyclerPtr> entities;
 			std::array<std::vector<Entity*>, maxGroups> grouped;
 
-			inline Entity* create(Manager& mManager, Internal::IdPool& mIdPool)
+			inline auto& create(Manager& mManager, Internal::IdPool& mIdPool)
 			{
-				// TODO: recycler::getCreateEmplace(containter, ...)?
-				auto uPtr(entityRecycler.create<Entity>(mManager, mIdPool.getAvailable()));
-				auto result(reinterpret_cast<Entity*>(uPtr.get()));
-
-				entities.emplace_back(std::move(uPtr));
-
-				return result;
+				return entityRecycler.getCreateEmplace(entities, mManager, mIdPool.getAvailable());
 			}
 
 			inline void addToGroup(Entity* mEntity, Group mGroup) { SSVU_ASSERT(mGroup <= maxGroups); grouped[mGroup].emplace_back(mEntity); }
@@ -59,7 +53,7 @@ namespace ssvces
 				entities.erase(result, last);
 			}
 
-			inline EntityHandle createEntity() { return {*create(*this, entityIdPool)}; }
+			inline EntityHandle createEntity() { return {create(*this, entityIdPool)}; }
 			template<typename T> inline void registerSystem(T& mSystem)
 			{
 				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Internal::SystemBase, T>(), "`T` must derive from `SystemBase`");
