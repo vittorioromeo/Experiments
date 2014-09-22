@@ -13,3 +13,56 @@ int main()
 
 	return 0;
 }
+
+/*
+
+stringifier<long>(number, postfix, cache)
+{
+	cache.append<Fmt>(blue);
+	cache.append<Str>(toStr(number));
+	cache.append<FmtOnlyStr>(postfix);
+	cache.append<Commit>();
+}
+
+left << setw << 10ul << 5.f << setw << 15ul
+
+cache:
+	M   left
+	M   setw
+	F   blue
+	S   number
+	FOS postfix
+	C
+
+	F   red
+	S   number
+	FOS postfix
+	C
+
+	M   setw
+	F   blue
+	S   number
+	FOS postfix
+	C
+
+...then...
+
+cache:
+	M   left		|1
+	M   setw		|2
+	F   blue		|0
+	S   number		|3
+	FOS postfix		|4
+	C 				|5
+
+	F   red 		|0     
+	S   number		|1
+	FOS postfix		|2
+	C 				|3
+
+	M   setw		|1
+	F   blue		|0
+	S   number		|2
+	FOS postfix		|3
+	C 				|4
+*/
