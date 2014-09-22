@@ -154,12 +154,12 @@ int main()
 	parser.run(src3);
 
 	auto& b(parser.getParseStack().back());
-	ssvu::lo("RESULT") <<	b->getAs<ASTExpr>().eval() << std::endl;
+	ssvu::lo("RESULT") << b->getAs<ASTExpr>().eval() << "\n";
 	b->getAs<ASTExpr>().toBytecode();
 
 	printNode<true>(std::cout, *b, 0);
 
-	ssvu::lo() << std::endl;
+	ssvu::lo().flush();
 
 	return 0;
 }

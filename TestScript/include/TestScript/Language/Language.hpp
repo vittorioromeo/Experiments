@@ -62,7 +62,7 @@ namespace Lang
 			return value;
 		}
 
-		inline void toBytecode() override { ssvu::lo() << "push(" << value << ");" << std::endl; }
+		inline void toBytecode() override { ssvu::lo() << "push(" << value << ");\n"; }
 	};
 
 	struct ASTParenthesizedExpr : public ASTExpr
@@ -106,7 +106,7 @@ namespace Lang
 		inline std::string getName() override { return TOp::getStr(); }
 		inline int eval() override { return TOp::get(lhs->eval(), rhs->eval()); }
 
-		inline void toBytecode() override { lhs->toBytecode(); rhs->toBytecode(); ssvu::lo() << "popOp(" << TOp::getStr() << ");" << std::endl; }
+		inline void toBytecode() override { lhs->toBytecode(); rhs->toBytecode(); ssvu::lo() << "popOp(" << TOp::getStr() << ");\n"; }
 	};
 }
 
