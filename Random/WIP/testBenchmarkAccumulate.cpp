@@ -12,36 +12,36 @@ int main()
 	SSVUT_RUN();
 
 	{
-		ssvu::Benchmark::resetGroup("Group1");
-		ssvu::Benchmark::resetGroup("Group2");
+		ssvu::Benchmark::groupReset("Group1");
+		ssvu::Benchmark::groupReset("Group2");
 
-		ssvu::Benchmark::resumeGroup("Group1");
+		ssvu::Benchmark::groupResume("Group1");
 		SLEEP_PLOX();
-		ssvu::Benchmark::pauseGroup("Group1");
+		ssvu::Benchmark::groupPause("Group1");
 
-		ssvu::Benchmark::resumeGroup("Group2");
+		ssvu::Benchmark::groupResume("Group2");
 		SLEEP_PLOX();
 		SLEEP_PLOX();
 		SLEEP_PLOX();
-		ssvu::Benchmark::pauseGroup("Group2");
+		ssvu::Benchmark::groupPause("Group2");
 
-		ssvu::Benchmark::resumeGroup("Group1");
+		ssvu::Benchmark::groupResume("Group1");
 		SLEEP_PLOX();
-		ssvu::Benchmark::pauseGroup("Group1");
+		ssvu::Benchmark::groupPause("Group1");
 
-		ssvu::Benchmark::resumeGroup("Group2");
+		ssvu::Benchmark::groupResume("Group2");
 		SLEEP_PLOX();
 		SLEEP_PLOX();
 		SLEEP_PLOX();
-		ssvu::Benchmark::pauseGroup("Group2");
+		ssvu::Benchmark::groupPause("Group2");
 
-		ssvu::Benchmark::endLoGroup("Group1");
-		ssvu::Benchmark::endLoGroup("Group2");
+		ssvu::Benchmark::groupEndLo("Group1");
+		ssvu::Benchmark::groupEndLo("Group2");
 	}
 
 	{
-		ssvu::Benchmark::resetGroup("GroupScope1");
-		ssvu::Benchmark::resetGroup("GroupScope2");
+		ssvu::Benchmark::groupReset("GroupScope1");
+		ssvu::Benchmark::groupReset("GroupScope2");
 
 		{
 			SSVU_BENCHMARK_RUN_GROUP_SCOPE_EXIT("GroupScope1");
@@ -67,8 +67,8 @@ int main()
 			SLEEP_PLOX();
 		}
 
-		ssvu::Benchmark::endLoGroup("GroupScope1");
-		ssvu::Benchmark::endLoGroup("GroupScope2");
+		ssvu::Benchmark::groupEndLo("GroupScope1");
+		ssvu::Benchmark::groupEndLo("GroupScope2");
 	}
 
 	return 0;

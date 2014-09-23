@@ -20,6 +20,11 @@ struct Type10 : ComponentBit<10> { };
 inline auto getLast() noexcept { static ComponentBitType result{0}; return result++; }
 template<typename T> inline auto getSId() noexcept { static auto result(getLast()); return result; }
 
+template<typename T> struct TypeId { static ComponentBitType id; };
+template<typename T> ComponentBitType TypeId<T>::id{getLast()};
+
+template<typename T> inline auto getSIdImp() noexcept { return TypeId<T>::id; }
+
 volatile int f{0};
 
 int main() 
@@ -63,6 +68,25 @@ int main()
 				f += Type08::value;
 				f += Type09::value;
 				f += Type10::value;
+			}
+		}
+
+		{
+			SSVU_BENCHMARK_LOG_SCOPE_EXIT("getsidimp");
+
+			for(int k = 0; k < kk; ++k)
+			{
+				f += getSIdImp<Type00>();
+				f += getSIdImp<Type01>();
+				f += getSIdImp<Type02>();
+				f += getSIdImp<Type03>();
+				f += getSIdImp<Type04>();
+				f += getSIdImp<Type05>();
+				f += getSIdImp<Type06>();
+				f += getSIdImp<Type07>();
+				f += getSIdImp<Type08>();
+				f += getSIdImp<Type09>();
+				f += getSIdImp<Type10>();
 			}
 		}
 	} 
