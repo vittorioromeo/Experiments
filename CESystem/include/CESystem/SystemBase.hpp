@@ -18,8 +18,8 @@ namespace ssvces
 				TypeIdxBitset typeIdsReq, typeIdsNot;
 
 			protected:
-				inline SystemBase(TypeIdxBitset mTypeIdsReq) : typeIdsReq{std::move(mTypeIdsReq)} { }
-				inline SystemBase(TypeIdxBitset mTypeIdsReq, TypeIdxBitset mTypeIdsNot) : typeIdsReq{std::move(mTypeIdsReq)}, typeIdsNot{std::move(mTypeIdsNot)} { }
+				inline SystemBase(const TypeIdxBitset& mTypeIdsReq) : typeIdsReq{mTypeIdsReq} { }
+				inline SystemBase(const TypeIdxBitset& mTypeIdsReq, const TypeIdxBitset& mTypeIdsNot) : typeIdsReq{mTypeIdsReq}, typeIdsNot{mTypeIdsNot} { }
 				inline virtual ~SystemBase() noexcept { }
 
 				virtual void registerEntity(Entity&) = 0;
