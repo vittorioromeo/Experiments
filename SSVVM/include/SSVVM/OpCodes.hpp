@@ -12,7 +12,7 @@ namespace ssvvm
 	#define SSVVM_CREATE_MFPTR(mIdx, mData, mArg) & SSVPP_EXPAND(T) :: SSVPP_EXPAND(mArg) SSVPP_COMMA_IF(mIdx)
 
 	#define SSVVM_CREATE_OPCODE_DATABASE(...)	\
-		SSVU_FATENUM_DEFS(ReflectedEnum, OpCode, std::size_t, __VA_ARGS__); \
+		SSVU_FATENUM_DEFS(ReflectedEnum, OpCode, std::size_t, __VA_ARGS__) \
 		template<typename T> inline VMFnPtr<T> getVMFnPtr(OpCode mOpCode) noexcept \
 		{ \
 			static VMFnPtr<T> fnPtrs[] \
