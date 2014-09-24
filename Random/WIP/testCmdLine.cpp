@@ -3,12 +3,13 @@
 
 int main(int argc, char* argv[])
 {	
-	ssvu::CmdLine::Ctx ctx;
+	using namespace ssvu::CmdLine;
+	Ctx ctx;
 
 	auto& cmdMain(ctx.getCmdMain());
-	auto& fUpper(cmdMain.createFlag("u", "upper"));
-	auto& fvTitle(cmdMain.createFlagValue<std::string>("t", "title"));
-	auto& fvoMsg(cmdMain.createFlagValueOpt<std::string>("m", "msg", "Hello world!"));
+	auto& fUpper(cmdMain.create<Flag>("u", "upper"));
+	auto& fvTitle(cmdMain.create<FlagValue<std::string>>("t", "title"));
+	auto& fvoMsg(cmdMain.create<FlagValueOpt<std::string>>("m", "msg", "Hello world!"));
 
 	cmdMain += [&fUpper, &fvTitle, &fvoMsg]
 	{
