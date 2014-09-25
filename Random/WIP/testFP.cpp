@@ -1,31 +1,47 @@
 #include <future>
 #include <SSVUtils/Core/Core.hpp>
+#include <SSVUtils/Benchmark/Benchmark.hpp>
 
 int main() 
 {
-	auto t1(std::async(std::launch::async, []
-	{
-		ssvu::lo("t1") << "starting t1" << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		ssvu::lo("t1") << "finished t1" << std::endl;
-	}));
+	std::vector<std::future<void>> vf;
 
-	auto t2(std::async(std::launch::async, []
+	for(int i = 0; i < 100; ++i)
 	{
-		ssvu::lo("t2") << "starting t2" << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		ssvu::lo("t2") << "finished t2" << std::endl;
-	}));
 
-	auto t3(std::async(std::launch::async, []
+		/*
+		vf.emplace_back(std::async(std::launch::async, [i]
+		{
+			ssvu::lo("t" + ssvu::toStr(i)) << "starting t" + ssvu::toStr(i) << "\n";
+			std::this_thread::sleep_for(std::chrono::milliseconds(ssvu::getRnd(350, 1250)));
+			ssvu::lo("t" + ssvu::toStr(i)) << "finished t" + ssvu::toStr(i) << "\n";
+		}));
+		*/
+
+		vf.emplace_back(std::async(std::launch::async, [i]
+		{
+			SSVU_BENCHMARK_LOG_SCOPE_EXIT("bench " + ssvu::toStr(i)); 
+			std::this_thread::sleep_for(std::chrono::milliseconds(ssvu::getRnd(350, 1250)));
+		}));
+
+		vf.emplace_back(std::async(std::launch::async, [i]
+		{
+			SSVU_BENCHMARK_RUN_GROUP_SCOPE_EXIT("GroupScope" + ssvu::toStr(i % 5));
+			std::this_thread::sleep_for(std::chrono::milliseconds(ssvu::getRnd(350, 1250)));
+		}));
+	}
+
+	ssvu::lo().flush();
+
+	for(int i = 0; i < 100; ++i)
 	{
-		ssvu::lo("t3") << "starting t3" << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		ssvu::lo("t3") << "finished t3" << std::endl;
-	}));
+		vf[i].get();
+	}
 
-	//t1.get();
-	//t2.get();
+	for(int i = 0; i < 5; ++i)
+	{
+		ssvu::Benchmark::groupEndLo("GroupScope" + ssvu::toStr(i));
+	}
 
 	return 0;
 }
