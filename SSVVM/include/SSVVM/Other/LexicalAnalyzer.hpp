@@ -88,7 +88,7 @@ namespace ssvut
 							if(fsm.getCurrentState()->isTerminal())
 							{
 								canConsume = true;
-								foundType = p.first;
+								foundType = std::get<TTType>(p);
 							}
 						}
 
