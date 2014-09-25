@@ -2,39 +2,57 @@
 #include <SSVUtils/Core/Core.hpp>
 #include <SSVUtils/Benchmark/Benchmark.hpp>
 
-template<typename TItr> class BaseAdaptorRandomItr
+template<typename TItr, typename TImpl> class BaseAdaptorForwardItr : public TImpl
 {
 	protected:
-		using BaseType = BaseAdaptorRandomItr;
 		TItr itr;	
 
 	public:
-		inline BaseAdaptorRandomItr(TItr mItr) noexcept : itr{mItr} { }
+		inline BaseAdaptorForwardItr(TItr mItr) noexcept : itr{mItr} { }
 
-		inline auto& operator++() noexcept				{ ++itr;			return *this; }
-		inline auto& operator++(int) noexcept			{ ++itr;			return *this; }
-		inline auto& operator--() noexcept				{ --itr;			return *this; }
-		inline auto& operator--(int) noexcept			{ --itr;			return *this; }
-		inline auto& operator+=(int mOffset) noexcept	{ itr += mOffset;	return *this; }
-		inline auto& operator-=(int mOffset) noexcept	{ itr -= mOffset;	return *this; }
-
-		inline bool operator==(const BaseType& mRhs) const noexcept	{ return itr == mRhs.itr; }
-		inline bool operator!=(const BaseType& mRhs) const noexcept	{ return itr != mRhs.itr; }
-		inline bool operator<(const BaseType& mRhs) const noexcept	{ return itr < mRhs.itr; }
-		inline bool operator>(const BaseType& mRhs) const noexcept	{ return itr > mRhs.itr; }
-		inline bool operator<=(const BaseType& mRhs) const noexcept	{ return itr <= mRhs.itr; }
-		inline bool operator>=(const BaseType& mRhs) const noexcept	{ return itr >= mRhs.itr; }
+		inline auto& operator++() noexcept		{ ++this->itr; return *this; }
+		inline auto& operator++(int) noexcept	{ ++this->itr; return *this; }
+		
+		inline bool operator==(const BaseAdaptorForwardItr& mRhs) const noexcept	{ return this->itr == mRhs.itr; }
+		inline bool operator!=(const BaseAdaptorForwardItr& mRhs) const noexcept	{ return this->itr != mRhs.itr; }
 };
 
-template<typename TBase, typename T, typename TItr, typename TPolicy> 
-struct BaseAdaptorRandomItrCast : public BaseAdaptorRandomItr<TItr>
+template<typename TItr, typename TImpl> class BaseAdaptorBidirectionalItr 
+	: public BaseAdaptorForwardItr<TItr, TImpl>
 {
-	inline BaseAdaptorRandomItrCast(TItr mItr) noexcept : BaseAdaptorRandomItr<TItr>{mItr} { }
+	public:
+		inline BaseAdaptorBidirectionalItr(TItr mItr) noexcept : BaseAdaptorForwardItr<TItr, TImpl>{mItr} { }
 
-	inline T& operator*() noexcept				{ return TPolicy::template getCasted<T&>(this->itr); }
-	inline const T& operator*() const noexcept	{ return TPolicy::template getCasted<const T&>(this->itr); }
-	inline T* operator->() noexcept				{ return &TPolicy::template getCasted<T&>(this->itr); }
-	inline const T* operator->() const noexcept	{ return &TPolicy::template getCasted<const T&>(this->itr); }
+		inline auto& operator--() noexcept		{ --this->itr; return *this; }
+		inline auto& operator--(int) noexcept	{ --this->itr; return *this; }
+};
+
+template<typename TItr, typename TImpl> class BaseAdaptorRandomItr 
+	: public BaseAdaptorBidirectionalItr<TItr, TImpl>
+{
+	public:
+		inline BaseAdaptorRandomItr(TItr mItr) noexcept : BaseAdaptorBidirectionalItr<TItr, TImpl>{mItr} { }
+		
+		inline auto& operator+=(int mOffset) noexcept	{ this->itr += mOffset;	return *this; }
+		inline auto& operator-=(int mOffset) noexcept	{ this->itr -= mOffset;	return *this; }
+
+		inline bool operator<(const BaseAdaptorRandomItr& mRhs) const noexcept	{ return this->itr < mRhs.itr; }
+		inline bool operator>(const BaseAdaptorRandomItr& mRhs) const noexcept	{ return this->itr > mRhs.itr; }
+		inline bool operator<=(const BaseAdaptorRandomItr& mRhs) const noexcept	{ return this->itr <= mRhs.itr; }
+		inline bool operator>=(const BaseAdaptorRandomItr& mRhs) const noexcept	{ return this->itr >= mRhs.itr; }
+};
+
+template<typename T, typename TPolicy, typename TDerived> 
+class AdaptorCastImpl
+{
+	private:
+		inline auto& getThisDerived() noexcept { return *reinterpret_cast<TDerived*>(this); }
+
+	public:
+		inline T& operator*() noexcept				{ return TPolicy::template getCasted<T&>(getThisDerived().itr); }
+		inline const T& operator*() const noexcept	{ return TPolicy::template getCasted<const T&>(getThisDerived().itr); }
+		inline T* operator->() noexcept				{ return &TPolicy::template getCasted<T&>(getThisDerived().itr); }
+		inline const T* operator->() const noexcept	{ return &TPolicy::template getCasted<const T&>(getThisDerived().itr); }
 };
 
 struct CIA_PolicyUPtr
@@ -54,10 +72,10 @@ struct CIA_PolicyPtr
 };
 
 template<typename TBase, typename T, typename TItr> 
-using CIA_UPtr = BaseAdaptorRandomItrCast<TBase, T, TItr, CIA_PolicyUPtr>;
+using CIA_UPtr = BaseAdaptorRandomItr<TItr, AdaptorCastImpl<T, CIA_PolicyUPtr>>;
 
 template<typename TBase, typename T, typename TItr> 
-using CIA_Ptr = BaseAdaptorRandomItrCast<TBase, T, TItr, CIA_PolicyUPtr>;
+using CIA_Ptr = BaseAdaptorRandomItr<TItr, AdaptorCastImpl<T, CIA_PolicyPtr>>;
 
 template<typename TBase, typename T, typename TItr> 
 inline auto makeCIA_UPtrItr(TItr mItr) noexcept
