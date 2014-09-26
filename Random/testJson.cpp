@@ -26,7 +26,7 @@ namespace sjt
 			using IntU = unsigned int;
 			using Real = double;
 
-		private:			
+		private:
 			Type type;
 
 			union Holder
@@ -133,6 +133,7 @@ namespace sjt
 			inline ~Value() { }
 
 			template<typename T> inline decltype(auto) get() const { return ValueHelper<T>::get(*this); }
+			template<typename T> inline decltype(auto) get(const std::string& mKey) const { return ValueHelper<T>::get((*this)[mKey]); }
 
 			const Value& operator[](const std::string& mKey) const; 
 	};
@@ -264,17 +265,39 @@ namespace sjt
 		return str;
 	}
 
+	inline std::string getPurgedFromComments(const std::string& mSrc)
+	{
+		std::string result, buffer;
 
+		auto commit([&result, &buffer]
+		{
+			result += buffer + "\n";
+			buffer.clear();
+		});
 
-	UPtr<Value> parseNull(const std::string& mSrc, Idx& mIdx);
-	UPtr<Value> parseBoolFalse(const std::string& mSrc, Idx& mIdx);
-	UPtr<Value> parseBoolTrue(const std::string& mSrc, Idx& mIdx);
-	UPtr<Value> parseNumber(const std::string& mSrc, Idx& mIdx);
-	UPtr<Value> parseString(const std::string& mSrc, Idx& mIdx);
-	UPtr<Value> parseArray(const std::string& mSrc, Idx& mIdx);
-	UPtr<Value> parseObject(const std::string& mSrc, Idx& mIdx);
+		for(auto i(0u); i < mSrc.size(); ++i)
+		{
+			if(mSrc[i] == '\n')
+			{
+				commit();
+			}
+			else if(mSrc[i] == '/' && mSrc[i + 1] == '/')
+			{
+				commit();
+
+				while(mSrc[i] != '\n') ++i;
+				++i;
+			}
+			else
+			{
+				buffer += mSrc[i];
+			}
+		}
+
+		return result;
+	}
+
 	UPtr<Value> parseValue(const std::string& mSrc, Idx& mIdx);
-	UPtr<Value> parseDocument(const std::string& mSrc);
 
 	inline UPtr<Value> parseNull(const std::string& mSrc, Idx& mIdx)
 	{
@@ -426,11 +449,13 @@ namespace sjt
 
 	inline UPtr<Value> parseDocument(const std::string& mSrc)
 	{	
+		auto purgedString(getPurgedFromComments(mSrc));
+
 		Idx idx{0u};
 		while(isWhitespace(mSrc[idx])) ++idx;
 
-		if(mSrc[idx] == '{') return parseObject(mSrc, idx);
-		if(mSrc[idx] == '[') return parseArray(mSrc, idx);
+		if(mSrc[idx] == '{') return parseObject(purgedString, idx);
+		if(mSrc[idx] == '[') return parseArray(purgedString, idx);
 
 		throw std::runtime_error{"Invalid document"};
 	}
@@ -445,9 +470,11 @@ int main()
 		"n2": 15.5,
 		"n3": -35.5e+12,
 		
-		"s1": "bananas",
+		"s1": "bananas",	// Test comment
 		"s2": "",
 		"s3": "1test2",
+
+		"a1": [1, 2, 3, "sup", { "lol":10 }], // Comment 2
 
 		"o1": 
 		{
@@ -476,6 +503,7 @@ int main()
 	for(const auto& p : om_01) ssvu::lo() << p.first << " -> " << "?" << "\n";
 
 	lo() << (*document)["n1"].get<int>() << "\n";
+	lo() << (*document).get<int>("n1") << "\n";
 	lo() << om.at("n1")->get<int>() << "\n";
 	lo() << om.at("n1")->get<float>() << "\n";
 	lo() << om.at("n1")->get<double>() << "\n";
