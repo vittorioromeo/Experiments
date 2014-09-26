@@ -2,20 +2,6 @@
 
 namespace sjt
 {
-	enum class Tkn : std::size_t
-	{
-		BracketCurlyLeft,
-		BracketCurlyRight,
-		BracketSquareLeft,
-		BracketSquareRight,
-		BoolTrue,
-		BoolFalse,
-		Colon,
-		Comma,
-		Null,
-		Whitespace
-	};
-
 	class Value;
 
 	template<typename T, typename TDeleter = std::default_delete<T>> using UPtr = ssvu::UPtr<T, TDeleter>;
@@ -25,38 +11,112 @@ namespace sjt
 
 	struct Null { };
 
-	using Number = double;
 
-	/*class Number
+
+	template<typename T> struct NumberHelper;
+
+	class Number
 	{
-		public:
-			enum class Type{Int, Float, Double};
+		template<typename T> friend struct NumberHelper;
 
-		protected:			
+		public:
+			enum class Type{IntS, IntU, Real};
+			
+			using IntS = int;
+			using IntU = unsigned int;
+			using Real = double;
+
+		private:			
 			Type type;
-			inline Number(Type mType) noexcept : type{mType} { }
+
+			union Holder
+			{
+				IntS hIntS;
+				IntU hIntU;
+				Real hReal;
+			} holder;
+
+			inline void setIntS(IntU mValue) noexcept { type = Type::IntS; holder.hIntS = mValue; }
+			inline void setIntU(IntS mValue) noexcept { type = Type::IntU; holder.hIntU = mValue; }
+			inline void setReal(Real mValue) noexcept { type = Type::Real; holder.hReal = mValue; }
+
+			inline IntS getIntS() const noexcept
+			{
+				switch(type)
+				{
+					case Type::IntS: return holder.hIntS;
+					case Type::IntU: return static_cast<IntS>(holder.hIntU);
+					case Type::Real: return static_cast<IntS>(holder.hReal);
+				}
+			}
+
+			inline IntU getIntU() const noexcept
+			{
+				switch(type)
+				{
+					case Type::IntS: return static_cast<IntU>(holder.hIntS);
+					case Type::IntU: return holder.hIntU;
+					case Type::Real: return static_cast<IntU>(holder.hReal);
+				}
+			}
+
+			inline Real getReal() const noexcept
+			{
+				switch(type)
+				{
+					case Type::IntS: return static_cast<Real>(holder.hIntS);
+					case Type::IntU: return static_cast<Real>(holder.hIntU);
+					case Type::Real: return holder.hReal;
+				}
+			}
 
 		public:
-			inline virtual ~Number() { }
+			inline Number(IntS mValue) noexcept { setIntS(mValue); }
+			inline Number(IntU mValue) noexcept { setIntU(mValue); }
+			inline Number(Real mValue) noexcept { setReal(mValue); }
+
+			template<typename T> void set(T mValue) noexcept { return NumberHelper<T>::set(*this, mValue); }
+			template<typename T> auto get() const noexcept { return NumberHelper<T>::get(*this); }			
 	};
 
-	struct NumberInt : public Number
+	template<> struct NumberHelper<char>
 	{
-		int value;
-		inline NumberInt(int mValue) noexcept : Number{Number::Type::Int}, value{mValue} { }
-	};	
+		inline static void set(Number& mN, char mV) noexcept { return mN.setIntS(mV); }
+		inline static auto get(const Number& mN) noexcept { return mN.getIntS(); }
+	};
 
-	struct NumberFloat : public Number
+	template<> struct NumberHelper<unsigned char>
 	{
-		float value;
-		inline NumberFloat(float mValue) noexcept : Number{Number::Type::Float}, value{mValue} { }
-	};	
+		inline static void set(Number& mN, unsigned char mV) noexcept { return mN.setIntU(mV); }
+		inline static auto get(const Number& mN) noexcept { return mN.getIntU(); }
+	};
 
-	struct NumberDouble : public Number
+	template<> struct NumberHelper<int>
 	{
-		double value;
-		inline NumberDouble(double mValue) noexcept : Number{Number::Type::Double}, value{mValue} { }
-	};*/	
+		inline static void set(Number& mN, int mV) noexcept { return mN.setIntS(mV); }
+		inline static auto get(const Number& mN) noexcept { return mN.getIntS(); }
+	};
+
+	template<> struct NumberHelper<unsigned int>
+	{
+		inline static void set(Number& mN, unsigned int mV) noexcept { return mN.setIntU(mV); }
+		inline static auto get(const Number& mN) noexcept { return mN.getIntU(); }
+	};
+
+	template<> struct NumberHelper<float>
+	{
+		inline static void set(Number& mN, float mV) noexcept { return mN.setReal(mV); }
+		inline static auto get(const Number& mN) noexcept { return mN.getReal(); }
+	};
+
+	template<> struct NumberHelper<double>
+	{
+		inline static void set(Number& mN, double mV) noexcept { return mN.setReal(mV); }
+		inline static auto get(const Number& mN) noexcept { return mN.getReal(); }
+	};
+
+
+
 
 	template<typename T> struct ValueHelper { };
 
@@ -72,10 +132,9 @@ namespace sjt
 		public:
 			inline ~Value() { }
 
-			template<typename T> inline auto& get() { return ValueHelper<T>::get(*this); }
-			template<typename T> inline const auto& get() const { return ValueHelper<T>::get(*this); }
+			template<typename T> inline decltype(auto) get() const { return ValueHelper<T>::get(*this); }
 
-			Value& operator[](const std::string& mKey); 
+			const Value& operator[](const std::string& mKey) const; 
 	};
 
 	struct ValueObject : public Value
@@ -113,36 +172,44 @@ namespace sjt
 		inline ValueNull() : Value{Value::Type::Null} { }
 	};
 
+	template<> struct ValueHelper<int>
+	{
+		inline static auto get(const Value& mValue) { return reinterpret_cast<const ValueNumber&>(mValue).value.get<int>(); }
+	};
 
+	template<> struct ValueHelper<float>
+	{
+		inline static auto get(const Value& mValue) { return reinterpret_cast<const ValueNumber&>(mValue).value.get<float>(); }
+	};
 
 	template<> struct ValueHelper<double>
 	{
-		inline static auto& get(Value& mValue) { return reinterpret_cast<ValueNumber&>(mValue).value; }
+		inline static auto get(const Value& mValue) { return reinterpret_cast<const ValueNumber&>(mValue).value.get<double>(); }
 	};
 
 	template<> struct ValueHelper<bool>
 	{
-		inline static auto& get(Value& mValue) { return reinterpret_cast<ValueBool&>(mValue).value; }
+		inline static const auto& get(const Value& mValue) { return reinterpret_cast<const ValueBool&>(mValue).value; }
 	};
 
 	template<> struct ValueHelper<std::string>
 	{
-		inline static auto& get(Value& mValue) { return reinterpret_cast<ValueString&>(mValue).value; }
+		inline static const auto& get(const Value& mValue) { return reinterpret_cast<const ValueString&>(mValue).value; }
 	};
 
 	template<> struct ValueHelper<Array>
 	{
-		inline static auto& get(Value& mValue) { return reinterpret_cast<ValueArray&>(mValue).value; }
+		inline static const auto& get(const Value& mValue) { return reinterpret_cast<const ValueArray&>(mValue).value; }
 	};
 
 	template<> struct ValueHelper<ObjMap>
 	{
-		inline static auto& get(Value& mValue) { return reinterpret_cast<ValueObject&>(mValue).value; }
+		inline static const auto& get(const Value& mValue) { return reinterpret_cast<const ValueObject&>(mValue).value; }
 	};
 
-	inline Value& Value::operator[](const std::string& mKey)
+	inline const Value& Value::operator[](const std::string& mKey) const
 	{ 
-		return *get<ObjMap>()[mKey];
+		return *get<ObjMap>().at(mKey);
 	}
 
 
@@ -163,36 +230,6 @@ namespace sjt
 			if(mSrc[mIdx] != kc) throw std::runtime_error{"Invalid keyword " + mKeyword};
 			++mIdx;
 		}
-	}
-
-	inline auto readNumber(const std::string& mSrc, Idx& mIdx)
-	{
-		bool negative{false};
-		std::string strNum;
-
-		if(mSrc[mIdx] == '-') { ++mIdx; negative = true; }
-		
-		
-		while(ssvu::isDigit(mSrc[mIdx])) { strNum += mSrc[mIdx]; ++mIdx; }
-		
-		if(mSrc[mIdx] != '.') return std::stod(strNum);
-
-		strNum += '.';
-		
-		++mIdx;
-		while(ssvu::isDigit(mSrc[mIdx])) { strNum += mSrc[mIdx]; ++mIdx; }	
-
-		if(mSrc[mIdx] != 'e' && mSrc[mIdx] != 'E') return std::stod(strNum);
-		strNum += 'e';
-
-		++mIdx;
-		if(mSrc[mIdx] == '+') strNum += '+';
-		if(mSrc[mIdx] == '-') strNum += '-';
-
-		++mIdx;
-		while(ssvu::isDigit(mSrc[mIdx])) { strNum += mSrc[mIdx]; ++mIdx; }	
-
-		return std::stod(strNum);
 	}
 
 	inline auto readStr(const std::string& mSrc, Idx& mIdx)
@@ -259,7 +296,42 @@ namespace sjt
 
 	inline UPtr<Value> parseNumber(const std::string& mSrc, Idx& mIdx)
 	{
-		return ssvu::makeUPtr<ValueNumber>(readNumber(mSrc, mIdx));
+		bool negative{false};
+		std::string strNum;
+		std::size_t cntDInt{0u}, cntDDec{0u};
+
+		if(mSrc[mIdx] == '-') { ++mIdx; negative = true; }
+		
+		while(ssvu::isDigit(mSrc[mIdx])) { strNum += mSrc[mIdx]; ++mIdx; ++cntDInt; }
+		
+		if(mSrc[mIdx] != '.') 
+		{
+			//if(std::numeric_limits<int>::digits <= cntDInt)
+				return ssvu::makeUPtr<ValueNumber>(Number{std::stoi(strNum)});
+		}
+
+		strNum += '.';
+		
+		++mIdx;
+		while(ssvu::isDigit(mSrc[mIdx])) { strNum += mSrc[mIdx]; ++mIdx; ++cntDDec; }	
+
+		if(mSrc[mIdx] == 'e' || mSrc[mIdx] == 'E') 
+		{
+			strNum += 'e';
+
+			++mIdx;
+			if(mSrc[mIdx] == '+') strNum += '+';
+			if(mSrc[mIdx] == '-') strNum += '-';
+
+			++mIdx;
+			while(ssvu::isDigit(mSrc[mIdx])) { strNum += mSrc[mIdx]; ++mIdx; }	
+		}
+
+		
+		if(std::numeric_limits<float>::digits10 <= cntDDec)
+			return ssvu::makeUPtr<ValueNumber>(Number{std::stof(strNum)});
+		//else if(std::numeric_limits<double>::digits10 <= cntDDec)
+			return ssvu::makeUPtr<ValueNumber>(Number{std::stod(strNum)});	
 	}
 
 	inline UPtr<Value> parseString(const std::string& mSrc, Idx& mIdx)
@@ -397,14 +469,16 @@ int main()
 
 	using namespace ssvu;
 
-	sjt::ObjMap& om = document->get<sjt::ObjMap>();
+	const auto& om = document->get<sjt::ObjMap>();
 	for(const auto& p : om) ssvu::lo() << p.first << " -> " << "?" << "\n";
 
-	auto& om_01 = om["o1"]->get<sjt::ObjMap>();
+	const auto& om_01 = om.at("o1")->get<sjt::ObjMap>();
 	for(const auto& p : om_01) ssvu::lo() << p.first << " -> " << "?" << "\n";
 
-	lo() << (*document)["n1"].get<double>() << "\n";
-	lo() << om["n1"]->get<double>() << "\n";
+	lo() << (*document)["n1"].get<int>() << "\n";
+	lo() << om.at("n1")->get<int>() << "\n";
+	lo() << om.at("n1")->get<float>() << "\n";
+	lo() << om.at("n1")->get<double>() << "\n";
 
 	return 0;
 }
