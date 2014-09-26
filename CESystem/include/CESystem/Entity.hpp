@@ -7,7 +7,7 @@
 
 namespace ssvces
 {
-	class Entity : ssvu::NoCopy
+	class Entity
 	{
 		friend Manager;
 		friend EntityHandle;
@@ -25,6 +25,9 @@ namespace ssvces
 
 		public:
 			inline Entity(Manager& mManager, const EntityStat& mStat) noexcept : manager(mManager), stat(mStat) { }
+
+			inline Entity(const Entity&) = delete;
+			inline Entity& operator=(const Entity&) = delete;
 
 			template<typename T, typename... TArgs> inline void createComponent(TArgs&&...);
 			template<typename T> inline void removeComponent();

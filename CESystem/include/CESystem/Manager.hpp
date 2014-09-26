@@ -7,7 +7,7 @@
 
 namespace ssvces
 {
-	class Manager : ssvu::NoCopy
+	class Manager
 	{
 		friend Entity;
 		friend EntityHandle;
@@ -29,6 +29,11 @@ namespace ssvces
 			inline void addToGroup(Entity* mEntity, Group mGroup) { SSVU_ASSERT(mGroup <= maxGroups); grouped[mGroup].emplace_back(mEntity); }
 
 		public:
+			inline Manager() = default;
+
+			inline Manager(const Manager&) = delete;
+			inline Manager& operator=(const Manager&) = delete;
+
 			inline void refresh()
 			{
 				for(auto& s : systems) s->refresh();

@@ -9,7 +9,7 @@ namespace ssvces
 {
 	namespace Internal
 	{
-		class SystemBase : ssvu::NoCopy
+		class SystemBase
 		{
 			friend bool matchesSystem(const TypeIdxBitset&, const SystemBase&) noexcept;
 			friend ssvces::Manager;
@@ -24,6 +24,10 @@ namespace ssvces
 
 				virtual void registerEntity(Entity&) = 0;
 				virtual void refresh() = 0;
+
+			public:
+				inline SystemBase(const SystemBase&) = delete;
+				inline SystemBase& operator=(const SystemBase&) = delete;
 		};
 	}
 }
