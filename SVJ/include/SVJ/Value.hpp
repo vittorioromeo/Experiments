@@ -111,6 +111,8 @@ namespace svj
 			}
 			template<typename T> decltype(auto) get() const noexcept { return Internal::ValueHelper<T>::get(*this); }
 
+			inline auto getType() const noexcept { return type; }
+
 			//template<typename T> inline decltype(auto) get() const { return ValueHelper<T>::get(*this); }
 			//template<typename T> inline decltype(auto) get(const std::string& mKey) const { return ValueHelper<T>::get((*this)[mKey]); }
 

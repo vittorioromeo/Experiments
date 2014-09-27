@@ -10,7 +10,7 @@ int main()
 	v = v2;
 	v2 = v;
 
-	auto document(svj::parseDocument(R"(
+	auto document(svj::getFromString(R"(
 
 	{
 		"n1": 10,
@@ -40,6 +40,10 @@ int main()
 	}
 
 	)"));
+
+	auto output = svj::getWriteToString(document);
+
+	ssvu::lo() << output << std::endl;
 /*
 	auto document(svj::parseDocument(R"(
 
@@ -54,7 +58,7 @@ int main()
 */
 
 	
-
+/*
 
 	using namespace ssvu;
 
@@ -104,6 +108,6 @@ int main()
 
 	lo() << doc3.get<svj::Object>().at("o1").get<svj::Object>().at("b").get<bool>() << std::endl;	
 	lo() << doc3.get<svj::Object>().at("o2").get<svj::Object>().at("b").get<bool>() << std::endl;
-
+*/
 	return 0;
 }

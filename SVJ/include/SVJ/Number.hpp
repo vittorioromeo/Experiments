@@ -10,11 +10,13 @@ namespace svj
 	namespace Internal
 	{
 		template<typename T> struct NumberHelper;
+		class Writer;
 	}
 
 	class Number
 	{
 		template<typename T> friend struct Internal::NumberHelper;
+		friend class Internal::Writer;
 
 		public:
 			enum class Type{IntS, IntU, Real};
@@ -75,6 +77,8 @@ namespace svj
 
 			template<typename T> decltype(auto) set(T mValue) noexcept	{ return Internal::NumberHelper<T>::set(*this, mValue); }
 			template<typename T> decltype(auto) get() const noexcept	{ return Internal::NumberHelper<T>::get(*this); }
+
+			inline auto getType() const noexcept { return type; }
 	};
 
 	namespace Internal

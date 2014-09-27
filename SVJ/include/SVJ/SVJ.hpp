@@ -7,10 +7,10 @@
 
 #include <SSVUtils/Core/Core.hpp>
 
-#include "Common.hpp"
-#include "Maybe.hpp"
-#include "Number.hpp"
-#include "Value.hpp"
-#include "Parser.hpp"
+#include "../SVJ/Common.hpp"
+#include "../SVJ/Maybe.hpp"
+#include "../SVJ/Number.hpp"
+#include "../SVJ/Value.hpp"
+#include "../SVJ/Io/Io.hpp"
 
 #endif
