@@ -5,11 +5,30 @@ int main()
 {
 	using namespace svj;
 
-	Value v{"hello"};
-	Value v2 = v;
-	v = v2;
-	v2 = v;
-	v = std::move(v2);
+	Value v{Object{}};
+
+	v["stuff"] = Array
+	{
+		"red", 
+		"blue", 
+		33, 
+		125.f, 
+		
+		Object
+		{
+			{"banana", "yummy"},
+			{"avocado", "yucky"},
+			{"favorites", Array{"croissant", "yogurt"}}
+		}
+	};
+
+	Value v2{v};
+	
+
+	ssvu::lo("v") << v << std::endl;	
+
+	return 0;
+
 
 	auto document(svj::getFromString(R"(
 
