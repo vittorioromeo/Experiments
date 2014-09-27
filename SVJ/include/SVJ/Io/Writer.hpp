@@ -78,7 +78,7 @@ namespace svj
 
 					repeatWithSeparator(std::begin(mObject), std::end(mObject), [this](auto mItr)
 					{
-						write(mItr->first);
+						writeKey(mItr->first);
 
 						wFmt(FmtCC::LightGray, FmtCS::Bold);
 						wOut(":"); wWS();
@@ -116,6 +116,12 @@ namespace svj
 					wNL(); wOut("]");
 				}
 
+				inline void writeKey(const Key& mKey)
+				{
+					wFmt(FmtCC::LightGray);
+					wOut("\"" + mKey + "\"");
+				}
+
 				inline void write(const String& mStr)
 				{
 					wFmt(FmtCC::LightYellow);
@@ -124,7 +130,7 @@ namespace svj
 
 				inline void write(const Number& mNumber)
 				{
-					wFmt(FmtCC::LightGray);
+					wFmt(FmtCC::LightRed);
 
 					switch(mNumber.getType())
 					{
