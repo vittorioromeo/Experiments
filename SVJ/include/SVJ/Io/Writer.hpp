@@ -86,7 +86,7 @@ namespace svj
 					wOut("]");
 				}
 
-				inline void writeString(const std::string& mStr)
+				inline void writeString(const String& mStr)
 				{
 					wOut("\"" + mStr + "\"");
 				}
@@ -117,7 +117,7 @@ namespace svj
 					{
 						case Value::Type::Object:	writeObject(mValue.get<Object>()); break;
 						case Value::Type::Array:	writeArray(mValue.get<Array>()); break;
-						case Value::Type::String:	writeString(mValue.get<std::string>()); break;
+						case Value::Type::String:	writeString(mValue.get<String>()); break;
 						case Value::Type::Number:	writeNumber(mValue.get<Number>()); break;
 						case Value::Type::Bool:		writeBool(mValue.get<bool>()); break;
 						case Value::Type::Null:		writeNull(); break;

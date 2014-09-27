@@ -15,21 +15,66 @@ namespace svj
 				ssvu::AlignedStorageBasic<T> storage;
 
 			public:
+				#if !(SSVU_IMPL_ASSERT_DISABLED)
+					bool alive;
+				#endif
+
 				inline Maybe() noexcept = default;
 
-				inline void init(const T& mV) noexcept(ssvu::isNothrowConstructible<T>())	{ new (&storage) T(mV); }
-				inline void init(T&& mV) noexcept(ssvu::isNothrowMoveConstructible<T>())	{ new (&storage) T(std::move(mV)); }
+				inline void init(const T& mV) noexcept(ssvu::isNothrowConstructible<T>())
+				{
+					SSVU_ASSERT(alive == false);
+
+					new (&storage) T(mV);
+
+					#if !(SSVU_IMPL_ASSERT_DISABLED)
+						alive = true;
+					#endif
+				}
+				inline void init(T&& mV) noexcept(ssvu::isNothrowMoveConstructible<T>())
+				{
+					SSVU_ASSERT(alive == false);
+
+					new (&storage) T(std::move(mV));
+
+					#if !(SSVU_IMPL_ASSERT_DISABLED)
+						alive = true;
+					#endif
+				}
 				inline void init(const Maybe& mM) noexcept(noexcept(init(mM.get())))		{ init(mM.get()); }
 				inline void init(Maybe&& mM) noexcept(noexcept(init(std::move(mM.get()))))	{ init(std::move(mM.get())); }
 
 				inline void deinit() noexcept(ssvu::isNothrowDestructible<T>())
 				{
-					DL("deinit call dtor");
+					SSVU_ASSERT(alive == true);
+
 					get().~T();
+
+					#if !(SSVU_IMPL_ASSERT_DISABLED)
+						alive = false;
+					#endif
+
+					SSVU_ASSERT(alive == false);
 				}
 
-				inline T& get() noexcept { return reinterpret_cast<T&>(storage); }
-				inline const T& get() const noexcept { return reinterpret_cast<const T&>(storage); }
+				inline T& get() noexcept
+				{
+					SSVU_ASSERT(alive == true);
+					return reinterpret_cast<T&>(storage);
+				}
+				inline const T& get() const noexcept
+				{
+					SSVU_ASSERT(alive == true);
+					return reinterpret_cast<const T&>(storage);
+				}
+
+				/*
+				inline T getMove() noexcept
+				{
+					SSVU_ASSERT(alive == true);
+					return std::move(reinterpret_cast<T&>(storage));
+				}
+				*/
 		};
 	}
 }

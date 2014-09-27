@@ -33,9 +33,9 @@ namespace svj
 					}
 				}
 
-				inline auto readStr()
+				inline auto readString()
 				{
-					std::string result;
+					String result;
 
 					// Skip opening '"'
 					++idx;
@@ -156,7 +156,7 @@ namespace svj
 				 /* if(std::numeric_limits<double>::digits10 <= cntDDec) */	return Value{Number{std::stod(strNum)}};
 				}
 
-				inline auto parseString() { return Value{readStr()}; }
+				inline auto parseString() { return Value{readString()}; }
 
 				inline auto parseArray()
 				{
@@ -211,7 +211,7 @@ namespace svj
 						// Read string key
 						skipWhitespace();
 						if(!isC('"')) throw std::runtime_error{"Invalid object"};
-						auto key(readStr());
+						auto key(readString());
 
 						// Read ':'
 						skipWhitespace();

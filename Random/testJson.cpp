@@ -9,6 +9,7 @@ int main()
 	Value v2 = v;
 	v = v2;
 	v2 = v;
+	v = std::move(v2);
 
 	auto document(svj::getFromString(R"(
 

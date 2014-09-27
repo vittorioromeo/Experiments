@@ -15,7 +15,9 @@
 namespace svj
 {
 	using Idx = std::size_t;
-	template<typename T> using ObjectImpl = std::map<std::string, T>;
+	using Key = std::string;
+	using String = std::string;
+	template<typename T> using ObjectImpl = std::map<Key, T>;
 	template<typename T> using ArrayImpl = std::vector<T>;
 
 	struct Null { };
