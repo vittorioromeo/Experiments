@@ -18,7 +18,9 @@ int main()
 		{
 			{"banana", "yummy"},
 			{"avocado", "yucky"},
-			{"favorites", Array{"croissant", "yogurt"}}
+			{"favorites", Array{"croissant", "yogurt"}},
+			{"hungry", true},
+			{"chocolate", Null{}}
 		}
 	};
 
@@ -26,8 +28,12 @@ int main()
 	
 
 	ssvu::lo("v") << v << std::endl;	
+	ssvu::lo("v") << v2 << std::endl;
 
-	return 0;
+	Value v3{Array{1, 2, 3, 4 ,5}};
+
+	ssvu::lo("v") << v3 << std::endl;
+
 
 
 	auto document(svj::getFromString(R"(
@@ -61,9 +67,12 @@ int main()
 
 	)"));
 
-	auto output = svj::getWriteToString(document);
+	auto output = svj::getWriteToString<WriterMode::Minified>(document);
+
+	auto doc2 = svj::getFromString(output);
 
 	ssvu::lo() << output << std::endl;
+	ssvu::lo() << doc2 << std::endl;
 /*
 	auto document(svj::parseDocument(R"(
 

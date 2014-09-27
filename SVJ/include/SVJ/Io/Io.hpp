@@ -28,19 +28,16 @@ namespace svj
 		}
 	}
 
-	//inline Value parseDocument(std::string mSrc) { return Internal::Parser{std::move(mSrc)}.parseDocument(); }
-
-	inline void readFromString(Value& mValue, const std::string& mStr)	{ Internal::Reader r{std::move(mStr)};							Internal::tryParse(mValue, r); }
+	inline void readFromString(Value& mValue, std::string mStr)			{ Internal::Reader r{std::move(mStr)};							Internal::tryParse(mValue, r); }
 	inline void readFromFile(Value& mValue, const ssvufs::Path& mPath)	{ Internal::Reader r{std::move(mPath.getContentsAsString())};;	Internal::tryParse(mValue, r); }
 
 	inline Value getFromString(const std::string& mStr)	{ Value result; readFromString(result, mStr); return result; }
 	inline Value getFromFile(const ssvufs::Path& mPath)	{ Value result; readFromFile(result, mPath); return result; }
 
-
-	inline void writeToStream(const Value& mValue, std::ostream& mStream)	{ Internal::Writer writer; writer.write(mValue, mStream); mStream.flush(); }
-	inline void writeToString(const Value& mValue, std::string& mStr)		{ std::ostringstream o; writeToStream(mValue, o); mStr = o.str(); }
-	inline void writeToFile(const Value& mValue, const ssvufs::Path& mPath)	{ std::ofstream o{mPath}; writeToStream(mValue, o); o.close(); }
-	inline auto getWriteToString(const Value& mValue)						{ std::string result; writeToString(mValue, result); return result; }
+	template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> inline void writeToStream(const Value& mValue, std::ostream& mStream)		{ Internal::Writer<TWS, TFmt> w; w.write(mValue, mStream); mStream.flush(); }
+	template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> inline void writeToString(const Value& mValue, std::string& mStr)			{ std::ostringstream o; writeToStream<TWS, TFmt>(mValue, o); mStr = o.str(); }
+	template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> inline void writeToFile(const Value& mValue, const ssvufs::Path& mPath)	{ std::ofstream o{mPath}; writeToStream<TWS, TFmt>(mValue, o); o.close(); }
+	template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> inline auto getWriteToString(const Value& mValue)							{ std::string result; writeToString<TWS, TFmt>(mValue, result); return result; }
 }
 
 #endif

@@ -10,13 +10,11 @@ namespace svj
 	namespace Internal
 	{
 		template<typename T> struct NumberHelper;
-		class Writer;
 	}
 
 	class Number
 	{
 		template<typename T> friend struct Internal::NumberHelper;
-		friend class Internal::Writer;
 
 		public:
 			enum class Type{IntS, IntU, Real};
@@ -35,9 +33,9 @@ namespace svj
 				Real hReal;
 			} h;
 
-			inline void setIntS(IntU mValue) noexcept { type = Type::IntS; h.hIntS = mValue; }
-			inline void setIntU(IntS mValue) noexcept { type = Type::IntU; h.hIntU = mValue; }
-			inline void setReal(Real mValue) noexcept { type = Type::Real; h.hReal = mValue; }
+			inline void setIntS(IntU mX) noexcept { type = Type::IntS; h.hIntS = mX; }
+			inline void setIntU(IntS mX) noexcept { type = Type::IntU; h.hIntU = mX; }
+			inline void setReal(Real mX) noexcept { type = Type::Real; h.hReal = mX; }
 
 			inline IntS getIntS() const noexcept
 			{
@@ -75,7 +73,7 @@ namespace svj
 			inline Number(IntU mValue) noexcept { setIntU(mValue); }
 			inline Number(Real mValue) noexcept { setReal(mValue); }
 
-			template<typename T> decltype(auto) set(T mValue) noexcept	{ return Internal::NumberHelper<T>::set(*this, mValue); }
+			template<typename T> decltype(auto) set(T mX) noexcept		{ return Internal::NumberHelper<T>::set(*this, mX); }
 			template<typename T> decltype(auto) get() const noexcept	{ return Internal::NumberHelper<T>::get(*this); }
 
 			inline auto getType() const noexcept { return type; }
@@ -85,37 +83,37 @@ namespace svj
 	{
 		template<> struct NumberHelper<char>
 		{
-			inline static void set(Number& mN, char mV) noexcept { return mN.setIntS(mV); }
+			inline static void set(Number& mN, char mX) noexcept { return mN.setIntS(mX); }
 			inline static auto get(const Number& mN) noexcept { return mN.getIntS(); }
 		};
 
 		template<> struct NumberHelper<unsigned char>
 		{
-			inline static void set(Number& mN, unsigned char mV) noexcept { return mN.setIntU(mV); }
+			inline static void set(Number& mN, unsigned char mX) noexcept { return mN.setIntU(mX); }
 			inline static auto get(const Number& mN) noexcept { return mN.getIntU(); }
 		};
 
 		template<> struct NumberHelper<int>
 		{
-			inline static void set(Number& mN, int mV) noexcept { return mN.setIntS(mV); }
+			inline static void set(Number& mN, int mX) noexcept { return mN.setIntS(mX); }
 			inline static auto get(const Number& mN) noexcept { return mN.getIntS(); }
 		};
 
 		template<> struct NumberHelper<unsigned int>
 		{
-			inline static void set(Number& mN, unsigned int mV) noexcept { return mN.setIntU(mV); }
+			inline static void set(Number& mN, unsigned int mX) noexcept { return mN.setIntU(mX); }
 			inline static auto get(const Number& mN) noexcept { return mN.getIntU(); }
 		};
 
 		template<> struct NumberHelper<float>
 		{
-			inline static void set(Number& mN, float mV) noexcept { return mN.setReal(mV); }
+			inline static void set(Number& mN, float mX) noexcept { return mN.setReal(mX); }
 			inline static auto get(const Number& mN) noexcept { return mN.getReal(); }
 		};
 
 		template<> struct NumberHelper<double>
 		{
-			inline static void set(Number& mN, double mV) noexcept { return mN.setReal(mV); }
+			inline static void set(Number& mN, double mX) noexcept { return mN.setReal(mX); }
 			inline static auto get(const Number& mN) noexcept { return mN.getReal(); }
 		};
 	}

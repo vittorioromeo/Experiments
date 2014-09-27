@@ -15,12 +15,12 @@ namespace svj
 				std::string src;
 				Idx idx{0u};
 
-				inline static bool isWhitespace(char mC) noexcept	{ return mC == ' ' || mC == '\t' || mC == '\r' || mC == '\n'; }
-				inline static bool isNumberStart(char mC) noexcept	{ return mC == '-' || ssvu::isDigit(mC); }
+				inline static auto isWhitespace(char mC) noexcept	{ return mC == ' ' || mC == '\t' || mC == '\r' || mC == '\n'; }
+				inline static auto isNumberStart(char mC) noexcept	{ return mC == '-' || ssvu::isDigit(mC); }
 
 				inline char getC() const noexcept		{ return src[idx]; }
-				inline bool isC(char mC) const noexcept	{ return getC() == mC; }
-				inline bool isCDigit() const noexcept	{ return ssvu::isDigit(getC()); }
+				inline auto isC(char mC) const noexcept	{ return getC() == mC; }
+				inline auto isCDigit() const noexcept	{ return ssvu::isDigit(getC()); }
 
 				inline void skipWhitespace() noexcept { while(isWhitespace(getC())) ++idx; }
 
@@ -116,8 +116,6 @@ namespace svj
 				inline auto parseNumber()
 				{
 					std::string strNum;
-
-					//bool negative{false};
 					std::size_t cntDInt{0u}, cntDDec{0u};
 
 					// Check negativity
