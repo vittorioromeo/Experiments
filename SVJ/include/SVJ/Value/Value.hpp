@@ -127,6 +127,9 @@ namespace ssvu
 				// "Explicit" `set` function set the inner contents of the value
 				template<typename T> inline void set(T&& mX) { deinitCurrent(); Internal::ValueHelper<RemoveAll<T>>::set(*this, fwd<T>(mX)); }
 
+				inline auto& operator=(const Value& mV) { set(mV); return *this; }
+				inline auto& operator=(Value&& mV) { set(mV); return *this; }
+
 				// "Implicit" `set` function done via `operator=` overloading
 				template<typename T> inline auto& operator=(T&& mX) { set(fwd<T>(mX)); return *this; }
 
@@ -162,6 +165,7 @@ namespace ssvu
 
 					std::terminate();
 				}
+				inline auto operator!=(const Value& mV) const noexcept { return !(operator==(mV)); }
 
 				template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> void writeToStream(std::ostream& mStream) const;
 				template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> void writeToString(std::string& mStr) const;

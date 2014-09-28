@@ -17,14 +17,29 @@ namespace ssvu
 					std::string src;
 					Idx idx{0u};
 
-					inline auto getSrcLine()
+					inline auto getErrorSrc()
 					{
-						auto iStart(idx), iEnd(idx);
+						auto iStart(std::max(Idx(0), idx - 20));
+						auto iEnd(std::min(src.size() - 1, idx + 20));
 
-						while(iStart > 0 && src[iStart] != '\n') --iStart;
-						while(iEnd < src.size() && src[iEnd] != '\n') ++iEnd;
+						auto iDStart(std::max(Idx(0), idx - 4));
+						auto iDEnd(std::min(src.size() - 1, idx + 4));
 
-						return std::string{std::begin(src) + iStart, std::begin(src) + iEnd};
+						auto strMarked
+						(
+							std::string{std::begin(src) + iStart, std::begin(src) + iDStart}
+							+ " >>>>>> "
+							+ std::string{std::begin(src) + iDStart, std::begin(src) + iDEnd}
+							+ " <<<<<< "
+							+ std::string{std::begin(src) + iDEnd, std::begin(src) + iEnd}
+						);
+
+						auto strUnmarked(std::string{std::begin(src) + iStart, std::begin(src) + iEnd});
+
+						replaceAll(strMarked, "\n", "");
+						replaceAll(strUnmarked, "\n", "");
+
+						return strUnmarked + "\n" + strMarked;
 					}
 
 					inline static auto isWhitespace(char mC) noexcept	{ return mC == ' ' || mC == '\t' || mC == '\r' || mC == '\n'; }
@@ -40,9 +55,26 @@ namespace ssvu
 					{
 						for(auto kc : mKeyword)
 						{
-							if(getC() != kc) throw ReadException("Invalid keyword", "Couldn't match keyword `"s + mKeyword + "'", getSrcLine());
+							if(getC() != kc) throw ReadException("Invalid keyword", "Couldn't match keyword `"s + mKeyword + "'", getErrorSrc());
 							++idx;
 						}
+					}
+
+					inline auto readEscapeSequenceChar()
+					{
+						switch(getC())
+						{
+							case '"':	return '\"';
+							case '\\':	return '\\';
+							case '/':	return '/';
+							case 'b':	return '\b';
+							case 'f':	return '\f';
+							case 'n':	return '\n';
+							case 'r':	return '\r';
+							case 't':	return '\t';
+							default: throw ReadException("Invalid escape sequence", "No match for escape sequence `\\"s + getC() + "`", getErrorSrc());
+						}
+
 					}
 
 					inline auto readString()
@@ -64,18 +96,7 @@ namespace ssvu
 								++idx;
 
 								// Check escape sequence character after '\'
-								switch(getC())
-								{
-									case '"':	result += '\"';	break;
-									case '\\':	result += '\\';	break;
-									case '/':	result += '/';	break;
-									case 'b':	result += '\b';	break;
-									case 'f':	result += '\f'; break;
-									case 'n':	result += '\n';	break;
-									case 'r':	result += '\r';	break;
-									case 't':	result += '\t';	break;
-									default: throw ReadException("Invalid escape sequence", "No match for escape sequence `\\"s + getC() + "`", getSrcLine());
-								}
+								result += readEscapeSequenceChar();
 
 								continue;
 							}
@@ -193,7 +214,7 @@ namespace ssvu
 							// Check for end of the array
 							if(isC(']')) break;
 
-							throw ReadException{"Invalid array", "Expected either `,` or `]`, got `"s + getC() + "`", getSrcLine()};
+							throw ReadException{"Invalid array", "Expected either `,` or `]`, got `"s + getC() + "`", getErrorSrc()};
 						}
 
 						end:
@@ -220,12 +241,12 @@ namespace ssvu
 						{
 							// Read string key
 							skipWhitespace();
-							if(!isC('"')) throw ReadException{"Invalid object", "Expected `\"` , got `"s + getC() + "`", getSrcLine()};
+							if(!isC('"')) throw ReadException{"Invalid object", "Expected `\"` , got `"s + getC() + "`", getErrorSrc()};
 							auto key(readString());
 
 							// Read ':'
 							skipWhitespace();
-							if(!isC(':')) throw ReadException{"Invalid object", "Expected `:` , got `"s + getC() + "`", getSrcLine()};
+							if(!isC(':')) throw ReadException{"Invalid object", "Expected `:` , got `"s + getC() + "`", getErrorSrc()};
 
 							// Skip ':'
 							++idx;
@@ -241,7 +262,7 @@ namespace ssvu
 							// Check for end of the object
 							if(isC('}')) break;
 
-							throw ReadException{"Invalid object", "Expected either `,` or `}`, got `"s + getC() + "`", getSrcLine()};
+							throw ReadException{"Invalid object", "Expected either `,` or `}`, got `"s + getC() + "`", getErrorSrc()};
 						}
 
 						end:
@@ -270,7 +291,7 @@ namespace ssvu
 						// Check if value is a number
 						if(isNumberStart(getC())) return parseNumber();
 
-						throw ReadException{"Invalid value", "No match for values beginning with `"s + getC() + "`", getSrcLine()};
+						throw ReadException{"Invalid value", "No match for values beginning with `"s + getC() + "`", getErrorSrc()};
 					}
 
 				public:

@@ -88,6 +88,7 @@ namespace ssvu
 
 						std::terminate();
 					}
+					inline auto operator!=(const Number& mN) const noexcept { return !(operator==(mN)); }
 			};
 		}
 	}

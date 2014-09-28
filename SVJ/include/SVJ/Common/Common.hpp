@@ -5,6 +5,9 @@
 #ifndef SVJ_COMMON
 #define SVJ_COMMON
 
+#include "../../SVJ/Common/VecMap.hpp"
+#include "../../SVJ/Common/Maybe.hpp"
+
 namespace ssvu
 {
 	namespace Json
@@ -16,7 +19,7 @@ namespace ssvu
 
 		namespace Internal
 		{
-			template<typename T> using ObjectImpl = std::map<Key, T>;
+			template<typename T> using ObjectImpl = Internal::VecMap<Key, T>;
 			template<typename T> using ArrayImpl = std::vector<T>;
 		}
 
@@ -27,7 +30,5 @@ namespace ssvu
 }
 
 namespace svj = ssvu::Json;
-
-#include "../../SVJ/Common/Maybe.hpp"
 
 #endif

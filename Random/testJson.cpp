@@ -7,7 +7,45 @@ int main()
 	using namespace ssvu::Json;
 
 	SSVUT_RUN();
+	
+	/*ssvu::lo("Value") << sizeof(Value) << std::endl;
+	ssvu::lo("Value::Holder") << sizeof(Value::Holder) << std::endl;
+	ssvu::lo("Value::Type") << sizeof(Value::Type) << std::endl;
+	ssvu::lo("hObject") << sizeof(decltype(Value::Holder::hObject)) << std::endl;
+	ssvu::lo("hArray") << sizeof(decltype(Value::Holder::hArray)) << std::endl;
+	ssvu::lo("hString") << sizeof(decltype(Value::Holder::hString)) << std::endl;
+	ssvu::lo("hNumber") << sizeof(decltype(Value::Holder::hNumber)) << std::endl;*/
 
+	auto document(Value::fromString(R"(
+
+	{
+		"n1": 10,
+		"n2": 15.5,
+		"n3": -35.5e+12,
+		
+		"s1": "bananas",	// Test comment
+		"s2": "",
+		"s3": "1test2",
+
+		"a1": [1, 2, 3 "sup", { "lol":10 }], // Comment 2
+
+		"o1": 
+		{
+			"b": true
+		},
+
+		"o2": 
+		{
+			"b": false
+		},
+
+		"o3":
+		{
+			"nv": null
+		}
+	}
+
+	)"));
 
 return 0;
 /*
@@ -51,36 +89,7 @@ const auto& a = v["stuff"].get<Array>();
 
 
 
-	auto document(Value::fromString(R"(
-
-	{
-		"n1": 10,
-		"n2": 15.5,
-		"n3": -35.5e+12,
-		
-		"s1": "bananas",	// Test comment
-		"s2": "",
-		"s3": "1test2",
-
-		"a1": [1, 2, 3, "sup", { "lol":10 }], // Comment 2
-
-		"o1": 
-		{
-			"b": true
-		},
-
-		"o2": 
-		{
-			"b": false
-		},
-
-		"o3":
-		{
-			"nv": null
-		}
-	}
-
-	)"));
+	
 
 	auto output = document.getWriteToString<WriterMode::Minified>();
 
