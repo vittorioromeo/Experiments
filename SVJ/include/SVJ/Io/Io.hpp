@@ -5,39 +5,50 @@
 #ifndef SVJ_IO
 #define SVJ_IO
 
+namespace ssvu
+{
+	namespace Json
+	{
+		class ReadException : public std::runtime_error
+		{
+			private:
+				std::string title, src;
+
+			public:
+				inline ReadException(std::string mTitle, std::string mWhat, std::string mSrc) : std::runtime_error{std::move(mWhat)}, title{std::move(mTitle)}, src{std::move(mSrc)} { }
+
+				inline const auto& getTitle() const noexcept { return title; }
+				inline const auto& getSrc() const noexcept { return src; }
+		};
+	}
+}
+
 #include "../Io/Reader.hpp"
 #include "../Io/Writer.hpp"
 
-namespace svj
+namespace ssvu
 {
-	namespace Internal
+	namespace Json
 	{
-		inline bool tryParse(Value& mValue, Internal::Reader& mReader)
+		namespace Internal
 		{
-			try
+			inline bool tryParse(Value& mValue, Internal::Reader& mReader)
 			{
-				mValue = mReader.parseDocument();
-			}
-			catch(std::runtime_error& mEx)
-			{
-				ssvu::lo("SVJ reading error") << mEx.what() << std::endl;
-				return false;
-			}
+				try
+				{
+					mValue = mReader.parseDocument();
+				}
+				catch(ReadException& mEx)
+				{
+					lo("JSON") << "Error occured during read\n";
+					lo(mEx.getTitle()) << mEx.what() << " - at:\n" + mEx.getSrc() << std::endl;
+					return false;
+				}
 
-			return true;
+				return true;
+			}
 		}
 	}
-
-	inline void readFromString(Value& mValue, std::string mStr)			{ Internal::Reader r{std::move(mStr)};							Internal::tryParse(mValue, r); }
-	inline void readFromFile(Value& mValue, const ssvufs::Path& mPath)	{ Internal::Reader r{std::move(mPath.getContentsAsString())};;	Internal::tryParse(mValue, r); }
-
-	inline Value getFromString(const std::string& mStr)	{ Value result; readFromString(result, mStr); return result; }
-	inline Value getFromFile(const ssvufs::Path& mPath)	{ Value result; readFromFile(result, mPath); return result; }
-
-	template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> inline void writeToStream(const Value& mValue, std::ostream& mStream)		{ Internal::Writer<TWS, TFmt> w; w.write(mValue, mStream); mStream.flush(); }
-	template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> inline void writeToString(const Value& mValue, std::string& mStr)			{ std::ostringstream o; writeToStream<TWS, TFmt>(mValue, o); mStr = o.str(); }
-	template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> inline void writeToFile(const Value& mValue, const ssvufs::Path& mPath)	{ std::ofstream o{mPath}; writeToStream<TWS, TFmt>(mValue, o); o.close(); }
-	template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> inline auto getWriteToString(const Value& mValue)							{ std::string result; writeToString<TWS, TFmt>(mValue, result); return result; }
 }
 
 #endif

@@ -5,16 +5,23 @@
 #ifndef SVJ_COMMON
 #define SVJ_COMMON
 
-namespace svj
+namespace ssvu
 {
-	using Idx = std::size_t;
-	using Key = std::string;
-	using String = std::string;
-	using Bool = bool;
-	template<typename T> using ObjectImpl = std::map<Key, T>;
-	template<typename T> using ArrayImpl = std::vector<T>;
+	namespace Json
+	{
+		using Idx = std::size_t;
+		using Key = std::string;
+		using String = std::string;
+		using Bool = bool;
+		template<typename T> using ObjectImpl = std::map<Key, T>;
+		template<typename T> using ArrayImpl = std::vector<T>;
 
-	struct Null { };
+		struct Null { };
+
+		enum class WriterMode{Pretty, Minified};
+	}
 }
+
+namespace svj = ssvu::Json;
 
 #endif

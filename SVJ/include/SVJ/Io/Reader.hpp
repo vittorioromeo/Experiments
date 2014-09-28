@@ -5,276 +5,289 @@
 #ifndef SVJ_IO_READER
 #define SVJ_IO_READER
 
-namespace svj
+namespace ssvu
 {
-	namespace Internal
+	namespace Json
 	{
-		class Reader
+		namespace Internal
 		{
-			private:
-				std::string src;
-				Idx idx{0u};
+			class Reader
+			{
+				private:
+					std::string src;
+					Idx idx{0u};
 
-				inline static auto isWhitespace(char mC) noexcept	{ return mC == ' ' || mC == '\t' || mC == '\r' || mC == '\n'; }
-				inline static auto isNumberStart(char mC) noexcept	{ return mC == '-' || ssvu::isDigit(mC); }
-
-				inline char getC() const noexcept		{ return src[idx]; }
-				inline auto isC(char mC) const noexcept	{ return getC() == mC; }
-				inline auto isCDigit() const noexcept	{ return ssvu::isDigit(getC()); }
-
-				inline void skipWhitespace() noexcept { while(isWhitespace(getC())) ++idx; }
-
-				inline void match(const std::string& mKeyword)
-				{
-					for(auto kc : mKeyword)
+					inline auto getSrcLine()
 					{
-						if(getC() != kc) throw std::runtime_error{"Invalid keyword " + mKeyword};
-						++idx;
+						auto iStart(idx), iEnd(idx);
+
+						while(iStart > 0 && src[iStart] != '\n') --iStart;
+						while(iEnd < src.size() && src[iEnd] != '\n') ++iEnd;
+
+						return std::string{std::begin(src) + iStart, std::begin(src) + iEnd};
 					}
-				}
 
-				inline auto readString()
-				{
-					String result;
+					inline static auto isWhitespace(char mC) noexcept	{ return mC == ' ' || mC == '\t' || mC == '\r' || mC == '\n'; }
+					inline static auto isNumberStart(char mC) noexcept	{ return mC == '-' || isDigit(mC); }
 
-					// Skip opening '"'
-					++idx;
+					inline char getC() const noexcept		{ return src[idx]; }
+					inline auto isC(char mC) const noexcept	{ return getC() == mC; }
+					inline auto isCDigit() const noexcept	{ return isDigit(getC()); }
 
-					for(; true; ++idx)
+					inline void skipWhitespace() noexcept { while(isWhitespace(getC())) ++idx; }
+
+					inline void match(const std::string& mKeyword)
 					{
-						// End of the string
-						if(isC('"')) break;
-
-						// Escape sequence
-						if(isC('\\'))
+						for(auto kc : mKeyword)
 						{
-							// Skip '\'
+							if(getC() != kc) throw ReadException("Invalid keyword", "Couldn't match keyword `"s + mKeyword + "'", getSrcLine());
 							++idx;
+						}
+					}
 
-							// Check escape sequence character after '\'
-							switch(getC())
+					inline auto readString()
+					{
+						String result;
+
+						// Skip opening '"'
+						++idx;
+
+						for(; true; ++idx)
+						{
+							// End of the string
+							if(isC('"')) break;
+
+							// Escape sequence
+							if(isC('\\'))
 							{
-								case '"':	result += '\"';	break;
-								case '\\':	result += '\\';	break;
-								case '/':	result += '/';	break;
-								case 'b':	result += '\b';	break;
-								case 'f':	result += '\f'; break;
-								case 'n':	result += '\n';	break;
-								case 'r':	result += '\r';	break;
-								case 't':	result += '\t';	break;
-								default: throw std::runtime_error("Invalid escape sequence");
+								// Skip '\'
+								++idx;
+
+								// Check escape sequence character after '\'
+								switch(getC())
+								{
+									case '"':	result += '\"';	break;
+									case '\\':	result += '\\';	break;
+									case '/':	result += '/';	break;
+									case 'b':	result += '\b';	break;
+									case 'f':	result += '\f'; break;
+									case 'n':	result += '\n';	break;
+									case 'r':	result += '\r';	break;
+									case 't':	result += '\t';	break;
+									default: throw ReadException("Invalid escape sequence", "No match for escape sequence `\\"s + getC() + "`", getSrcLine());
+								}
+
+								continue;
 							}
 
-							continue;
+							// Any other character
+							result += getC();
 						}
 
-						// Any other character
-						result += getC();
+						// Skip closing '"'
+						++idx;
+
+						return result;
 					}
 
-					// Skip closing '"'
-					++idx;
-
-					return result;
-				}
-
-				inline void purgeSource()
-				{
-					std::string result, buffer;
-
-					// `commit()` appends the buffer (with a newline) to the result and clears it
-					auto commit([&result, &buffer]{ result += buffer + "\n"; buffer.clear(); });
-
-					for(auto i(0u); i < src.size(); ++i)
+					inline void purgeSource()
 					{
-						// Line without comments
-						if(src[i] == '\n') { commit(); continue; }
+						std::string result, buffer;
 
-						// C++-style comment
-						if(src[i] == '/' && src[i + 1] == '/')
+						// `commit()` appends the buffer (with a newline) to the result and clears it
+						auto commit([&result, &buffer]{ result += buffer + "\n"; buffer.clear(); });
+
+						for(auto i(0u); i < src.size(); ++i)
 						{
-							commit();
+							// Line without comments
+							if(src[i] == '\n') { commit(); continue; }
 
-							while(src[i] != '\n') ++i;
-							++i;
+							// C++-style comment
+							if(src[i] == '/' && src[i + 1] == '/')
+							{
+								commit();
 
-							continue;
+								while(src[i] != '\n') ++i;
+								++i;
+
+								continue;
+							}
+
+							// Any character
+							buffer += src[i];
 						}
 
-						// Any character
-						buffer += src[i];
+						// Commit remaining buffer elements and update `src`
+						commit(); src = result;
 					}
 
-					// Commit remaining buffer elements and update `src`
-					commit(); src = result;
-				}
+					inline auto parseNull()			{ match("null"); return Value{Null{}}; }
+					inline auto parseBoolFalse()	{ match("false"); return Value{false}; }
+					inline auto parseBoolTrue()		{ match("true"); return Value{true}; }
 
-				inline auto parseNull()			{ match("null"); return Value{Null{}}; }
-				inline auto parseBoolFalse()	{ match("false"); return Value{false}; }
-				inline auto parseBoolTrue()		{ match("true"); return Value{true}; }
-
-				inline auto parseNumber()
-				{
-					std::string strNum;
-					std::size_t cntDInt{0u}, cntDDec{0u};
-
-					// Check negativity
-					if(isC('-')) { ++idx; strNum += "-"; }
-
-					// Get and count non-decimal digits
-					while(isCDigit()) { strNum += getC(); ++idx; ++cntDInt; }
-
-					// If there's no dot, return a non-decimal number
-					if(!isC('.'))
+					inline auto parseNumber()
 					{
-						//if(std::numeric_limits<int>::digits <= cntDInt)
-							return Value{Number{std::stoi(strNum)}};
+						std::string strNum;
+						std::size_t cntDInt{0u}, cntDDec{0u};
+
+						// Check negativity
+						if(isC('-')) { ++idx; strNum += "-"; }
+
+						// Get and count non-decimal digits
+						while(isCDigit()) { strNum += getC(); ++idx; ++cntDInt; }
+
+						// If there's no dot, return a non-decimal number
+						if(!isC('.'))
+						{
+							//if(std::numeric_limits<int>::digits <= cntDInt)
+								return Value{Number{std::stoi(strNum)}};
+						}
+
+						// Add dot
+						strNum += '.'; ++idx;
+
+						// Get and count decimal digits
+						while(isCDigit()) { strNum += getC(); ++idx; ++cntDDec; }
+
+						// Handle possible exponent
+						if(isC('e') || isC('E'))
+						{
+							strNum += 'e';
+
+							++idx;
+							if(isC('+')) strNum += '+';
+							if(isC('-')) strNum += '-';
+
+							++idx;
+							while(isCDigit()) { strNum += getC(); ++idx; }
+						}
+
+						if(std::numeric_limits<float>::digits10 <= cntDDec)		return Value{Number{std::stof(strNum)}};
+					 /* if(std::numeric_limits<double>::digits10 <= cntDDec) */	return Value{Number{std::stod(strNum)}};
 					}
 
-					// Add dot
-					strNum += '.'; ++idx;
+					inline auto parseString() { return Value{readString()}; }
 
-					// Get and count decimal digits
-					while(isCDigit()) { strNum += getC(); ++idx; ++cntDDec; }
-
-					// Handle possible exponent
-					if(isC('e') || isC('E'))
+					inline auto parseArray()
 					{
-						strNum += 'e';
+						Array array;
 
-						++idx;
-						if(isC('+')) strNum += '+';
-						if(isC('-')) strNum += '-';
-
-						++idx;
-						while(isCDigit()) { strNum += getC(); ++idx; }
-					}
-
-					if(std::numeric_limits<float>::digits10 <= cntDDec)		return Value{Number{std::stof(strNum)}};
-				 /* if(std::numeric_limits<double>::digits10 <= cntDDec) */	return Value{Number{std::stod(strNum)}};
-				}
-
-				inline auto parseString() { return Value{readString()}; }
-
-				inline auto parseArray()
-				{
-					Array array;
-
-					// Skip '['
-					++idx;
-
-					skipWhitespace();
-
-					// Empty array
-					if(isC(']')) goto end;
-
-					while(true)
-					{
-						// Get value
-						skipWhitespace();
-						array.emplace_back(parseValue());
-						skipWhitespace();
-
-						// Check for another value
-						if(isC(',')) { ++idx; continue; }
-
-						// Check for end of the array
-						if(isC(']')) break;
-
-						throw std::runtime_error{"Invalid array"};
-					}
-
-					end:
-
-					// Skip ']'
-					++idx;
-
-					return Value{array};
-				}
-
-				inline auto parseObject()
-				{
-					Object object;
-
-					// Skip '{'
-					++idx;
-
-					skipWhitespace();
-
-					// Empty object
-					if(isC('}')) goto end;
-
-					while(true)
-					{
-						// Read string key
-						skipWhitespace();
-						if(!isC('"')) throw std::runtime_error{"Invalid object"};
-						auto key(readString());
-
-						// Read ':'
-						skipWhitespace();
-						if(!isC(':')) throw std::runtime_error{"Invalid object"};
-
-						// Skip ':'
+						// Skip '['
 						++idx;
 
-						// Read value
-						skipWhitespace();
-						object[key] = parseValue();
 						skipWhitespace();
 
-						// Check for another key-value pair
-						if(isC(',')) { ++idx; continue; }
+						// Empty array
+						if(isC(']')) goto end;
 
-						// Check for end of the object
-						if(isC('}')) break;
+						while(true)
+						{
+							// Get value
+							skipWhitespace();
+							array.emplace_back(parseValue());
+							skipWhitespace();
 
-						throw std::runtime_error{"Invalid object"};
+							// Check for another value
+							if(isC(',')) { ++idx; continue; }
+
+							// Check for end of the array
+							if(isC(']')) break;
+
+							throw ReadException{"Invalid array", "Expected either `,` or `]`, got `"s + getC() + "`", getSrcLine()};
+						}
+
+						end:
+
+						// Skip ']'
+						++idx;
+
+						return Value{array};
 					}
 
-					end:
-
-					// Skip '}'
-					++idx;
-
-					return Value{object};
-				}
-
-				inline Value parseValue()
-				{
-					skipWhitespace();
-
-					// Check value type
-					switch(getC())
+					inline auto parseObject()
 					{
-						case '{': return parseObject();
-						case '[': return parseArray();
-						case '"': return parseString();
-						case 't': return parseBoolTrue();
-						case 'f': return parseBoolFalse();
-						case 'n': return parseNull();
+						Object object;
+
+						// Skip '{'
+						++idx;
+
+						skipWhitespace();
+
+						// Empty object
+						if(isC('}')) goto end;
+
+						while(true)
+						{
+							// Read string key
+							skipWhitespace();
+							if(!isC('"')) throw ReadException{"Invalid object", "Expected `\"` , got `"s + getC() + "`", getSrcLine()};
+							auto key(readString());
+
+							// Read ':'
+							skipWhitespace();
+							if(!isC(':')) throw ReadException{"Invalid object", "Expected `:` , got `"s + getC() + "`", getSrcLine()};
+
+							// Skip ':'
+							++idx;
+
+							// Read value
+							skipWhitespace();
+							object[key] = parseValue();
+							skipWhitespace();
+
+							// Check for another key-value pair
+							if(isC(',')) { ++idx; continue; }
+
+							// Check for end of the object
+							if(isC('}')) break;
+
+							throw ReadException{"Invalid object", "Expected either `,` or `}`, got `"s + getC() + "`", getSrcLine()};
+						}
+
+						end:
+
+						// Skip '}'
+						++idx;
+
+						return Value{object};
 					}
 
-					// Check if value is a number
-					if(isNumberStart(getC())) return parseNumber();
+					inline Value parseValue()
+					{
+						skipWhitespace();
 
-					throw std::runtime_error{"Invalid value"};
-				}
+						// Check value type
+						switch(getC())
+						{
+							case '{': return parseObject();
+							case '[': return parseArray();
+							case '"': return parseString();
+							case 't': return parseBoolTrue();
+							case 'f': return parseBoolFalse();
+							case 'n': return parseNull();
+						}
 
-			public:
-				inline Reader(std::string mSrc) : src{std::move(mSrc)} { }
+						// Check if value is a number
+						if(isNumberStart(getC())) return parseNumber();
 
-				inline auto parseDocument()
-				{
-					purgeSource();
-					skipWhitespace();
+						throw ReadException{"Invalid value", "No match for values beginning with `"s + getC() + "`", getSrcLine()};
+					}
 
-					if(isC('{')) return parseObject();
-					if(isC('[')) return parseArray();
+				public:
+					inline Reader(std::string mSrc) : src{std::move(mSrc)} { }
 
-					throw std::runtime_error{"Invalid document"};
-				}
-		};
+					inline auto parseDocument()
+					{
+						purgeSource();
+						skipWhitespace();
+
+						if(isC('{')) return parseObject();
+						if(isC('[')) return parseArray();
+
+						throw ReadException{"Invalid document", "Expected either `{` or `[`, got `"s + getC() + "`", getSrcLine()};
+					}
+			};
+		}
 	}
 }
 

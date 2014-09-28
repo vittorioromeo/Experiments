@@ -7,12 +7,12 @@
 
 namespace ssvu
 {
-	template<> struct Stringifier<svj::Value>
+	template<> struct Stringifier<Json::Value>
 	{
-		template<bool TFmt> inline static void impl(std::ostream& mStream, const svj::Value& mValue)
+		template<bool TFmt> inline static void impl(std::ostream& mStream, const Json::Value& mValue)
 		{
 			Internal::printNonBold<TFmt>(mStream, "JSON Value:\n", Console::Color::Green);
-			svj::template writeToStream<svj::WriterMode::Pretty, true>(mValue, mStream);
+			mValue.writeToStream<Json::WriterMode::Pretty, true>(mStream);
 		}
 	};
 }

@@ -3,7 +3,11 @@
 
 int main()
 {
-	using namespace svj;
+	using namespace ssvu::Json;
+
+	Value k{Object{}};
+	k["x"] = Array{"a"};
+
 
 	Value v{Object{}};
 
@@ -24,6 +28,7 @@ int main()
 		}
 	};
 
+
 	Value v2{v};
 	
 
@@ -36,7 +41,7 @@ int main()
 
 
 
-	auto document(svj::getFromString(R"(
+	auto document(Value::fromString(R"(
 
 	{
 		"n1": 10,
@@ -67,9 +72,9 @@ int main()
 
 	)"));
 
-	auto output = svj::getWriteToString<WriterMode::Minified>(document);
+	auto output = document.getWriteToString<WriterMode::Minified>();
 
-	auto doc2 = svj::getFromString(output);
+	auto doc2 = Value::fromString(output);
 
 	ssvu::lo() << output << std::endl;
 	ssvu::lo() << doc2 << std::endl;

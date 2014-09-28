@@ -12,6 +12,7 @@
 #include "../SVJ/Number.hpp"
 #include "../SVJ/Value.hpp"
 #include "../SVJ/Io/Io.hpp"
+#include "../SVJ/Value.inl"
 #include "../SVJ/Stringifier.hpp"
 
 #endif

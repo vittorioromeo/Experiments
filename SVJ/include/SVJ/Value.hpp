@@ -5,225 +5,237 @@
 #ifndef SVJ_VALUE
 #define SVJ_VALUE
 
-namespace svj
+namespace ssvu
 {
-	namespace Internal
+	namespace Json
 	{
-		template<typename T> struct ValueHelper;
-	}
+		namespace Internal
+		{
+			template<typename T> struct ValueHelper;
+		}
 
-	class Value
-	{
-		template<typename T> friend struct Internal::ValueHelper;
+		class Value
+		{
+			template<typename T> friend struct Internal::ValueHelper;
 
-		public:
-			enum class Type{Object, Array, String, Number, Bool, Null};
+			public:
+				enum class Type{Object, Array, String, Number, Bool, Null};
 
-			using Object = ObjectImpl<Value>;
-			using Array = ArrayImpl<Value>;
+				using Object = ObjectImpl<Value>;
+				using Array = ArrayImpl<Value>;
 
-		private:
-			Type type{Type::Null};
+			private:
+				Type type{Type::Null};
 
-			union Holder
-			{
-				Internal::Maybe<ObjectImpl<Value>> hObject;
-				Internal::Maybe<ArrayImpl<Value>> hArray;
-				Internal::Maybe<String> hString;
-				Number hNumber;
-				Bool hBool;
-
-				inline Holder() noexcept
+				union Holder
 				{
-					#if !(SSVU_IMPL_ASSERT_DISABLED)
-						hObject.alive = false;
-						hArray.alive = false;
-						hString.alive = false;
-					#endif
-				}
-			} h;
+					Internal::Maybe<ObjectImpl<Value>> hObject;
+					Internal::Maybe<ArrayImpl<Value>> hArray;
+					Internal::Maybe<String> hString;
+					Number hNumber;
+					Bool hBool;
 
-			// These `setX` functions must only be called after calling `deinitCurrent()`
-			inline void setObject(const ObjectImpl<Value>& mX)	{ type = Type::Object;	h.hObject.init(mX); }
-			inline void setArray(const ArrayImpl<Value>& mX)	{ type = Type::Array;	h.hArray.init(mX); }
-			inline void setString(const String& mX)				{ type = Type::String;	h.hString.init(mX); }
-			inline void setNumber(const Number& mX) noexcept	{ type = Type::Number;	h.hNumber = mX; }
-			inline void setBool(Bool mX) noexcept				{ type = Type::Bool;	h.hBool = mX; }
-			inline void setNull() noexcept						{ type = Type::Null; }
+					inline Holder() noexcept
+					{
+						#if !(SSVU_IMPL_ASSERT_DISABLED)
+							hObject.alive = false;
+							hArray.alive = false;
+							hString.alive = false;
+						#endif
+					}
+				} h;
 
-			inline void setMoveObject(ObjectImpl<Value>&& mX) noexcept	{ type = Type::Object;	h.hObject.init(std::move(mX)); }
-			inline void setMoveArray(ArrayImpl<Value>&& mX) noexcept	{ type = Type::Array;	h.hArray.init(std::move(mX)); }
-			inline void setMoveString(String&& mX) noexcept				{ type = Type::String;	h.hString.init(std::move(mX)); }
+				// These `setX` functions must only be called after calling `deinitCurrent()`
+				inline void setObject(const ObjectImpl<Value>& mX)	{ type = Type::Object;	h.hObject.init(mX); }
+				inline void setArray(const ArrayImpl<Value>& mX)	{ type = Type::Array;	h.hArray.init(mX); }
+				inline void setString(const String& mX)				{ type = Type::String;	h.hString.init(mX); }
+				inline void setNumber(const Number& mX) noexcept	{ type = Type::Number;	h.hNumber = mX; }
+				inline void setBool(Bool mX) noexcept				{ type = Type::Bool;	h.hBool = mX; }
+				inline void setNull() noexcept						{ type = Type::Null; }
 
-			inline const auto& getObject() const noexcept	{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
-			inline const auto& getArray() const noexcept	{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
-			inline const auto& getString() const noexcept	{ SSVU_ASSERT(is<String>());	return h.hString.get(); }
-			inline auto getNumber() const noexcept			{ SSVU_ASSERT(is<Number>());	return h.hNumber; }
-			inline auto getBool() const noexcept			{ SSVU_ASSERT(is<Bool>());		return h.hBool; }
-			inline auto getNull() const noexcept			{ SSVU_ASSERT(is<Null>());		return Null{}; }
+				inline void setObject(ObjectImpl<Value>&& mX) noexcept	{ type = Type::Object;	h.hObject.init(std::move(mX)); }
+				inline void setArray(ArrayImpl<Value>&& mX) noexcept	{ type = Type::Array;	h.hArray.init(std::move(mX)); }
+				inline void setString(String&& mX) noexcept				{ type = Type::String;	h.hString.init(std::move(mX)); }
 
-			inline auto getMoveObject() noexcept	{ SSVU_ASSERT(is<Object>());	return std::move(h.hObject.get()); }
-			inline auto getMoveArray() noexcept		{ SSVU_ASSERT(is<Array>());		return std::move(h.hArray.get()); }
-			inline auto getMoveString() noexcept	{ SSVU_ASSERT(is<String>());	return std::move(h.hString.get()); }
+				inline const auto& getObject() const noexcept	{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
+				inline const auto& getArray() const noexcept	{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
+				inline const auto& getString() const noexcept	{ SSVU_ASSERT(is<String>());	return h.hString.get(); }
+				inline auto getNumber() const noexcept			{ SSVU_ASSERT(is<Number>());	return h.hNumber; }
+				inline auto getBool() const noexcept			{ SSVU_ASSERT(is<Bool>());		return h.hBool; }
+				inline auto getNull() const noexcept			{ SSVU_ASSERT(is<Null>());		return Null{}; }
 
-			inline auto& getNonConstObject()  noexcept	{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
-			inline auto& getNonConstArray() noexcept	{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
+				inline auto getMoveObject() noexcept	{ SSVU_ASSERT(is<Object>());	return std::move(h.hObject.get()); }
+				inline auto getMoveArray() noexcept		{ SSVU_ASSERT(is<Array>());		return std::move(h.hArray.get()); }
+				inline auto getMoveString() noexcept	{ SSVU_ASSERT(is<String>());	return std::move(h.hString.get()); }
 
-			inline void deinitCurrent()
-			{
-				switch(type)
+				inline auto& getObject() noexcept	{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
+				inline auto& getArray() noexcept	{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
+
+				inline void deinitCurrent()
 				{
-					case Type::Object:	h.hObject.deinit(); break;
-					case Type::Array:	h.hArray.deinit(); break;
-					case Type::String:	h.hString.deinit(); break;
-					default: break;
+					switch(type)
+					{
+						case Type::Object:	h.hObject.deinit(); break;
+						case Type::Array:	h.hArray.deinit(); break;
+						case Type::String:	h.hString.deinit(); break;
+						default: break;
+					}
 				}
-			}
 
-			inline void initCopy(const Value& mV)
-			{
-				type = mV.type;
-
-				switch(type)
+				inline void init(const Value& mV)
 				{
-					case Type::Object:	h.hObject.init(mV.getObject()); break;
-					case Type::Array:	h.hArray.init(mV.getArray()); break;
-					case Type::String:	h.hString.init(mV.getString()); break;
-					case Type::Number:	h.hNumber = mV.getNumber(); break;
-					case Type::Bool:	h.hBool = mV.getBool(); break;
-					default: break;
+					type = mV.type;
+
+					switch(type)
+					{
+						case Type::Object:	h.hObject.init(mV.getObject()); break;
+						case Type::Array:	h.hArray.init(mV.getArray()); break;
+						case Type::String:	h.hString.init(mV.getString()); break;
+						case Type::Number:	h.hNumber = mV.getNumber(); break;
+						case Type::Bool:	h.hBool = mV.getBool(); break;
+						default: break;
+					}
 				}
-			}
 
-			inline void initMove(Value&& mV)
-			{
-				type = mV.type;
-
-				switch(type)
+				inline void init(Value&& mV)
 				{
-					case Type::Object:	h.hObject.init(std::move(mV.getMoveObject())); break;
-					case Type::Array:	h.hArray.init(std::move(mV.getMoveArray())); break;
-					case Type::String:	h.hString.init(std::move(mV.getMoveString())); break;
-					case Type::Number:	h.hNumber = mV.getNumber(); break;
-					case Type::Bool:	h.hBool = mV.getBool(); break;
-					default: break;
+					type = mV.type;
+
+					switch(type)
+					{
+						case Type::Object:	h.hObject.init(std::move(mV.getMoveObject())); break;
+						case Type::Array:	h.hArray.init(std::move(mV.getMoveArray())); break;
+						case Type::String:	h.hString.init(std::move(mV.getMoveString())); break;
+						case Type::Number:	h.hNumber = mV.getNumber(); break;
+						case Type::Bool:	h.hBool = mV.getBool(); break;
+						default: break;
+					}
 				}
-			}
 
 
-		public:
-			inline Value() = default;
+			public:
+				inline Value() = default;
+				inline Value(const Value& mV) { init(mV); }
+				inline Value(Value&& mV) { init(std::move(mV)); }
 
-			template<typename T> inline Value(const T& mX) { set<T>(mX); }
+				template<typename T, EnableIf<!isSame<RemoveAll<T>, Value>()>* = nullptr> inline Value(T&& mX) { set(fwd<T>(mX)); }
 
-			inline Value(const Value& mV) { initCopy(mV); }
-			inline Value(Value&& mV) { initMove(std::move(mV)); }
+				inline ~Value() { deinitCurrent(); }
 
-			inline auto& operator=(const Value& mV) { deinitCurrent(); initCopy(mV); return *this; }
-			inline auto& operator=(Value&& mV) {deinitCurrent(); initMove(std::move(mV)); return *this; }
+				// "Explicit" `set` function set the inner contents of the value
+				template<typename T> inline void set(T&& mX) { deinitCurrent(); Internal::ValueHelper<RemoveAll<T>>::set(*this, fwd<T>(mX)); }
 
-			inline ~Value() { deinitCurrent(); }
+				// "Implicit" `set` function done via `operator=` overloading
+				template<typename T> inline auto& operator=(T&& mX) { set(fwd<T>(mX)); return *this; }
 
-			// "Explicit" `set` function set the inner contents of the value
-			template<typename T> decltype(auto) set(const T& mX)	{ deinitCurrent(); return Internal::ValueHelper<T>::set(*this, mX); }
-			template<typename T> decltype(auto) set(T&& mX)			{ deinitCurrent(); return Internal::ValueHelper<T>::set(*this, mX); }
+				// "Explicit" `get` function gets the inner contents of the value
+				template<typename T> decltype(auto) get() const noexcept { return Internal::ValueHelper<T>::get(*this); }
 
-			// "Implicit" `set` function done via `operator=` overloading
-			template<typename T> inline ssvu::EnableIf<!ssvu::isSame<ssvu::RemoveAll<T>, Value>> operator=(T&& mX) { set<ssvu::RemoveAll<T>>(ssvu::fwd<T>(mX)); return *this; }
+				// "Implicit" Value from Object by Key getters
+				inline auto& operator[](const Key& mKey)				{ return getObject()[mKey]; }
+				inline const auto& operator[](const Key& mKey) const	{ return getObject().at(mKey); }
 
-			// "Explicit" `get` function gets the inner contents of the value
-			template<typename T> decltype(auto) get() const noexcept { return Internal::ValueHelper<T>::get(*this); }
+				// "Implicit" Value from Array by Idx getters
+				inline auto& operator[](Idx mIdx)				{ return getArray()[mIdx]; }
+				inline const auto& operator[](Idx mIdx) const	{ return getArray().at(mIdx); }
 
-			// "Implicit" Value from Object by Key getters
-			inline auto& operator[](const Key& mKey)				{ return getNonConstObject()[mKey]; }
-			inline const auto& operator[](const Key& mKey) const	{ return getObject().at(mKey); }
+				inline auto getType() const noexcept { return type; }
 
-			// "Implicit" Value from Array by Idx getters
-			inline auto& operator[](Idx mIdx)				{ return getNonConstArray()[mIdx]; }
-			inline const auto& operator[](Idx mIdx) const	{ return getArray().at(mIdx); }
+				template<typename T> inline bool is() const noexcept { return Internal::ValueHelper<T>::is(*this); }
 
-			inline auto getType() const noexcept { return type; }
+				template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> void writeToStream(std::ostream& mStream) const;
+				template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> void writeToString(std::string& mStr) const;
+				template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> void writeToFile(const ssvufs::Path& mPath) const;
+				template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> auto getWriteToString() const;
 
-			//inline auto getSizeObject() const noexcept { return getObject().size(); }
-			//inline auto getSizeArray() const noexcept { return getArray().size(); }
+				void readFromString(std::string mStr);
+				void readFromFile(const ssvufs::Path& mPath);
 
-			template<typename T> inline bool is() const noexcept { return Internal::ValueHelper<T>::is(*this); }
-	};
+				static inline Value fromString(const std::string& mStr)	{ Value result; result.readFromString(mStr); return result; }
+				static inline Value fromFile(const ssvufs::Path& mPath)	{ Value result; result.readFromFile(mPath); return result; }
+		};
 
-	using Object = Value::Object;
-	using Array = Value::Array;
+		using Object = Value::Object;
+		using Array = Value::Array;
 
-	namespace Internal
-	{
-		#define SVJ_VALUEHELPER_NUMBER(mType) \
-			template<> struct ValueHelper<mType> \
-			{ \
-				inline static decltype(auto) set(Value& mV, const mType& mX) { mV.setNumber(Number{mX}); } \
-				inline static decltype(auto) set(Value& mV, mType&& mX) { mV.setNumber(Number{mX}); } \
-				inline static decltype(auto) get(const Value& mV) { return mV.getNumber().get<mType>(); } \
-				inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Number; } \
+		namespace Internal
+		{
+			#define SVJ_VALUEHELPER_NUMBER(mType) \
+				template<> struct ValueHelper<mType> \
+				{ \
+					inline static void set(Value& mV, const mType& mX) { mV.setNumber(Number{mX}); } \
+					inline static void set(Value& mV, mType&& mX) { mV.setNumber(Number{mX}); } \
+					inline static decltype(auto) get(const Value& mV) { return mV.getNumber().get<mType>(); } \
+					inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Number; } \
+				};
+
+			SVJ_VALUEHELPER_NUMBER(char)
+			SVJ_VALUEHELPER_NUMBER(unsigned char)
+			SVJ_VALUEHELPER_NUMBER(int)
+			SVJ_VALUEHELPER_NUMBER(unsigned int)
+			SVJ_VALUEHELPER_NUMBER(float)
+			SVJ_VALUEHELPER_NUMBER(double)
+
+			#undef SVJ_VALUEHELPER_NUMBER
+
+			template<> struct ValueHelper<Value>
+			{
+				inline static void set(Value& mV, const Value& mX) { mV.init(mX); }
+				inline static void set(Value& mV, Value&& mX) { mV.init(std::move(mX)); }
 			};
 
-		SVJ_VALUEHELPER_NUMBER(char)
-		SVJ_VALUEHELPER_NUMBER(unsigned char)
-		SVJ_VALUEHELPER_NUMBER(int)
-		SVJ_VALUEHELPER_NUMBER(unsigned int)
-		SVJ_VALUEHELPER_NUMBER(float)
-		SVJ_VALUEHELPER_NUMBER(double)
+			template<> struct ValueHelper<Object>
+			{
+				inline static void set(Value& mV, const Object& mX) { mV.setObject(mX); }
+				inline static void set(Value& mV, Object&& mX) { mV.setObject(std::move(mX)); }
+				inline static decltype(auto) get(const Value& mV) { return mV.getObject(); }
+				inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Object; }
+			};
 
-		#undef SVJ_VALUEHELPER_NUMBER
+			template<> struct ValueHelper<Array>
+			{
+				inline static void set(Value& mV, const Array& mX) { mV.setArray(mX); }
+				inline static void set(Value& mV, Array&& mX) { mV.setArray(std::move(mX)); }
+				inline static decltype(auto) get(const Value& mV) { return mV.getArray(); }
+				inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Array; }
+			};
 
-		template<> struct ValueHelper<Object>
-		{
-			inline static decltype(auto) set(Value& mV, const Object& mX) { mV.setObject(mX); }
-			inline static decltype(auto) set(Value& mV, Object&& mX) { mV.setMoveObject(std::move(mX)); }
-			inline static decltype(auto) get(const Value& mV) { return mV.getObject(); }
-			inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Object; }
-		};
+			template<std::size_t TS> struct ValueHelper<char[TS]>
+			{
+				inline static void set(Value& mV, const char(&mX)[TS]) { mV.setString(mX); }
+				inline static decltype(auto) get(const Value& mV) { return mV.getString(); }
+				inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::String; }
+			};
 
-		template<> struct ValueHelper<Array>
-		{
-			inline static decltype(auto) set(Value& mV, const Array& mX) { mV.setArray(mX); }
-			inline static decltype(auto) set(Value& mV, Array&& mX) { mV.setMoveArray(std::move(mX)); }
-			inline static decltype(auto) get(const Value& mV) { return mV.getArray(); }
-			inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Array; }
-		};
+			template<> struct ValueHelper<String>
+			{
+				inline static void set(Value& mV, const String& mX) { mV.setString(mX); }
+				inline static void set(Value& mV, String&& mX) { mV.setString(std::move(mX)); }
+				inline static decltype(auto) get(const Value& mV) { return mV.getString(); }
+				inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::String; }
+			};
 
-		template<std::size_t TS> struct ValueHelper<char[TS]>
-		{
-			inline static decltype(auto) set(Value& mV, const char(&mX)[TS]) { mV.setString(mX); }
-			inline static decltype(auto) get(const Value& mV) { return mV.getString(); }
-			inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::String; }
-		};
+			template<> struct ValueHelper<Number>
+			{
+				inline static void set(Value& mV, const Number& mX) { mV.setNumber(mX); }
+				inline static decltype(auto) get(const Value& mV) { return mV.getNumber(); }
+				inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Number; }
+			};
 
-		template<> struct ValueHelper<String>
-		{
-			inline static decltype(auto) set(Value& mV, const String& mX) { mV.setString(mX); }
-			inline static decltype(auto) set(Value& mV, String&& mX) { mV.setMoveString(std::move(mX)); }
-			inline static decltype(auto) get(const Value& mV) { return mV.getString(); }
-			inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::String; }
-		};
+			template<> struct ValueHelper<Bool>
+			{
+				inline static void set(Value& mV, Bool mX) { mV.setBool(mX); }
+				inline static decltype(auto) get(const Value& mV) { return mV.getBool(); }
+				inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Bool; }
+			};
 
-		template<> struct ValueHelper<Number>
-		{
-			inline static decltype(auto) set(Value& mV, const Number& mX) { mV.setNumber(mX); }
-			inline static decltype(auto) get(const Value& mV) { return mV.getNumber(); }
-			inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Number; }
-		};
-
-		template<> struct ValueHelper<Bool>
-		{
-			inline static decltype(auto) set(Value& mV, Bool mX) { mV.setBool(mX); }
-			inline static decltype(auto) get(const Value& mV) { return mV.getBool(); }
-			inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Bool; }
-		};
-
-		template<> struct ValueHelper<Null>
-		{
-			inline static decltype(auto) set(Value& mV, Null) { mV.setNull(); }
-			inline static decltype(auto) get(const Value& mV) { return mV.getNull(); }
-			inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Null; }
-		};
+			template<> struct ValueHelper<Null>
+			{
+				inline static void set(Value& mV, Null) { mV.setNull(); }
+				inline static decltype(auto) get(const Value& mV) { return mV.getNull(); }
+				inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::Null; }
+			};
+		}
 	}
 }
 
