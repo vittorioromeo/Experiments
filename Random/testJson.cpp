@@ -1,4 +1,6 @@
 #include <SSVUtils/Core/Core.hpp>
+#include <SSVUtils/Benchmark/Benchmark.hpp>
+#include <SSVUtilsJson/SSVUtilsJson.hpp>
 #include "../SVJ/include/SVJ/SVJ.hpp"
 
 int main()
@@ -6,7 +8,7 @@ int main()
 	using namespace ssvu;
 	using namespace ssvu::Json;
 
-	SSVUT_RUN();
+//	SSVUT_RUN();
 	
 	/*ssvu::lo("Value") << sizeof(Value) << std::endl;
 	ssvu::lo("Value::Holder") << sizeof(Value::Holder) << std::endl;
@@ -16,7 +18,7 @@ int main()
 	ssvu::lo("hString") << sizeof(decltype(Value::Holder::hString)) << std::endl;
 	ssvu::lo("hNumber") << sizeof(decltype(Value::Holder::hNumber)) << std::endl;*/
 
-	auto document(Value::fromString(R"(
+	auto src(R"(
 
 	{
 		"n1": 10,
@@ -27,7 +29,7 @@ int main()
 		"s2": "",
 		"s3": "1test2",
 
-		"a1": [1, 2, 3 "sup", { "lol":10 }], // Comment 2
+		"a1": [1, 2, 3, "sup", { "lol":10 }], // Comment 2
 
 		"o1": 
 		{
@@ -42,10 +44,51 @@ int main()
 		"o3":
 		{
 			"nv": null
+		}, "bro": { 
+			"n1": 10,
+		"n2": 15.5,
+		"n3": -35.5e+12,
+		
+		"s1": "bananas",	// Test comment
+		"s2": "",
+		"s3": "1test2",
+
+		"a1": [1, 2, 3, "sup", { "lol":10 }], // Comment 2
+
+		"o1": 
+		{
+			"b": true
+		},
+
+		"o2": 
+		{
+			"b": false
+		},
+
+		"o3":
+		{
+			"nv": null
+		} }
+	}
+
+	)");
+
+	{
+		SSVU_BENCHMARK_LOG_SCOPE_EXIT("svj");
+		for(int i = 0; i < 10000; ++i)
+		{
+			auto document(Value::fromString(src));
 		}
 	}
 
-	)"));
+	if(false)
+	{
+		SSVU_BENCHMARK_LOG_SCOPE_EXIT("ssvuj");
+		for(int i = 0; i < 10000; ++i)
+		{
+			auto document(ssvuj::getFromString(src));
+		}
+	}
 
 return 0;
 /*
@@ -172,5 +215,4 @@ const auto& a = v["stuff"].get<Array>();
 	lo() << doc3.get<svj::Object>().at("o1").get<svj::Object>().at("b").get<bool>() << std::endl;	
 	lo() << doc3.get<svj::Object>().at("o2").get<svj::Object>().at("b").get<bool>() << std::endl;
 */
-	return 0;
 }

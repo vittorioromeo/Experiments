@@ -51,11 +51,11 @@ namespace ssvu
 
 					inline void skipWhitespace() noexcept { while(isWhitespace(getC())) ++idx; }
 
-					inline void match(const std::string& mKeyword)
+					template<std::size_t TS> inline void match(const char(&mKeyword)[TS])
 					{
-						for(auto kc : mKeyword)
+						for(auto i(0u); i < TS - 1; ++i)
 						{
-							if(getC() != kc) throw ReadException("Invalid keyword", "Couldn't match keyword `"s + mKeyword + "'", getErrorSrc());
+							if(getC() != mKeyword[i]) throw ReadException("Invalid keyword", std::string{"Couldn't match keyword `"} + std::string{mKeyword} + "'", getErrorSrc());
 							++idx;
 						}
 					}
@@ -113,33 +113,17 @@ namespace ssvu
 
 					inline void purgeSource()
 					{
-						std::string result, buffer;
-
-						// `commit()` appends the buffer (with a newline) to the result and clears it
-						auto commit([&result, &buffer]{ result += buffer + "\n"; buffer.clear(); });
-
 						for(auto i(0u); i < src.size(); ++i)
 						{
-							// Line without comments
-							if(src[i] == '\n') { commit(); continue; }
+							// Detect C++-style comment
+							if(src[i] != '/' || src[i + 1] != '/') continue;
 
-							// C++-style comment
-							if(src[i] == '/' && src[i + 1] == '/')
-							{
-								commit();
+							auto iEnd(i);
+							while(iEnd < src.size() && src[iEnd] != '\n') ++iEnd;
 
-								while(src[i] != '\n') ++i;
-								++i;
-
-								continue;
-							}
-
-							// Any character
-							buffer += src[i];
+							auto itr(src.erase(std::begin(src) + i, std::begin(src) + iEnd));
+							i = itr - std::begin(src);
 						}
-
-						// Commit remaining buffer elements and update `src`
-						commit(); src = result;
 					}
 
 					inline auto parseNull()			{ match("null"); return Value{Null{}}; }
