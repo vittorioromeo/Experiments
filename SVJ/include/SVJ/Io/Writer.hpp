@@ -56,6 +56,7 @@ namespace ssvu
 
 					template<typename TItr, typename TF1, typename TF2> inline void repeatWithSeparator(TItr mBegin, TItr mEnd, TF1 mF1, TF2 mF2)
 					{
+						if(mBegin == mEnd) return;
 						for(; mBegin != std::prev(mEnd); ++mBegin) { mF1(mBegin); mF2(); }
 						mF1(mBegin);
 					}
@@ -127,9 +128,9 @@ namespace ssvu
 
 						switch(mNumber.getType())
 						{
-							case Number::Type::IntS:	wOut(toStr(mNumber.get<int>())); break;
-							case Number::Type::IntU:	wOut(toStr(mNumber.get<unsigned int>())); break;
-							case Number::Type::Real:	wOut(toStr(mNumber.get<float>())); break;
+							case Number::Type::IntS:	wOut(toStr(mNumber.get<Number::IntS>())); break;
+							case Number::Type::IntU:	wOut(toStr(mNumber.get<Number::IntU>())); break;
+							case Number::Type::Real:	wOut(toStr(mNumber.get<Number::Real>())); break;
 						}
 					}
 

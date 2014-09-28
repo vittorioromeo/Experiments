@@ -13,8 +13,12 @@ namespace ssvu
 		using Key = std::string;
 		using String = std::string;
 		using Bool = bool;
-		template<typename T> using ObjectImpl = std::map<Key, T>;
-		template<typename T> using ArrayImpl = std::vector<T>;
+
+		namespace Internal
+		{
+			template<typename T> using ObjectImpl = std::map<Key, T>;
+			template<typename T> using ArrayImpl = std::vector<T>;
+		}
 
 		struct Null { };
 
@@ -23,5 +27,7 @@ namespace ssvu
 }
 
 namespace svj = ssvu::Json;
+
+#include "../../SVJ/Common/Maybe.hpp"
 
 #endif

@@ -3,8 +3,14 @@
 
 int main()
 {
+	using namespace ssvu;
 	using namespace ssvu::Json;
 
+	SSVUT_RUN();
+
+
+return 0;
+/*
 	Value k{Object{}};
 	k["x"] = Array{"a"};
 
@@ -27,6 +33,10 @@ int main()
 			{"chocolate", Null{}}
 		}
 	};
+
+	v["stuff"].get<Array>().clear();
+
+const auto& a = v["stuff"].get<Array>();
 
 
 	Value v2{v};
@@ -78,7 +88,17 @@ int main()
 
 	ssvu::lo() << output << std::endl;
 	ssvu::lo() << doc2 << std::endl;
-/*
+
+	ssvu::lo("Value") << sizeof(Value) << std::endl;
+	ssvu::lo("Value::Holder") << sizeof(Value::Holder) << std::endl;
+	ssvu::lo("hObject") << sizeof(decltype(Value::Holder::hObject)) << std::endl;
+	ssvu::lo("hObject impl") << sizeof(Internal::ObjectImpl<Value>) << std::endl;
+	ssvu::lo("hArray") << sizeof(decltype(Value::Holder::hArray)) << std::endl;
+	ssvu::lo("hString") << sizeof(decltype(Value::Holder::hString)) << std::endl;
+	ssvu::lo("hNumber") << sizeof(decltype(Value::Holder::hNumber)) << std::endl;
+	
+	//ssvu::lo("Number") << sizeof(Number) << std::endl;
+
 	auto document(svj::parseDocument(R"(
 
 	{

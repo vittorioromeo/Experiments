@@ -2,8 +2,8 @@
 // License: Academic Free License ("AFL") v. 3.0
 // AFL License page: http://opensource.org/licenses/AFL-3.0
 
-#ifndef SVJ_MAYBE
-#define SVJ_MAYBE
+#ifndef SVJ_COMMON_MAYBE
+#define SVJ_COMMON_MAYBE
 
 namespace ssvu
 {

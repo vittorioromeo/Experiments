@@ -7,12 +7,13 @@
 
 #include <SSVUtils/Core/Core.hpp>
 
-#include "../SVJ/Common.hpp"
-#include "../SVJ/Maybe.hpp"
-#include "../SVJ/Number.hpp"
-#include "../SVJ/Value.hpp"
+#include "../SVJ/Common/Common.hpp"
+#include "../SVJ/Number/Number.hpp"
+#include "../SVJ/Value/Value.hpp"
 #include "../SVJ/Io/Io.hpp"
-#include "../SVJ/Value.inl"
-#include "../SVJ/Stringifier.hpp"
+#include "../SVJ/Value/Value.inl"
+#include "../SVJ/Stringifier/Stringifier.hpp"
+
+#include "../SVJ/Tests.hpp"
 
 #endif

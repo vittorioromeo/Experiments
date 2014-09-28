@@ -281,10 +281,7 @@ namespace ssvu
 						purgeSource();
 						skipWhitespace();
 
-						if(isC('{')) return parseObject();
-						if(isC('[')) return parseArray();
-
-						throw ReadException{"Invalid document", "Expected either `{` or `[`, got `"s + getC() + "`", getSrcLine()};
+						return parseValue();
 					}
 			};
 		}
