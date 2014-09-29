@@ -1,7 +1,7 @@
 #include <SSVUtils/Core/Core.hpp>
 #include <SSVUtils/Benchmark/Benchmark.hpp>
 #include <SSVUtilsJson/SSVUtilsJson.hpp>
-#include "../SVJ/include/SVJ/SVJ.hpp"
+#include <SSVUtils/Json/Json.hpp>
 
 int main()
 {
@@ -68,19 +68,19 @@ int main()
 	)");
 
 
-	while(false)
+	while(true)
 	{
 		{
 			SSVU_BENCHMARK_LOG_SCOPE_EXIT("svj");
 			for(int i = 0; i < 10000; ++i)
 			{
-				auto document(Value::fromString(src));
+				auto document(Val::fromStr(src));
 			}
 		}
 	
 
 	
-		//if(false)
+		if(false)
 		{
 			SSVU_BENCHMARK_LOG_SCOPE_EXIT("ssvuj");
 			for(int i = 0; i < 10000; ++i)
@@ -90,11 +90,11 @@ int main()
 		}
 	}
 
-	ssvu::lo("Value") << sizeof(Value) << std::endl;
+	/*ssvu::lo("Value") << sizeof(Value) << std::endl;
 	ssvu::lo("Value::Holder") << sizeof(Value::Holder) << std::endl;
 	ssvu::lo("hObject") << sizeof(decltype(Value::Holder::hObject)) << std::endl;	
 	ssvu::lo("hArray") << sizeof(decltype(Value::Holder::hArray)) << std::endl;
 	ssvu::lo("hString") << sizeof(decltype(Value::Holder::hString)) << std::endl;
-	ssvu::lo("hNumber") << sizeof(decltype(Value::Holder::hNumber)) << std::endl;
+	ssvu::lo("hNumber") << sizeof(decltype(Value::Holder::hNumber)) << std::endl;*/
 
 }

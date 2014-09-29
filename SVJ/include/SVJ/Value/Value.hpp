@@ -62,7 +62,6 @@ namespace ssvu
 				inline auto getBool() const noexcept			{ SSVU_ASSERT(is<Bool>());		return h.hBool; }
 				inline auto getNull() const noexcept			{ SSVU_ASSERT(is<Null>());		return Null{}; }
 
-
 				inline void deinitCurrent()
 				{
 					switch(type)

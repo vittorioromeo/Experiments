@@ -1,0 +1,4 @@
+talks/videos ideas:
+* bash in daily life
+* run/compile-time template settings pattern
+* wine usage
