@@ -1,6 +1,8 @@
 #include <SSVUtils/Core/Core.hpp>
 #include <SSVUtils/Benchmark/Benchmark.hpp>
 #include <boost/container/flat_map.hpp>
+#include "../SVJ/include/SVJ/SVJ.hpp"
+
 
 volatile int vv{0};
 
@@ -133,6 +135,25 @@ int main()
 	}
 
 	{
+		SSVU_BENCHMARK_LOG_SCOPE_EXIT("VecMap");
+		ssvu::Json::Internal::VecMap<std::size_t, BigObj> map;
+
+		for(auto k(0u); k < kk; ++k)
+		{
+			{
+				SSVU_BENCHMARK_LOG_SCOPE_EXIT("insertion");
+				for(auto j(0u); j < jj; ++j) map[j] = {};				
+			}
+
+			{
+				SSVU_BENCHMARK_LOG_SCOPE_EXIT("lookup");
+				for(auto j(0u); j < jj; ++j) map.at(j).e();
+			}
+		}
+	}
+
+
+	{
 		SSVU_BENCHMARK_LOG_SCOPE_EXIT("test::DODMap");
 		test::DODMap<std::size_t, BigObj> map;
 
@@ -168,6 +189,19 @@ int main()
 		}
 	}
 
+
+{
+		SSVU_BENCHMARK_LOG_SCOPE_EXIT("std::map");
+		ssvu::Json::Internal::VecMap<std::size_t, BigObj> map;
+
+		for(auto k(0u); k < kk; ++k)
+		{
+			{
+				SSVU_BENCHMARK_LOG_SCOPE_EXIT("random insertion");
+				for(auto j(0u); j < jj; ++j) map[rndd()] = {};				
+			}
+		}
+	}
 	{
 		SSVU_BENCHMARK_LOG_SCOPE_EXIT("std::map");
 		std::map<std::size_t, BigObj> map;

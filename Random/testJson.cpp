@@ -8,15 +8,8 @@ int main()
 	using namespace ssvu;
 	using namespace ssvu::Json;
 
-//	SSVUT_RUN();
+	SSVUT_RUN();
 	
-	/*ssvu::lo("Value") << sizeof(Value) << std::endl;
-	ssvu::lo("Value::Holder") << sizeof(Value::Holder) << std::endl;
-	ssvu::lo("Value::Type") << sizeof(Value::Type) << std::endl;
-	ssvu::lo("hObject") << sizeof(decltype(Value::Holder::hObject)) << std::endl;
-	ssvu::lo("hArray") << sizeof(decltype(Value::Holder::hArray)) << std::endl;
-	ssvu::lo("hString") << sizeof(decltype(Value::Holder::hString)) << std::endl;
-	ssvu::lo("hNumber") << sizeof(decltype(Value::Holder::hNumber)) << std::endl;*/
 
 	auto src(R"(
 
@@ -81,7 +74,6 @@ int main()
 		}
 	}
 
-	if(false)
 	{
 		SSVU_BENCHMARK_LOG_SCOPE_EXIT("ssvuj");
 		for(int i = 0; i < 10000; ++i)

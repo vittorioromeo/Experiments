@@ -5,6 +5,9 @@
 #ifndef SVJ_COMMON
 #define SVJ_COMMON
 
+#define SVJ_ENABLE_IF_IS(mT, mType)		EnableIf<isSame<RemoveAll<mT>, mType>()>* = nullptr
+#define SVJ_ENABLE_IF_IS_NOT(mT, mType)	EnableIf<!isSame<RemoveAll<mT>, mType>()>* = nullptr
+
 #include "../../SVJ/Common/VecMap.hpp"
 #include "../../SVJ/Common/Maybe.hpp"
 

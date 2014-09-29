@@ -23,28 +23,20 @@ namespace ssvu
 
 					inline Maybe() noexcept = default;
 
-					inline void init(const T& mV) noexcept(isNothrowConstructible<T>())
+					template<typename TV, SVJ_ENABLE_IF_IS_NOT(TV, Maybe)> inline void init(TV&& mV) noexcept(noexcept(T(fwd<TV>(mV))))
 					{
 						SSVU_ASSERT(alive == false);
 
-						new (&storage) T(mV);
+						new (&storage) T(fwd<TV>(mV));
 
 						#if !(SSVU_IMPL_ASSERT_DISABLED)
 							alive = true;
 						#endif
 					}
-					inline void init(T&& mV) noexcept(isNothrowMoveConstructible<T>())
+					template<typename TV, SVJ_ENABLE_IF_IS(TV, Maybe)> inline void init(TV&& mM) noexcept(noexcept(init(fwd<TV>(mM).get())))
 					{
-						SSVU_ASSERT(alive == false);
-
-						new (&storage) T(std::move(mV));
-
-						#if !(SSVU_IMPL_ASSERT_DISABLED)
-							alive = true;
-						#endif
+						init(fwd<TV>(mM).get());
 					}
-					inline void init(const Maybe& mM) noexcept(noexcept(init(mM.get())))		{ init(mM.get()); }
-					inline void init(Maybe&& mM) noexcept(noexcept(init(std::move(mM.get()))))	{ init(std::move(mM.get())); }
 
 					inline void deinit() noexcept(isNothrowDestructible<T>())
 					{
@@ -59,24 +51,9 @@ namespace ssvu
 						SSVU_ASSERT(alive == false);
 					}
 
-					inline T& get() noexcept
-					{
-						SSVU_ASSERT(alive == true);
-						return reinterpret_cast<T&>(storage);
-					}
-					inline const T& get() const noexcept
-					{
-						SSVU_ASSERT(alive == true);
-						return reinterpret_cast<const T&>(storage);
-					}
-
-					/*
-					inline T getMove() noexcept
-					{
-						SSVU_ASSERT(alive == true);
-						return std::move(reinterpret_cast<T&>(storage));
-					}
-					*/
+					inline auto& get() & noexcept				{ SSVU_ASSERT(alive == true); return reinterpret_cast<T&>(storage); }
+					inline const auto& get() const& noexcept	{ SSVU_ASSERT(alive == true); return reinterpret_cast<const T&>(storage); }
+					inline auto get() && noexcept				{ SSVU_ASSERT(alive == true); return std::move(reinterpret_cast<T&>(storage)); }
 			};
 		}
 	}

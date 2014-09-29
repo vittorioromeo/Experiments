@@ -48,30 +48,27 @@ namespace ssvu
 				} h;
 
 				// These `setX` functions must only be called after calling `deinitCurrent()`
-				inline void setObject(const Object& mX)				{ type = Type::Object;	h.hObject.init(mX); }
-				inline void setArray(const Array& mX)				{ type = Type::Array;	h.hArray.init(mX); }
-				inline void setString(const String& mX)				{ type = Type::String;	h.hString.init(mX); }
+				template<typename T> inline void setObject(T&& mX)	{ type = Type::Object;	h.hObject.init(fwd<T>(mX)); }
+				template<typename T> inline void setArray(T&& mX)	{ type = Type::Array;	h.hArray.init(fwd<T>(mX)); }
+				template<typename T> inline void setString(T&& mX)	{ type = Type::String;	h.hString.init(fwd<T>(mX)); }
 				inline void setNumber(const Number& mX) noexcept	{ type = Type::Number;	h.hNumber = mX; }
 				inline void setBool(Bool mX) noexcept				{ type = Type::Bool;	h.hBool = mX; }
 				inline void setNull(Null) noexcept					{ type = Type::Null; }
 
-				inline void setObject(Object&& mX) noexcept	{ type = Type::Object;	h.hObject.init(std::move(mX)); }
-				inline void setArray(Array&& mX) noexcept	{ type = Type::Array;	h.hArray.init(std::move(mX)); }
-				inline void setString(String&& mX) noexcept	{ type = Type::String;	h.hString.init(std::move(mX)); }
+				inline auto& getObject() & noexcept				{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
+				inline auto& getArray() & noexcept				{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
+				inline auto& getString() & noexcept				{ SSVU_ASSERT(is<String>());	return h.hString.get(); }
+				inline const auto& getObject() const& noexcept	{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
+				inline const auto& getArray() const& noexcept	{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
+				inline const auto& getString() const& noexcept	{ SSVU_ASSERT(is<String>());	return h.hString.get(); }
+				inline auto getObject() && noexcept				{ SSVU_ASSERT(is<Object>());	return std::move(std::move(h.hObject).get()); }
+				inline auto getArray() && noexcept				{ SSVU_ASSERT(is<Array>());		return std::move(std::move(h.hArray).get()); }
+				inline auto getString() && noexcept				{ SSVU_ASSERT(is<String>());	return std::move(std::move(h.hString).get()); }
 
-				inline const auto& getObject() const noexcept	{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
-				inline const auto& getArray() const noexcept	{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
-				inline const auto& getString() const noexcept	{ SSVU_ASSERT(is<String>());	return h.hString.get(); }
 				inline auto getNumber() const noexcept			{ SSVU_ASSERT(is<Number>());	return h.hNumber; }
 				inline auto getBool() const noexcept			{ SSVU_ASSERT(is<Bool>());		return h.hBool; }
 				inline auto getNull() const noexcept			{ SSVU_ASSERT(is<Null>());		return Null{}; }
 
-				inline auto getMoveObject() noexcept	{ SSVU_ASSERT(is<Object>());	return std::move(h.hObject.get()); }
-				inline auto getMoveArray() noexcept		{ SSVU_ASSERT(is<Array>());		return std::move(h.hArray.get()); }
-				inline auto getMoveString() noexcept	{ SSVU_ASSERT(is<String>());	return std::move(h.hString.get()); }
-
-				inline auto& getObject() noexcept	{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
-				inline auto& getArray() noexcept	{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
 
 				inline void deinitCurrent()
 				{
@@ -84,58 +81,40 @@ namespace ssvu
 					}
 				}
 
-				inline void init(const Value& mV)
+				template<typename T> inline void init(T&& mV)
 				{
 					type = mV.type;
 
 					switch(type)
 					{
-						case Type::Object:	h.hObject.init(mV.getObject()); break;
-						case Type::Array:	h.hArray.init(mV.getArray()); break;
-						case Type::String:	h.hString.init(mV.getString()); break;
-						case Type::Number:	h.hNumber = mV.getNumber(); break;
-						case Type::Bool:	h.hBool = mV.getBool(); break;
+						case Type::Object:	h.hObject.init(fwd<T>(mV).getObject()); break;
+						case Type::Array:	h.hArray.init(fwd<T>(mV).getArray()); break;
+						case Type::String:	h.hString.init(fwd<T>(mV).getString()); break;
+						case Type::Number:	h.hNumber = fwd<T>(mV).getNumber(); break;
+						case Type::Bool:	h.hBool = fwd<T>(mV).getBool(); break;
 						default: break;
 					}
 				}
-
-				inline void init(Value&& mV)
-				{
-					type = mV.type;
-
-					switch(type)
-					{
-						case Type::Object:	h.hObject.init(std::move(mV.getMoveObject())); break;
-						case Type::Array:	h.hArray.init(std::move(mV.getMoveArray())); break;
-						case Type::String:	h.hString.init(std::move(mV.getMoveString())); break;
-						case Type::Number:	h.hNumber = mV.getNumber(); break;
-						case Type::Bool:	h.hBool = mV.getBool(); break;
-						default: break;
-					}
-				}
-
 
 			public:
 				inline Value() = default;
-				inline Value(const Value& mV) { init(mV); }
-				inline Value(Value&& mV) { init(std::move(mV)); }
+				inline Value(const Value& mV)	{ init(mV); }
+				inline Value(Value&& mV)		{ init(std::move(mV)); }
 
-				template<typename T, EnableIf<!isSame<RemoveAll<T>, Value>()>* = nullptr> inline Value(T&& mX) { set(fwd<T>(mX)); }
+				template<typename T, SVJ_ENABLE_IF_IS_NOT(T, Value)> inline Value(T&& mX) { set(fwd<T>(mX)); }
 
 				inline ~Value() { deinitCurrent(); }
 
 				// "Explicit" `set` function set the inner contents of the value
 				template<typename T> inline void set(T&& mX) { deinitCurrent(); Internal::ValueHelper<RemoveAll<T>>::set(*this, fwd<T>(mX)); }
 
-				inline auto& operator=(const Value& mV) { set(mV); return *this; }
-				inline auto& operator=(Value&& mV) { set(mV); return *this; }
-
 				// "Implicit" `set` function done via `operator=` overloading
 				template<typename T> inline auto& operator=(T&& mX) { set(fwd<T>(mX)); return *this; }
 
 				// "Explicit" `get` function gets the inner contents of the value
-				template<typename T> decltype(auto) get() noexcept { return Internal::ValueHelper<T>::get(*this); }
-				template<typename T> decltype(auto) get() const noexcept { return Internal::ValueHelper<T>::get(*this); }
+				template<typename T> decltype(auto) get() & noexcept		{ return Internal::ValueHelper<T>::get(*this); }
+				template<typename T> decltype(auto) get() const& noexcept	{ return Internal::ValueHelper<T>::get(*this); }
+				template<typename T> decltype(auto) get() && noexcept		{ return Internal::ValueHelper<T>::get(std::move(*this)); }
 
 				// "Implicit" Value from Object by Key getters
 				inline auto& operator[](const Key& mKey)				{ return getObject()[mKey]; }

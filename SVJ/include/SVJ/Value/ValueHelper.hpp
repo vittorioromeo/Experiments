@@ -23,7 +23,7 @@ namespace ssvu
 				template<> struct ValueHelper<mType> \
 				{ \
 					template<typename T> inline static void set(Value& mV, T&& mX) { SSVPP_CAT(mV.set, mType)(fwd<T>(mX)); } \
-					template<typename T> inline static auto& get(T& mV) { return SSVPP_CAT(mV.get, mType)(); } \
+					template<typename T> inline static decltype(auto) get(T&& mV) { return SSVPP_CAT(fwd<T>(mV).get, mType)(); } \
 					inline static auto is(const Value& mV) noexcept { return mV.getType() == SSVPP_EXPAND(Value::Type::mType); } \
 				};
 
@@ -64,7 +64,6 @@ namespace ssvu
 			template<std::size_t TS> struct ValueHelper<char[TS]>
 			{
 				inline static void set(Value& mV, const char(&mX)[TS]) { mV.setString(mX); }
-				template<typename T> inline static auto& get(T& mV) { return mV.getString(); }
 				inline static auto is(const Value& mV) noexcept { return mV.getType() == Value::Type::String; }
 			};
 		}
