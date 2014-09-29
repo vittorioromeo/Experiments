@@ -11,6 +11,24 @@ namespace ssvu
 	{
 		namespace Internal
 		{
+			inline constexpr char getEscapeSequence(char mC) noexcept
+			{
+				switch(mC)
+				{
+					case '"':	return '"';
+					case '\\':	return '\\';
+					case '/':	return '/';
+					case 'b':	return '\b';
+					case 'f':	return '\f';
+					case 'n':	return '\n';
+					case 'r':	return '\r';
+					case 't':	return '\t';
+				}
+
+				SSVU_ASSERT_CONSTEXPR(false);
+				std::terminate();
+			}
+
 			class Reader
 			{
 				private:
@@ -42,14 +60,22 @@ namespace ssvu
 						return strUnmarked + "\n" + strMarked;
 					}
 
-					inline static auto isWhitespace(char mC) noexcept	{ return mC == ' ' || mC == '\t' || mC == '\r' || mC == '\n'; }
-					inline static auto isNumberStart(char mC) noexcept	{ return mC == '-' || isDigit(mC); }
+					inline static constexpr auto isWhitespace(char mC) noexcept		{ return mC == ' ' || mC == '\t' || mC == '\r' || mC == '\n'; }
+					inline static constexpr auto isNumberStart(char mC) noexcept	{ return mC == '-' || isDigit(mC); }
 
 					inline char getC() const noexcept		{ return src[idx]; }
 					inline auto isC(char mC) const noexcept	{ return getC() == mC; }
 					inline auto isCDigit() const noexcept	{ return isDigit(getC()); }
 
-					inline void skipWhitespace() noexcept { while(isWhitespace(getC())) ++idx; }
+					inline void skipWhitespaceAndComments() noexcept
+					{
+						while(isWhitespace(getC())) ++idx;
+
+						if(src[idx] != '/' || src[idx + 1] != '/') return;
+
+						while(getC() != '\n') ++idx;
+						skipWhitespaceAndComments();
+					}
 
 					template<std::size_t TS> inline void match(const char(&mKeyword)[TS])
 					{
@@ -60,49 +86,36 @@ namespace ssvu
 						}
 					}
 
-					inline auto readEscapeSequenceChar()
-					{
-						switch(getC())
-						{
-							case '"':	return '\"';
-							case '\\':	return '\\';
-							case '/':	return '/';
-							case 'b':	return '\b';
-							case 'f':	return '\f';
-							case 'n':	return '\n';
-							case 'r':	return '\r';
-							case 't':	return '\t';
-							default: throw ReadException("Invalid escape sequence", "No match for escape sequence `\\"s + getC() + "`", getErrorSrc());
-						}
-
-					}
-
 					inline auto readString()
 					{
-						String result;
-
 						// Skip opening '"'
 						++idx;
 
-						for(; true; ++idx)
+						// Find end index of the string
+						auto end(idx);
+						for(; true; ++end)
 						{
 							// End of the string
-							if(isC('"')) break;
+							if(src[end] == '"') break;
 
-							// Escape sequence
-							if(isC('\\'))
-							{
-								// Skip '\'
-								++idx;
+							// TODO: assert escape sequence validity
+							if(src[end] == '\\') { ++end; continue; }
+						}
 
-								// Check escape sequence character after '\'
-								result += readEscapeSequenceChar();
+						// Reserve memory for the string
+						String result;
+						result.reserve(end - idx);
 
-								continue;
-							}
+						for(; idx < end; ++idx)
+						{
+							// Not an escape sequence
+							if(!isC('\\')) { result += getC(); continue; }
 
-							// Any other character
-							result += getC();
+							// Escape sequence: skip '\'
+							++idx;
+
+							// Convert escape sequence
+							result += getEscapeSequence(getC());
 						}
 
 						// Skip closing '"'
@@ -111,71 +124,21 @@ namespace ssvu
 						return result;
 					}
 
-					inline void purgeSource()
-					{
-						for(auto i(0u); i < src.size(); ++i)
-						{
-							// Skip strings
-							if(src[i] == '"')
-							{
-								++i;
-								while(src[i] != '"' || src[i - 1] == '\\') ++i;
-							}
-
-							// Detect C++-style comment
-							if(src[i] != '/' || src[i + 1] != '/') continue;
-
-							auto iEnd(i);
-							while(iEnd < src.size() && src[iEnd] != '\n') ++iEnd;
-
-							auto itr(src.erase(std::begin(src) + i, std::begin(src) + iEnd));
-							i = itr - std::begin(src);
-						}
-					}
-
 					inline auto parseNull()			{ match("null"); return Value{Null{}}; }
 					inline auto parseBoolFalse()	{ match("false"); return Value{false}; }
 					inline auto parseBoolTrue()		{ match("true"); return Value{true}; }
 
 					inline auto parseNumber()
 					{
-						std::string strNum;
-						std::size_t cntDInt{0u}, cntDDec{0u};
+						char* endChar;
 
-						// Check negativity
-						if(isC('-')) { ++idx; strNum += "-"; }
+						auto realN(static_cast<Number::Real>(std::strtod(src.data() + idx, &endChar)));
+						auto intSN(static_cast<Number::IntS>(realN));
 
-						// Get and count non-decimal digits
-						while(isCDigit()) { strNum += getC(); ++idx; ++cntDInt; }
+						idx = endChar - src.data();
 
-						// If there's no dot, return a non-decimal number
-						if(!isC('.'))
-						{
-							//if(std::numeric_limits<int>::digits <= cntDInt)
-								return Value{Number{std::stoi(strNum)}};
-						}
-
-						// Add dot
-						strNum += '.'; ++idx;
-
-						// Get and count decimal digits
-						while(isCDigit()) { strNum += getC(); ++idx; ++cntDDec; }
-
-						// Handle possible exponent
-						if(isC('e') || isC('E'))
-						{
-							strNum += 'e';
-
-							++idx;
-							if(isC('+')) strNum += '+';
-							if(isC('-')) strNum += '-';
-
-							++idx;
-							while(isCDigit()) { strNum += getC(); ++idx; }
-						}
-
-						if(std::numeric_limits<float>::digits10 <= cntDDec)		return Value{Number{std::stof(strNum)}};
-					 /* if(std::numeric_limits<double>::digits10 <= cntDDec) */	return Value{Number{std::stod(strNum)}};
+						auto isDecimal(intSN != realN);
+						return Value{Number{isDecimal ? realN : intSN}};
 					}
 
 					inline auto parseString() { return Value{readString()}; }
@@ -187,7 +150,7 @@ namespace ssvu
 						// Skip '['
 						++idx;
 
-						skipWhitespace();
+						skipWhitespaceAndComments();
 
 						// Empty array
 						if(isC(']')) goto end;
@@ -195,9 +158,9 @@ namespace ssvu
 						while(true)
 						{
 							// Get value
-							skipWhitespace();
+							skipWhitespaceAndComments();
 							array.emplace_back(parseValue());
-							skipWhitespace();
+							skipWhitespaceAndComments();
 
 							// Check for another value
 							if(isC(',')) { ++idx; continue; }
@@ -223,7 +186,7 @@ namespace ssvu
 						// Skip '{'
 						++idx;
 
-						skipWhitespace();
+						skipWhitespaceAndComments();
 
 						// Empty object
 						if(isC('}')) goto end;
@@ -231,21 +194,21 @@ namespace ssvu
 						while(true)
 						{
 							// Read string key
-							skipWhitespace();
+							skipWhitespaceAndComments();
 							if(!isC('"')) throw ReadException{"Invalid object", "Expected `\"` , got `"s + getC() + "`", getErrorSrc()};
 							auto key(readString());
 
 							// Read ':'
-							skipWhitespace();
+							skipWhitespaceAndComments();
 							if(!isC(':')) throw ReadException{"Invalid object", "Expected `:` , got `"s + getC() + "`", getErrorSrc()};
 
 							// Skip ':'
 							++idx;
 
 							// Read value
-							skipWhitespace();
+							skipWhitespaceAndComments();
 							object[key] = parseValue();
-							skipWhitespace();
+							skipWhitespaceAndComments();
 
 							// Check for another key-value pair
 							if(isC(',')) { ++idx; continue; }
@@ -264,9 +227,12 @@ namespace ssvu
 						return Value{object};
 					}
 
+				public:
+					inline Reader(std::string mSrc) : src{std::move(mSrc)} { }
+
 					inline Value parseValue()
 					{
-						skipWhitespace();
+						skipWhitespaceAndComments();
 
 						// Check value type
 						switch(getC())
@@ -283,17 +249,6 @@ namespace ssvu
 						if(isNumberStart(getC())) return parseNumber();
 
 						throw ReadException{"Invalid value", "No match for values beginning with `"s + getC() + "`", getErrorSrc()};
-					}
-
-				public:
-					inline Reader(std::string mSrc) : src{std::move(mSrc)} { }
-
-					inline auto parseDocument()
-					{
-						purgeSource();
-						skipWhitespace();
-
-						return parseValue();
 					}
 			};
 		}

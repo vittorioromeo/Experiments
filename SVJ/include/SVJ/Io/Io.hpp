@@ -36,7 +36,7 @@ namespace ssvu
 			{
 				try
 				{
-					mValue = mReader.parseDocument();
+					mValue = mReader.parseValue();
 				}
 				catch(ReadException& mEx)
 				{
