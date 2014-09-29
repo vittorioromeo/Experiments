@@ -115,6 +115,13 @@ namespace ssvu
 					{
 						for(auto i(0u); i < src.size(); ++i)
 						{
+							// Skip strings
+							if(src[i] == '"')
+							{
+								++i;
+								while(src[i] != '"' || src[i - 1] == '\\') ++i;
+							}
+
 							// Detect C++-style comment
 							if(src[i] != '/' || src[i + 1] != '/') continue;
 

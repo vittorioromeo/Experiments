@@ -103,5 +103,30 @@ SSVUT_TEST(SVJValueTests)
 	}
 }
 
+SSVUT_TEST(SVJReadTests)
+{
+	using namespace ssvu;
+	using namespace ssvu::Json;
+	using namespace ssvu::Json::Internal;
+
+	auto testSrc(R"(
+	{
+		// Hello
+		"a":1,//Comment // iko
+		"b":null,//
+		"c":"//",//
+		"d":true,//////
+		"e":"//\"//"//k
+	}
+	)");
+
+	auto v(Value::fromString(testSrc));
+
+	SSVUT_EXPECT(v["a"] == 1);
+	SSVUT_EXPECT(v["b"] == Null{});
+	SSVUT_EXPECT(v["c"] == "//");
+	SSVUT_EXPECT(v["d"] == true);
+	SSVUT_EXPECT(v["e"] == "//\"//");
+}
 
 #endif

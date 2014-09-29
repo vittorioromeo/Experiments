@@ -31,39 +31,32 @@ namespace ssvu
 
 				union Holder
 				{
-					Internal::Maybe<Object> hObject;
-					Internal::Maybe<Array> hArray;
-					Internal::Maybe<String> hString;
+					Object hObject;
+					Array hArray;
+					String hString;
 					Number hNumber;
 					Bool hBool;
 
-					inline Holder() noexcept
-					{
-						#if !(SSVU_IMPL_ASSERT_DISABLED)
-							hObject.alive = false;
-							hArray.alive = false;
-							hString.alive = false;
-						#endif
-					}
+					inline Holder() noexcept { }
+					inline ~Holder() noexcept { }
 				} h;
 
-				// These `setX` functions must only be called after calling `deinitCurrent()`
-				template<typename T> inline void setObject(T&& mX)	{ type = Type::Object;	h.hObject.init(fwd<T>(mX)); }
-				template<typename T> inline void setArray(T&& mX)	{ type = Type::Array;	h.hArray.init(fwd<T>(mX)); }
-				template<typename T> inline void setString(T&& mX)	{ type = Type::String;	h.hString.init(fwd<T>(mX)); }
+				template<typename T> inline void setObject(T&& mX)	{ type = Type::Object;	new(&h.hObject) Object(fwd<T>(mX)); }
+				template<typename T> inline void setArray(T&& mX)	{ type = Type::Array;	new(&h.hArray) Array(fwd<T>(mX)); }
+				template<typename T> inline void setString(T&& mX)	{ type = Type::String;	new(&h.hString) String(fwd<T>(mX)); }
 				inline void setNumber(const Number& mX) noexcept	{ type = Type::Number;	h.hNumber = mX; }
 				inline void setBool(Bool mX) noexcept				{ type = Type::Bool;	h.hBool = mX; }
 				inline void setNull(Null) noexcept					{ type = Type::Null; }
 
-				inline auto& getObject() & noexcept				{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
-				inline auto& getArray() & noexcept				{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
-				inline auto& getString() & noexcept				{ SSVU_ASSERT(is<String>());	return h.hString.get(); }
-				inline const auto& getObject() const& noexcept	{ SSVU_ASSERT(is<Object>());	return h.hObject.get(); }
-				inline const auto& getArray() const& noexcept	{ SSVU_ASSERT(is<Array>());		return h.hArray.get(); }
-				inline const auto& getString() const& noexcept	{ SSVU_ASSERT(is<String>());	return h.hString.get(); }
-				inline auto getObject() && noexcept				{ SSVU_ASSERT(is<Object>());	return std::move(std::move(h.hObject).get()); }
-				inline auto getArray() && noexcept				{ SSVU_ASSERT(is<Array>());		return std::move(std::move(h.hArray).get()); }
-				inline auto getString() && noexcept				{ SSVU_ASSERT(is<String>());	return std::move(std::move(h.hString).get()); }
+				inline auto& getObject() & noexcept				{ SSVU_ASSERT(is<Object>());	return h.hObject; }
+				inline auto& getArray() & noexcept				{ SSVU_ASSERT(is<Array>());		return h.hArray; }
+				inline auto& getString() & noexcept				{ SSVU_ASSERT(is<String>());	return h.hString; }
+				inline const auto& getObject() const& noexcept	{ SSVU_ASSERT(is<Object>());	return h.hObject; }
+				inline const auto& getArray() const& noexcept	{ SSVU_ASSERT(is<Array>());		return h.hArray; }
+				inline const auto& getString() const& noexcept	{ SSVU_ASSERT(is<String>());	return h.hString; }
+				inline auto getObject() && noexcept				{ SSVU_ASSERT(is<Object>());	return std::move(h.hObject); }
+				inline auto getArray() && noexcept				{ SSVU_ASSERT(is<Array>());		return std::move(h.hArray); }
+				inline auto getString() && noexcept				{ SSVU_ASSERT(is<String>());	return std::move(h.hString); }
 
 				inline auto getNumber() const noexcept			{ SSVU_ASSERT(is<Number>());	return h.hNumber; }
 				inline auto getBool() const noexcept			{ SSVU_ASSERT(is<Bool>());		return h.hBool; }
@@ -74,24 +67,23 @@ namespace ssvu
 				{
 					switch(type)
 					{
-						case Type::Object:	h.hObject.deinit(); break;
-						case Type::Array:	h.hArray.deinit(); break;
-						case Type::String:	h.hString.deinit(); break;
+						case Type::Object:	h.hObject.~Object(); break;
+						case Type::Array:	h.hArray.~Array(); break;
+						case Type::String:	h.hString.~String(); break;
 						default: break;
 					}
 				}
 
 				template<typename T> inline void init(T&& mV)
 				{
-					type = mV.type;
-
-					switch(type)
+					switch(mV.type)
 					{
-						case Type::Object:	h.hObject.init(fwd<T>(mV).getObject()); break;
-						case Type::Array:	h.hArray.init(fwd<T>(mV).getArray()); break;
-						case Type::String:	h.hString.init(fwd<T>(mV).getString()); break;
-						case Type::Number:	h.hNumber = fwd<T>(mV).getNumber(); break;
-						case Type::Bool:	h.hBool = fwd<T>(mV).getBool(); break;
+						case Type::Object:	setObject(fwd<T>(mV).getObject()); break;
+						case Type::Array:	setArray(fwd<T>(mV).getArray()); break;
+						case Type::String:	setString(fwd<T>(mV).getString()); break;
+						case Type::Number:	setNumber(fwd<T>(mV).getNumber()); break;
+						case Type::Bool:	setBool(fwd<T>(mV).getBool()); break;
+						case Type::Null:	setNull(Null{}); break;
 						default: break;
 					}
 				}

@@ -8,6 +8,7 @@ int main()
 	using namespace ssvu;
 	using namespace ssvu::Json;
 
+
 	SSVUT_RUN();
 	
 
@@ -66,6 +67,8 @@ int main()
 
 	)");
 
+while(true)
+{
 	{
 		SSVU_BENCHMARK_LOG_SCOPE_EXIT("svj");
 		for(int i = 0; i < 10000; ++i)
@@ -82,6 +85,8 @@ int main()
 		}
 	}
 
+	std::this_thread::sleep_for(1s);
+}
 return 0;
 /*
 	Value k{Object{}};
