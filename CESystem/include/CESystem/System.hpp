@@ -49,27 +49,27 @@ namespace ssvces
 			std::vector<Tpl> tuples;
 
 			inline static constexpr Entity& getEntity(const Tpl& mTpl) noexcept { return *std::get<Entity*>(mTpl); }
-			inline TDerived& getThisDerived() noexcept { return *reinterpret_cast<TDerived*>(this); }
+			inline TDerived& getTD() noexcept { return *reinterpret_cast<TDerived*>(this); }
 
 			inline void refresh() override
 			{
 				ssvu::eraseRemoveIf(tuples, [this](const Tpl& mTpl)
 				{
-					if(getEntity(mTpl).mustDestroy || getEntity(mTpl).mustRematch) { TReq::onRemoved(getThisDerived(), mTpl); return true; }
+					if(getEntity(mTpl).mustDestroy || getEntity(mTpl).mustRematch) { TReq::onRemoved(getTD(), mTpl); return true; }
 					return false;
 				});
 			}
 			inline void registerEntity(Entity& mEntity) override
 			{
 				auto tpl(TReq::createTuple(mEntity)); tuples.emplace_back(tpl);
-				TReq::onAdded(getThisDerived(), tpl);
+				TReq::onAdded(getTD(), tpl);
 			}
 
 		public:
 			inline System() noexcept : SystemBase{TReq::getTypeIds(), TNot::getTypeIds()} { }
 			template<typename... TArgs> inline void processAll(TArgs&&... mArgs)
 			{
-				for(auto& t : tuples) TReq::onProcess(getThisDerived(), t, std::make_tuple(ssvu::fwd<TArgs>(mArgs)...));
+				for(auto& t : tuples) TReq::onProcess(getTD(), t, std::make_tuple(ssvu::fwd<TArgs>(mArgs)...));
 			}
 	};
 }
