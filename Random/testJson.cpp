@@ -2,12 +2,12 @@
 #include <SSVUtils/Benchmark/Benchmark.hpp>
 #include <SSVUtilsJson/SSVUtilsJson.hpp>
 #include <SSVUtils/Json/Json.hpp>
+#include <SSVUtils/Tests/TestsJson.hpp>
 
 int main()
 {
 	using namespace ssvu;
 	using namespace ssvu::Json;
-
 
 	SSVUT_RUN();
 	
