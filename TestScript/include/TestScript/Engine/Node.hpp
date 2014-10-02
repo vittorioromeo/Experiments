@@ -29,7 +29,7 @@ namespace Eng
 			inline NodePtr<TL> getParent() noexcept			{ return parent; }
 			inline decltype(children)& getChildren() noexcept	{ return children; }
 
-			template<typename T> T& getAs() noexcept			{ return *reinterpret_cast<T*>(this); }
+			template<typename T> T& getAs() noexcept			{ return ssvu::castUp<T>(*this); }
 	};
 }
 

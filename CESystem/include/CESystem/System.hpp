@@ -49,7 +49,7 @@ namespace ssvces
 			std::vector<Tpl> tuples;
 
 			inline static constexpr Entity& getEntity(const Tpl& mTpl) noexcept { return *std::get<Entity*>(mTpl); }
-			inline TDerived& getTD() noexcept { return *reinterpret_cast<TDerived*>(this); }
+			inline auto& getTD() noexcept { return ssvu::castUp<TDerived>(*this); }
 
 			inline void refresh() override
 			{

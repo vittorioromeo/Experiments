@@ -51,7 +51,7 @@ namespace ssvut
 			{
 				std::vector<LinkDerived> links;
 				template<typename... TArgs> inline void emplaceLink(TArgs&&... mArgs) { links.emplace_back(ssvu::fwd<TArgs>(mArgs)...); }
-				inline static NodePtr getNodePtr(GraphNode<TGraph>* mNode) noexcept { return reinterpret_cast<NodeDerived*>(mNode); }
+				inline static NodePtr getNodePtr(GraphNode<TGraph>* mNode) noexcept { return ssvu::castUp<NodeDerived>(mNode); }
 			};
 			struct LinkBase { };
 

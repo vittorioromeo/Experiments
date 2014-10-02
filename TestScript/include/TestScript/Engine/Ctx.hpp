@@ -27,7 +27,7 @@ namespace Eng
 					{
 						if(dynamic_cast<ASTTokenNode<TL>*>(nodePtr))
 						{
-							auto tknNode(reinterpret_cast<ASTTokenNode<TL>*>(nodePtr));
+							auto tknNode(ssvu::castUp<ASTTokenNode<TL>>(nodePtr));
 							if(tknNode->getToken().getType() == mTknType) return true;
 						}
 
@@ -58,7 +58,7 @@ namespace Eng
 			template<typename T> inline T& popAs()
 			{
 				auto itr(std::begin(parser.parseStack) + offset);
-				auto result(reinterpret_cast<T*>(*itr));
+				auto result(ssvu::castUp<T>(*itr));
 				pop();
 				return *result;
 			}
@@ -66,7 +66,7 @@ namespace Eng
 			{
 				auto& node(parser.template createNode<T>(ssvu::fwd<TArgs>(mArgs)...));
 				parser.parseStack.insert(std::begin(parser.parseStack) + offset, &node);
-				return reinterpret_cast<T&>(node);
+				return ssvu::castUp<T>(node);
 			}
 
 

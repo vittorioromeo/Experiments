@@ -40,7 +40,7 @@ namespace ssvces
 			{
 				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "`T` must derive from `Component`");
 				SSVU_ASSERT(componentCount > 0 && hasComponent<T>());
-				return reinterpret_cast<T&>(*components[Internal::getTypeIdx<T>()]);
+				return ssvu::castUp<T>(*components[Internal::getTypeIdx<T>()]);
 			}
 
 			inline void destroy() noexcept;
