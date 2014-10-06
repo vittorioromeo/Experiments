@@ -6,7 +6,6 @@ include(SSVCMake)
 
 SSVCMake_setDefaults()
 SSVCMake_findExtlib(SSVUtils)
-SSVCMake_findExtlib(SSVUtilsJson)
 
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_SOURCE_DIR}/_RELEASE/)

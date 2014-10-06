@@ -26,16 +26,16 @@ namespace ssvces
 	template<typename... TArgs> struct Req : public Internal::Filter<TArgs...>
 	{
 		using TplType = std::tuple<Entity*, TArgs*...>;
-		static inline TplType createTuple(Entity& mEntity) { return std::tuple_cat(std::make_tuple(&mEntity), buildComponentsTpl<TArgs...>(mEntity)); }
-		template<typename TS, typename TT1, typename TT2> static inline void onProcess(TS& mSystem, TT1 mTpl1, TT2 mTpl2)
+		inline static TplType createTuple(Entity& mEntity) { return std::tuple_cat(std::make_tuple(&mEntity), buildComponentsTpl<TArgs...>(mEntity)); }
+		template<typename TS, typename TT1, typename TT2> inline static void onProcess(TS& mSystem, TT1 mTpl1, TT2 mTpl2)
 		{
 			ssvu::explode(&Internal::ExpHelper<TT1, TT2>::template processImpl<TS>, std::tuple_cat(std::tuple<TS&>(mSystem), mTpl1, mTpl2));
 		}
-		template<typename TS, typename TT> static inline void onAdded(TS& mSystem, TT mTpl)
+		template<typename TS, typename TT> inline static void onAdded(TS& mSystem, TT mTpl)
 		{
 			ssvu::explode(&Internal::ExpHelper<TT, std::tuple<>>::template addedImpl<TS>, std::tuple_cat(std::tuple<TS&>(mSystem), mTpl));
 		}
-		template<typename TS, typename TT> static inline void onRemoved(TS& mSystem, TT mTpl)
+		template<typename TS, typename TT> inline static void onRemoved(TS& mSystem, TT mTpl)
 		{
 			ssvu::explode(&Internal::ExpHelper<TT, std::tuple<>>::template removedImpl<TS>, std::tuple_cat(std::tuple<TS&>(mSystem), mTpl));
 		}

@@ -4,13 +4,46 @@
 #include <SSVUtils/Json/Json.hpp>
 #include <SSVUtils/Tests/TestsJson.hpp>
 
+template<typename T> struct TestVec2
+{
+	T x, y;
+};
+
+
+namespace ssvu
+{
+	namespace Json
+	{
+		namespace Internal
+		{
+			template<typename T> SSVJ_CNV_SIMPLE(TestVec2<T>, mV, mX)	{ ssvj::convertArr(mV, mX.x, mX.y); } SSVJ_CNV_END();
+		}
+	}
+}
+
 int main()
 {
 	using namespace ssvu;
 	using namespace ssvu::Json;
 
 	SSVUT_RUN();
+
+	auto x = TestVec2<float>{1.5f, 0.5f};
+	auto vx = ssvj::Val{x};
+	//lo() << vx << "\n";	
+
+	auto sx = vx.getWriteToStr();
+	//lo() << sx << "\n";	
+
+	auto osx = ssvj::Val::fromStr(sx);
+	//lo() << osx[0] << ", " << osx[1] << "\n";	
 	
+	TestVec2<float> out;
+	extrArr(osx, out.x, out.y);
+	lo() << out.x << ", " << out.y << "\n";	
+
+	auto osxas = osx.as<TestVec2<float>>();
+	lo() << osxas.x << ", " << osxas.y << "\n";	
 
 	auto src(R"(
 
