@@ -88,10 +88,25 @@ class Dictionary
 
 		inline std::string getExpanded(const std::string& mSrc) const 
 		{ 
+			std::string purgedSrc; purgedSrc.reserve(mSrc.size());
+			//purgedSrc = mSrc;
+
+			for(auto i(0u); i < mSrc.size(); ++i)
+			{
+				auto specialStart(0u);
+
+				// Find special character on this line
+				for(; mSrc[i] != '\n'; ++i)
+				{
+					if(mSrc[i] = '{') purgedSrc += mSrc[i];
+				}
+			}
+
+
 			std::string result; result.reserve(mSrc.size() * 2);
 			std::string bufferKey; bufferKey.reserve(10);
 			
-			Expander e{*this, mSrc, result, bufferKey, 0, mSrc.size(), 0}; 
+			Expander e{*this, purgedSrc, result, bufferKey, 0, mSrc.size(), 0}; 
 			e.expand();
 			
 			return result;
@@ -108,7 +123,11 @@ inline void Expander::expand()
 	for(; idx < idxEnd; ++idx)
 	{
 		// Skip non-special characters or escaped special characters
-		if(getC() != '{' || (idx > 0 && getC(idx - 1) == '\\')) { bufferResult += getC(); continue; }
+		if(getC() != '{' || (idx > 0 && getC(idx - 1) == '\\')) 
+		{ 
+			bufferResult += getC(); 
+			continue; 
+		}
 
 		// "{{" combination
 		if(getC(idx + 1) == '{')
@@ -195,15 +214,15 @@ inline void Expander::expand()
 					continue;
 				}
 
-				// BUG TODO : uses dic's sectionDictionaries - correct? re-think design;
-				//for(const auto& dic : dict.sectionDictionaries.at(bufferKey))
-				auto& dictVec(dict.sectionDictionaries.at(bufferKey));
-				auto sectCount(dictVec.size());
-				for(auto i(0u); i < sectCount; ++i)
+				auto& dictVec(dict.sectionDictionaries.at(bufferKey));				
+				for(auto i(0u); i < dictVec.size() - 1; ++i)
 				{
-					Expander e{dictVec[i], src, bufferResult, bufferKey, sectIdxStart, sectIdxEnd, i < sectCount - 1}; 
+					Expander e{dictVec[i], src, bufferResult, bufferKey, sectIdxStart, sectIdxEnd, true}; 
 					e.expand();
 				}
+
+				Expander e{dictVec[dictVec.size() - 1], src, bufferResult, bufferKey, sectIdxStart, sectIdxEnd, false}; 
+				e.expand();
 			}
 		}
 	}
@@ -212,17 +231,27 @@ inline void Expander::expand()
 
 int main()
 {
-	std::string src{R"(
-		<h1> {{title}} </h1>
+	std::string src2{R"(
+		<h1>{{title}}</h1>
 		<ul>
-			{{#friends}}
-				<li>{{name}}</li>
-				<li>{{job}}</li>
-				<li>{{status}}</li>
-				{{#adjs}}
-					<li>{{adj}}</li>{{* and }}
-				{{/adjs}}
-			{{/friends}}
+		{{#friends}}
+			<li>{{name}}</li>
+			<li>{{job}}</li>
+			<li>{{status}}</li>
+			{{#adjs}}
+				<li>{{adj}}</li>{{* and }}
+			{{/adjs}}
+		{{/friends}}
+		</ul>
+	)"};	
+
+	std::string src{R"(
+		<h1>{{title}}</h1>
+		<ul>{{#friends}}
+			<li>{{name}}</li>
+			<li>{{job}}</li>
+			<li>{{status}}</li>{{#adjs}}
+				<li>{{adj}}</li>{{* and }}{{/adjs}}{{/friends}}
 		</ul>
 	)"};	
 
