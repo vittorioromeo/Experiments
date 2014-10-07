@@ -88,26 +88,10 @@ class Dictionary
 
 		inline std::string getExpanded(const std::string& mSrc) const 
 		{ 
-			std::string purgedSrc; purgedSrc.reserve(mSrc.size());
-			//purgedSrc = mSrc;
-
-			for(auto i(0u); i < mSrc.size(); ++i)
-			{
-				auto specialStart(0u);
-
-				// Find special character on this line
-				for(; mSrc[i] != '\n'; ++i)
-				{
-					if(mSrc[i] = '{') purgedSrc += mSrc[i];
-				}
-			}
-
-
 			std::string result; result.reserve(mSrc.size() * 2);
 			std::string bufferKey; bufferKey.reserve(10);
 			
-			Expander e{*this, purgedSrc, result, bufferKey, 0, mSrc.size(), 0}; 
-			e.expand();
+			Expander{*this, mSrc, result, bufferKey, 0, mSrc.size(), 0}.expand(); 
 			
 			return result;
 		}
@@ -215,14 +199,13 @@ inline void Expander::expand()
 				}
 
 				auto& dictVec(dict.sectionDictionaries.at(bufferKey));				
-				for(auto i(0u); i < dictVec.size() - 1; ++i)
-				{
-					Expander e{dictVec[i], src, bufferResult, bufferKey, sectIdxStart, sectIdxEnd, true}; 
-					e.expand();
-				}
-
-				Expander e{dictVec[dictVec.size() - 1], src, bufferResult, bufferKey, sectIdxStart, sectIdxEnd, false}; 
-				e.expand();
+				
+				// Separated expansions
+				for(auto i(0u); i < dictVec.size() - 1; ++i)			
+					Expander{dictVec[i], src, bufferResult, bufferKey, sectIdxStart, sectIdxEnd, true}.expand(); 
+			
+				// Non-separated expansion
+				Expander{dictVec[dictVec.size() - 1], src, bufferResult, bufferKey, sectIdxStart, sectIdxEnd, false}.expand(); 		
 			}
 		}
 	}
@@ -231,20 +214,6 @@ inline void Expander::expand()
 
 int main()
 {
-	std::string src2{R"(
-		<h1>{{title}}</h1>
-		<ul>
-		{{#friends}}
-			<li>{{name}}</li>
-			<li>{{job}}</li>
-			<li>{{status}}</li>
-			{{#adjs}}
-				<li>{{adj}}</li>{{* and }}
-			{{/adjs}}
-		{{/friends}}
-		</ul>
-	)"};	
-
 	std::string src{R"(
 		<h1>{{title}}</h1>
 		<ul>{{#friends}}
