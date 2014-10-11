@@ -30,7 +30,7 @@ namespace ssvut
 			inline void consume(TTType mType)
 			{
 				const auto& tokenContents(source.substr(markerBegin, markerEnd - markerBegin));
-				//ssvu::lo() << tokenContents << std::endl;
+				// ssvu::lo() << tokenContents << "\n";
 
 				tokens.emplace_back(mType, tokenContents);
 				markerBegin = markerEnd;
@@ -82,7 +82,7 @@ namespace ssvut
 						while((nextNode = fsm.getCurrentState()->getFirstMatchingTransition()) != LAFSM::getNodeNull())
 						{
 							advance();
-							//ssvu::lo() << source.substr(markerBegin, nextEnd - markerBegin) << std::endl;
+							// ssvu::lo() << source.substr(markerBegin, nextEnd - markerBegin) << "\n";
 
 							fsm.setCurrentState(nextNode);
 							if(fsm.getCurrentState()->isTerminal())

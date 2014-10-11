@@ -52,7 +52,7 @@ namespace Eng
 						auto lookAheadResults(r->lookAhead(ctx));
 						if(lookAheadResults.forceShift)
 						{
-							ssvu::lo()<<"lookahead shift"<<std::endl;
+							ssvu::lo() << "lookahead shift\n";
 							shift();
 							return;
 						}

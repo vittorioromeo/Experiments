@@ -56,7 +56,7 @@ namespace ssvvm
 		ssvu::eraseRemoveIf(tokens, [](const ASMLAToken& mT){ return mT.toDel; });
 
 
-		//for(const auto& t : tokens) ssvu::lo()<<t.contents<<std::endl;
+		// for(const auto& t : tokens) ssvu::lo() << t.contents << "\n";
 
 		// Phase 2: `$define` directives
 		std::map<std::string, std::string> defines;

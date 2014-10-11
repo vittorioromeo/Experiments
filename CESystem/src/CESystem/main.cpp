@@ -198,8 +198,8 @@ int main()
 
 		gameWindow.setTitle("up: " + toStr(gameWindow.getMsUpdate()) + "\t dw: " + toStr(gameWindow.getMsDraw()) + "\t ent: " + toStr(manager.getEntityCount()) + "\t cmp: " + toStr(manager.getComponentCount()));
 
-		//if(gameWindow.getFPS() < 60) ssvu::lo()<<gameWindow.getFPS()<<std::endl;
-		//ssvu::lo()<<manager.getEntityCount(0)<<std::endl;
+		// if(gameWindow.getFPS() < 60) ssvu::lo() << gameWindow.getFPS() << "\n";
+		// ssvu::lo() << manager.getEntityCount(0) << "\n";
 	};
 	gameState.onDraw += [&]
 	{
