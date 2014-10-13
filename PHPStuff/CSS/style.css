@@ -1,27 +1,15 @@
-.contents input
-{
-	width: 300;
-	height: 400;
-}
-
 .loginStatus
 {
-	background-color: black;
-	color: white;
 }		
 
 .mainMenu
 {
-	background-color: green;
-	color: white;
 }		
 
 .mainMenu a
 {
-	color: white;
 }		
 
 .post
 {
-	background-color: red;
 }
