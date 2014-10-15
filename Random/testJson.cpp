@@ -1,3 +1,4 @@
+
 #include <SSVUtils/Core/Core.hpp>
 #include <SSVUtils/Benchmark/Benchmark.hpp>
 #include <SSVUtilsJson/SSVUtilsJson.hpp>
@@ -10,16 +11,11 @@ template<typename T> struct TestVec2
 };
 
 
-namespace ssvu
+SSVJ_CNV_NAMESPACE()
 {
-	namespace Json
-	{
-		namespace Internal
-		{
-			template<typename T> SSVJ_CNV_SIMPLE(TestVec2<T>, mV, mX)	{ ssvj::convertArr(mV, mX.x, mX.y); } SSVJ_CNV_END();
-		}
-	}
+	template<typename T> SSVJ_CNV(TestVec2<T>, mV, mX)	{ ssvj::cnvArr(mV, mX.x, mX.y); } SSVJ_CNV_END();
 }
+SSVJ_CNV_NAMESPACE_END()
 
 int main()
 {
