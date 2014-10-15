@@ -24,22 +24,22 @@ int main()
 
 	SSVUT_RUN();
 
-	auto x = TestVec2<float>{1.5f, 0.5f};
-	auto vx = ssvj::Val{x};
+	//auto x = TestVec2<float>{1.5f, 0.5f};
+	//auto vx = ssvj::Val{x};
 	//lo() << vx << "\n";	
 
-	auto sx = vx.getWriteToStr();
+	//auto sx = vx.getWriteToStr();
 	//lo() << sx << "\n";	
 
-	auto osx = ssvj::Val::fromStr(sx);
+	//auto osx = ssvj::Val::fromStr(sx);
 	//lo() << osx[0] << ", " << osx[1] << "\n";	
 	
-	TestVec2<float> out;
-	extrArr(osx, out.x, out.y);
-	lo() << out.x << ", " << out.y << "\n";	
+	//TestVec2<float> out;
+	//extrArr(osx, out.x, out.y);
+	//lo() << out.x << ", " << out.y << "\n";	
 
-	auto osxas = osx.as<TestVec2<float>>();
-	lo() << osxas.x << ", " << osxas.y << "\n";	
+	//auto osxas = osx.as<TestVec2<float>>();
+	//lo() << osxas.x << ", " << osxas.y << "\n";	
 
 	auto src(R"(
 
@@ -49,7 +49,7 @@ int main()
 		"n3": -35.5e+12,
 		
 		"s1": "bananas",	// Test comment
-		"s2": "",
+"s2": "",
 		"s3": "1test2",
 
 		"a1": [1, 2, 3, "sup", { "lol":10 }], // Comment 2
