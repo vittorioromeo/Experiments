@@ -102,7 +102,7 @@ void doBench()
 			Benchmark::start("set dead");
 			{
 				int k{0};
-				storage.forEachAtom([k](decltype(storage)::AtomType& mO) mutable { if(k % 3 == 0) mO.setDead(); ++k; });
+				storage.forEachAtom([k](decltype(storage)::Atom& mO) mutable { if(k % 3 == 0) mO.setDead(); ++k; });
 			}
 			Benchmark::endLo();
 
@@ -265,7 +265,7 @@ void doBench()
 			Benchmark::start("set dead");
 			{
 				int k{0};
-				storage.forEachAtom([k](decltype(storage)::AtomType& mO) mutable { if(k % 3 == 0) mO.setDead(); ++k; });
+				storage.forEachAtom([k](decltype(storage)::Atom& mO) mutable { if(k % 3 == 0) mO.setDead(); ++k; });
 			}	
 			Benchmark::endLo();
 
