@@ -1,0 +1,227 @@
+// Copyright (c) 2013-2014 Vittorio Romeo
+// License: Academic Free License ("AFL") v. 3.0
+// AFL License page: http://opensource.org/licenses/AFL-3.0
+
+#ifndef SSVU_MEMORYMANAGER_INTERNAL_MANAGERIMPL
+#define SSVU_MEMORYMANAGER_INTERNAL_MANAGERIMPL
+
+#include "SSVUtils/Range/Range.hpp"
+#include "SSVUtils/GrowableArray/GrowableArray.hpp"
+
+namespace ssvu
+{
+	namespace Internal
+	{
+		template<typename T, typename TItrValue, typename TImpl> class MMItrBase : public BaseAdaptorItrRnd<TItrValue, TImpl>
+		{
+			protected:
+				TImpl impl;
+
+			public:
+				template<typename... TArgs> inline MMItrBase(TItrValue mValue, TArgs&&... mArgs) noexcept
+					: BaseAdaptorItrRnd<TItrValue, TImpl>{mValue}, impl{fwd<TArgs>(mArgs)...} { }
+
+				inline decltype(auto) operator*() noexcept			{ return impl.get(this->itr); }
+				inline decltype(auto) operator*() const noexcept	{ return impl.get(this->itr); }
+				inline decltype(auto) operator->() noexcept			{ return &impl.get(this->itr); }
+				inline decltype(auto) operator->() const noexcept	{ return &impl.get(this->itr); }
+		};
+
+		template<typename TBM> struct MMItrImplIdx
+		{
+			TBM* bm;
+			template<typename TV> inline decltype(auto) get(const TV& mValue) noexcept { return bm->getDataAt(mValue); }
+		};
+
+		template<typename TBase, typename TBM> using MMItrIdx = MMItrBase<TBase, SizeT, MMItrImplIdx<TBM>>;
+
+		/// @brief Base memory recycler manager class.
+		/// @tparam TBase Base type of manager objects.
+		/// @tparam TRecycler Internal recycler type. (MonoRecycler? PolyRecycler?)
+		template<typename TBase, typename TRecycler> class BaseManager
+		{
+			public:
+				using LayoutType = LayoutImpl::LHelperBool<TBase>;
+				using ChunkType = Chunk<TBase, LayoutImpl::LHelperBool>;
+				using ChunkDeleterType = ChunkDeleter<TBase, LayoutImpl::LHelperBool>;
+				using PtrType = UPtr<TBase, ChunkDeleterType>;
+				using RecyclerType = TRecycler;
+				using Container = GrowableArray<PtrType>;
+				using ItrIdx = MMItrIdx<PtrType, BaseManager<TBase, TRecycler>>;
+				using ItrIdxC = MMItrIdx<PtrType, const BaseManager<TBase, TRecycler>>;
+
+			public:
+				RecyclerType recycler;
+				Container items;
+				SizeT msize{0u}, sizeNext{0u}, capacity{0u};
+
+			public:
+				inline BaseManager() { reserve(25); }
+				inline ~BaseManager() { clear(); }
+
+				inline auto& getDataAt(SizeT mI) noexcept { return items[mI]; }
+				inline const auto& getDataAt(SizeT mI) const noexcept { return items[mI]; }
+
+				template<typename T = TBase, typename... TArgs> inline T& create(TArgs&&... mArgs)
+				{
+					auto uPtr(recycler.template create<T>(fwd<TArgs>(mArgs)...));
+
+					if(capacity <= sizeNext) reserve(capacity * 3);
+
+					items.initAt(sizeNext, std::move(uPtr));
+					return ssvu::castUp<T>(*items[sizeNext++]);
+				}
+
+				inline void clear()	noexcept
+				{
+					for(auto i(0u); i < sizeNext; ++i) items.deinitAt(i);
+					msize = sizeNext = 0;
+				}
+				inline void del(TBase& mBase) noexcept { LayoutType::setBool(&mBase, false); }
+
+				inline void reserve(SizeT mCapacityNew)
+				{
+					SSVU_ASSERT(capacity < mCapacityNew);
+					items.grow(capacity, mCapacityNew);
+					capacity = mCapacityNew;
+				}
+
+				inline void refresh()
+				{
+					const int intSizeNext(sizeNext);
+
+					// Find first read
+					int iD{0};
+					while(iD < intSizeNext && isAlive(items[iD].get())) ++iD;
+
+					// Find first alive after first dead
+					int iA{iD + 1};
+					while(iA < intSizeNext && isDead(items[iA].get())) ++iA;
+
+					// Swap dead and alive
+					while(true)
+					{
+						SSVU_ASSERT(isDead(items[iD].get()));
+						SSVU_ASSERT(isAlive(items[iA].get()));
+
+						std::swap(items[iD], items[iA]);
+
+						SSVU_ASSERT(isAlive(items[iD].get()));
+						SSVU_ASSERT(isDead(items[iA].get()));
+
+						// Increment both
+						++iD; ++iA;
+
+						// Find next dead
+						for(; true; ++iD)
+						{
+							// No more dead
+							if(iD >= intSizeNext) goto finishRefresh;
+							if(isDead(items[iD].get())) break;
+						}
+
+						// Find next alive
+						for(; true; ++iA)
+						{
+							// No more alive
+							if(iA >= intSizeNext) goto finishRefresh;
+							if(isAlive(items[iA].get())) break;
+						}
+					}
+
+					// TODO: finish up
+				}
+
+				inline void refresh2()
+				{
+					int iA(msize);
+					int iD(0);
+
+					// Phase 1
+					for(; iD < msize; ++iD)
+					{
+						// Skip alive items
+						if(isAlive(items[iD].get())) continue;
+
+						// Found a dead item: swap it with a newly-created item if possible
+						if(iA >= sizeNext) break;
+
+						SSVU_ASSERT(isDead(items[iD].get()));
+						SSVU_ASSERT(isAlive(items[iA].get()));
+
+						std::swap(items[iD], items[iA]);
+
+						SSVU_ASSERT(isAlive(items[iD].get()));
+						SSVU_ASSERT(isDead(items[iA].get()));
+
+						++iA;
+					}
+
+					// Phase 2
+					for(iA = sizeNext - 1; true; --iA)
+					{
+						if(iD > iA) goto finishRefresh;
+						if(isAlive(items[iA].get())) break;
+					}
+
+					while(true)
+					{
+						// Find dead
+						for(; true; ++iD)
+						{
+							if(iD > iA) goto finishRefresh;
+							if(isDead(items[iD].get())) break;
+						}
+
+						// Find alive
+						for(; true; --iA)
+						{
+							if(iD > iA) goto finishRefresh;
+							if(isAlive(items[iA].get())) break;
+						}
+
+						std::swap(items[iD], items[iA]);
+
+						SSVU_ASSERT(isAlive(items[iD].get()));
+						SSVU_ASSERT(isDead(items[iA].get()));
+
+						++iD; --iA;
+					}
+
+					// Finish
+					finishRefresh:
+
+					#if SSVU_DEBUG
+						for(int i{0}; i <= iA; ++i)
+						{
+							SSVU_ASSERT(isAlive(items[i].get()));
+						}
+					#endif
+
+					for(iD = iA + 1; iD < sizeNext; ++iD)
+					{
+						SSVU_ASSERT(isDead(items[iD].get()));
+						items.deinitAt(iD);
+					}
+					msize = sizeNext = iA + 1;
+				}
+
+				inline static bool isAlive(const TBase* mBase) noexcept	{ return LayoutType::getBool(mBase); }
+				inline static bool isDead(const TBase* mBase) noexcept	{ return !isAlive(mBase); }
+
+				inline auto size()		const noexcept	{ return msize; }
+				inline auto begin()		noexcept		{ return ItrIdx{0, this}; }
+				inline auto end()		noexcept		{ return ItrIdx{msize, this}; }
+				inline auto begin()		const noexcept	{ return ItrIdxC{0, this}; }
+				inline auto end()		const noexcept	{ return ItrIdxC{msize, this}; }
+				/*inline auto cbegin()	const noexcept	{ return std::cbegin(items); }
+				inline auto cend()		const noexcept	{ return std::cend(items); }
+				inline auto rbegin()	noexcept		{ return std::rbegin(items); }
+				inline auto rend()		noexcept		{ return std::rend(items); }
+				inline auto crbegin()	const noexcept	{ return std::crbegin(items); }
+				inline auto crend()		const noexcept	{ return std::crend(items); }*/
+		};
+	}
+}
+
+#endif
