@@ -25,7 +25,7 @@ namespace Boilerplate
 			ssvs::GameWindow* gameWindow;
 
 		public:
-			inline App(ssvs::GameWindow& mGameWindow) : gameWindow{&mGameWindow}, gameCamera{mGameWindow, 1.f} { }
+			inline App(ssvs::GameWindow& mGameWindow) : gameCamera{mGameWindow, 1.f}, gameWindow{&mGameWindow} { }
 
 			inline auto& getGameState() noexcept				{ return gameState; }
 			inline const auto& getGameState() const noexcept	{ return gameState; }
@@ -250,7 +250,7 @@ namespace avz
 			public:
 				inline void taAppear()
 				{
-					createTA(25.f) += [this](auto& mTA, FT mFT)
+					createTA(25.f) += [this](auto& mTA, FT)
 					{
 						auto s(mTA.ease(0.f, 1.f));
 						tLocal.scale = Vec2f{s, s};
@@ -259,37 +259,31 @@ namespace avz
 
 				inline void taJump()
 				{
-					createTA(6.f) += [this](auto& mTA, FT mFT)
+					createTA(6.f) += [this](auto& mTA, FT)
 					{
 						auto s(mTA.ease(1.f, 1.3f));
 						tLocal.scale = Vec2f{s, s};
 					};
 
-					createTA(6.f) += [this](auto& mTA, FT mFT)
+					createTA(6.f) += [this](auto& mTA, FT)
 					{
 						auto s(mTA.ease(1.3f, 1.f));
 						tLocal.scale = Vec2f{s, s};
-					};
-
-					createTA() += [this](auto& mTA, FT mFT)
-					{
-						tLocal.scale = Vec2f{1.f, 1.f};
 					};
 				}
 
 				inline void taTranslate(const Vec2f& mPos)
 				{
-					createTA(35.f) += [this, mPos](auto& mTA, FT mFT)
+					createTA(35.f) += [this, mPos](auto& mTA, FT)
 					{
-						auto nx(mTA.ease(tLocal.pos.x, mPos.x));
-						auto ny(mTA.ease(tLocal.pos.y, mPos.y));
-						tLocal.pos = Vec2f{nx, ny};
+						tLocal.pos.x = mTA.ease(tLocal.pos.x, mPos.x);
+						tLocal.pos.y = mTA.ease(tLocal.pos.y, mPos.y);
 					};
 				}
 
 				inline void taColorize(sf::Color& mColor, const sf::Color& mCStart, const sf::Color& mCEnd)
 				{
-					createTA(25.f) += [this, &mColor, mCStart, mCEnd](auto& mTA, FT mFT)
+					createTA(25.f) += [this, &mColor, mCStart, mCEnd](auto& mTA, FT)
 					{
 						mColor.r = mTA.ease(mCStart.r, mCEnd.r);
 						mColor.g = mTA.ease(mCStart.g, mCEnd.g);
@@ -327,16 +321,12 @@ namespace avz
 						impl.setString(mStr);
 						taAppear();
 						taJump();
-						createTA(15.f) += [this, mStr](auto& mTA, FT mFT){ };
+						createTA(10.f) += [this, mStr](auto&, FT){ };
 
 						return;
 					}
 
-					createTA() += [this, mStr](auto& mTA, FT mFT)
-					{
-						impl.setString(mStr);
-					};
-
+					createTA() += [this, mStr](auto&, FT) { impl.setString(mStr); };
 					taJump();
 				}
 
@@ -391,8 +381,8 @@ namespace avz
 				inline auto& operator=(const std::string& mStr)		{ *text = mStr; return *this; }
 				inline auto& operator+=(const std::string& mStr)	{ *text += mStr; return *this; }
 
-				inline void highlight()		{ taColorize(bgColor, bgColorDef, bgColorHgl); }
-				inline void unhighlight()	{ taColorize(bgColor, bgColorHgl, bgColorDef); }
+				inline void taHightlight()		{ taColorize(bgColor, bgColorDef, bgColorHgl); }
+				inline void taUnhightlight()	{ taColorize(bgColor, bgColorHgl, bgColorDef); }
 		};
 
 		class Vector : public Base
@@ -414,33 +404,33 @@ namespace avz
 			public:
 				inline Vector(Ctx& mCtx, const Vec2f& mPos) : Base{mCtx, mPos} { }
 
-				inline void pushFront(const std::string& mStr)
+				inline void taPushFront(const std::string& mStr)
 				{
 					auto& ts(create<TextSquare>(ssvs::zeroVec2f));
 					
-					this->createTA() += [this, &ts](auto& mTA, FT mFT){ tss.emplace(std::begin(tss), &ts); };
+					this->createTA() += [this, &ts](auto&, FT){ tss.emplace(std::begin(tss), &ts); };
+					this->createTA() += [this](auto&, FT){ this->refreshPositions(); };
 					ts.taShow();
-					ts = mStr;
-					this->createTA() += [this](auto& mTA, FT mFT){ this->refreshPositions(); };					
+					ts = mStr;					
 				}
-				inline void pushBack(const std::string& mStr)
+				inline void taPushBack(const std::string& mStr)
 				{
 					auto& ts(create<TextSquare>(ssvs::zeroVec2f));
 					
-					this->createTA() += [this, &ts](auto& mTA, FT mFT){ tss.emplace_back(&ts); };
+					this->createTA() += [this, &ts](auto&, FT){ tss.emplace_back(&ts); };
+					this->createTA() += [this](auto&, FT){ this->refreshPositions(); };
 					ts.taShow();
-					ts = mStr;
-					this->createTA() += [this](auto& mTA, FT mFT){ this->refreshPositions(); };					
+					ts = mStr;					
 				}
 
-				inline void update(FT mFT) override
+				inline void update(FT) override
 				{
-					tLocal.rot += 0.01f * mFT;
+					//tLocal.rot += 0.01f * mFT;
 				}
 
-				inline void swap(SizeT mA, SizeT mB)
+				inline void taSwap(SizeT mA, SizeT mB)
 				{
-					createTA() += [this, mA, mB](auto& mTA, FT mFT)
+					createTA() += [this, mA, mB](auto&, FT)
 					{
 						auto& tsA(*tss[mA]);
 						auto& tsB(*tss[mB]);
@@ -448,8 +438,8 @@ namespace avz
 						auto pTSA(tsA.tLocal.pos);
 						auto pTSB(tsB.tLocal.pos);
 
-						tsA.highlight();
-						tsB.highlight();
+						tsA.taHightlight();
+						tsB.taHightlight();
 
 						tsA.taTranslate(tsA.tLocal.pos + Vec2f{0, -100});
 						tsB.taTranslate(tsB.tLocal.pos + Vec2f{0, -100});
@@ -461,9 +451,9 @@ namespace avz
 						tsA.taTranslate(pTSB);
 						tsB.taTranslate(pTSA);
 
-						tsA.unhighlight();
+						tsA.taUnhightlight();
 						simultaneously();
-						tsB.unhighlight();
+						tsB.taUnhightlight();
 
 						std::swap(tss[mA], tss[mB]);
 					};				
@@ -499,11 +489,7 @@ namespace avz
 			inline void simultaneously() { currentTACtx->simultaneously(); }
 
 		public:
-			inline Ctx(ssvs::GameWindow& mGameWindow)
-				: gameWindow{&mGameWindow}, root{*this}, currentTACtx{&rootTACtx}
-			{
-
-			}
+			inline Ctx(ssvs::GameWindow& mGameWindow) : root{*this}, currentTACtx{&rootTACtx}, gameWindow{&mGameWindow} { }
 
 			inline void setSpeedFactor(float mX) noexcept { speedFactor = mX; }
 
@@ -586,14 +572,14 @@ class AlgoVizTestApp : public Boilerplate::App
 			*/
 
 			auto& v(ctx.create<avz::w::Vector>(Vec2f{100.f, 100.f}));
-			v.pushBack("C");
-			v.pushBack("D");
-			v.pushBack("E");
-			v.pushFront("A");
-			v.pushFront("B");
+			v.taPushBack("C");
+			v.taPushBack("D");
+			v.taPushBack("E");
+			v.taPushFront("A");
+			v.taPushFront("B");
 
-			v.swap(0, 3);
-			v.swap(1, 2);
+			v.taSwap(0, 3);
+			v.taSwap(1, 2);
 		}
 
 		inline void update(FT mFT)
