@@ -84,19 +84,31 @@ namespace avz
 
 	namespace Internal
 	{
+		class TACtx;
+		class Widget;
+
 		class TimedAction
 		{
 			friend class avz::Ctx;
+			friend class avz::Internal::TACtx;
 
 			private:
-				FT current{0.f}, target;
+				FT current{0.f}, target{0.f};
 				ssvu::Delegate<void(TimedAction&, FT)> action;
 				bool simultaneous{false};
 
 			public:
+				inline TimedAction() = default;
 				inline TimedAction(FT mTarget) : target{mTarget} { }
 
-				inline void update(FT mFT) { current += mFT; action(*this, mFT); }
+				inline TimedAction(const TimedAction&) = default;
+				inline TimedAction(TimedAction&&) = default;
+
+				inline void update(FT mFT) 
+				{ 
+					current = ssvu::getClampedMax(current + mFT, target);
+					action(*this, mFT); 
+				}
 				inline bool isDone() const noexcept { return current >= target; }
 
 				template<typename T> inline auto& operator+=(T&& mX)
@@ -114,6 +126,58 @@ namespace avz
 
 	using TARecycler = ssvu::MonoRecycler<Internal::TimedAction>;
 	using TAPtr = TARecycler::PtrType;
+	using WRecycler = ssvu::PolyRecycler<Internal::Widget>;
+	using WPtr = WRecycler::PtrType;
+
+	namespace Internal
+	{
+		class TACtx
+		{
+			friend class avz::Ctx;
+
+			private:
+				std::vector<TAPtr> taQueue, taInExec;
+
+				void simultaneously()
+				{
+					taQueue.back()->simultaneous = true;
+				}
+
+				void execFirstTA()
+				{
+					auto ptr(taQueue.front().get());
+					taInExec.emplace_back(std::move(taQueue.front()));
+					taQueue.erase(std::begin(taQueue));
+
+					if(ptr->simultaneous) execFirstTA();
+				}
+
+			public:
+				inline void update(FT mFT, float mSpeedFactor)
+				{
+					if(!taQueue.empty() && taInExec.empty())
+					{
+						execFirstTA();
+					}
+
+					for(auto& ta : taInExec)
+					{
+						ta->update(mFT * mSpeedFactor);
+					}
+
+					ssvu::eraseRemoveIf(taInExec, [](const auto& mTA){ return mTA->isDone(); });
+				}
+
+				inline void skipAnim()
+				{
+					for(auto& ta : taInExec)
+					{
+						ta->current = ta->target - 0.001f;
+					}
+				}
+		};
+	}
+
 
 	namespace Internal
 	{
@@ -130,10 +194,22 @@ namespace avz
 
 			private:
 				Ctx* ctx{nullptr};
-				std::vector<ssvu::PolyRecycler<Internal::Widget>::PtrType> children;
+				std::vector<WPtr> children;
 
-			public:				
+				inline void transformHierarchyImpl(Widget* mParent)
+				{
+					tFinal.rot = tLocal.rot + mParent->tFinal.rot;
+					tFinal.scale = tLocal.scale + mParent->tFinal.scale;
+
+					tFinal.pos = tLocal.pos + mParent->tFinal.pos;
+					ssvs::rotateRadAround(tFinal.pos, mParent->tFinal.pos, tFinal.rot);
+				
+					for(auto& c : children) c->transformHierarchyImpl(this);
+				}
+
+			public:
 				Transform tLocal, tFinal;
+
 
 			public:
 				template<typename T> void render(const T& mX);
@@ -146,17 +222,9 @@ namespace avz
 				inline virtual void update(FT) { }
 				inline virtual void draw() { }
 
-				inline void transformHierarchy(Widget* mParent = nullptr)
-				{	
-					if(mParent != nullptr)
-					{
-						tFinal.rot = tLocal.rot + mParent->tFinal.rot;
-						tFinal.scale = tLocal.scale + mParent->tFinal.scale;
-						
-						tFinal.pos = tLocal.pos + mParent->tFinal.pos;
-						ssvs::rotateRadAround(tFinal.pos, mParent->tFinal.pos, tFinal.rot);
-					}
-					for(auto& c : children) c->transformHierarchy(this);
+				inline void transformHierarchy()
+				{		
+					for(auto& c : children) c->transformHierarchyImpl(this);
 				}
 
 				inline void updateHierarchy(FT mFT)
@@ -173,15 +241,14 @@ namespace avz
 		};
 	}
 
-	using WRecycler = ssvu::PolyRecycler<Internal::Widget>;
-	using WPtr = WRecycler::PtrType;
+
 
 	namespace w
 	{
 		class Base : public Internal::Widget
 		{
 			public:
-				inline void appear()
+				inline void taAppear()
 				{
 					createTA(25.f) += [this](auto& mTA, FT mFT)
 					{
@@ -190,7 +257,7 @@ namespace avz
 					};
 				}
 
-				inline void jump()
+				inline void taJump()
 				{
 					createTA(6.f) += [this](auto& mTA, FT mFT)
 					{
@@ -204,13 +271,13 @@ namespace avz
 						tLocal.scale = Vec2f{s, s};
 					};
 
-					createTA(0.f) += [this](auto& mTA, FT mFT)
+					createTA() += [this](auto& mTA, FT mFT)
 					{
 						tLocal.scale = Vec2f{1.f, 1.f};
 					};
 				}
 
-				inline void translate(const Vec2f& mPos)
+				inline void taTranslate(const Vec2f& mPos)
 				{
 					createTA(35.f) += [this, mPos](auto& mTA, FT mFT)
 					{
@@ -220,7 +287,7 @@ namespace avz
 					};
 				}
 
-				inline void colorize(sf::Color& mColor, const sf::Color& mCStart, const sf::Color& mCEnd)
+				inline void taColorize(sf::Color& mColor, const sf::Color& mCStart, const sf::Color& mCEnd)
 				{
 					createTA(25.f) += [this, &mColor, mCStart, mCEnd](auto& mTA, FT mFT)
 					{
@@ -240,11 +307,11 @@ namespace avz
 				}
 
 			protected:
-				inline Base(Ctx& mCtx, const Vec2f& mPos) : Internal::Widget{mCtx} 
-				{ 
+				inline Base(Ctx& mCtx, const Vec2f& mPos) : Internal::Widget{mCtx}
+				{
 					tLocal.pos = mPos;
-					tLocal.scale = Vec2f{0.f, 0.f};
-					tLocal.rot = 0.0f;
+					tLocal.scale = ssvs::zeroVec2f;
+					tLocal.rot = 0.f;
 				}
 		};
 
@@ -258,19 +325,19 @@ namespace avz
 					if(impl.getString() == "")
 					{
 						impl.setString(mStr);
-						appear();
-						jump();
+						taAppear();
+						taJump();
 						createTA(15.f) += [this, mStr](auto& mTA, FT mFT){ };
 
 						return;
 					}
 
-					createTA(0.f) += [this, mStr](auto& mTA, FT mFT)
+					createTA() += [this, mStr](auto& mTA, FT mFT)
 					{
 						impl.setString(mStr);
 					};
 
-					jump();
+					taJump();
 				}
 
 			public:
@@ -301,13 +368,16 @@ namespace avz
 				inline TextSquare(Ctx& mCtx, const Vec2f& mPos)
 					: Base{mCtx, mPos}
 				{
-					text = &create<Text>(Vec2f{0.f, 0.f});
+					text = &create<Text>(ssvs::zeroVec2f);
 					bg.setSize(Vec2f{65, 65});
 					bg.setOutlineColor(sf::Color::White);
 					bg.setOutlineThickness(3);
+				}
 
-					appear();
-					jump();
+				inline void taShow()
+				{
+					taAppear();
+					taJump();
 				}
 
 				inline void update(FT) override
@@ -321,8 +391,8 @@ namespace avz
 				inline auto& operator=(const std::string& mStr)		{ *text = mStr; return *this; }
 				inline auto& operator+=(const std::string& mStr)	{ *text += mStr; return *this; }
 
-				inline void highlight()		{ colorize(bgColor, bgColorDef, bgColorHgl); }
-				inline void unhighlight()	{ colorize(bgColor, bgColorHgl, bgColorDef); }
+				inline void highlight()		{ taColorize(bgColor, bgColorDef, bgColorHgl); }
+				inline void unhighlight()	{ taColorize(bgColor, bgColorHgl, bgColorDef); }
 		};
 
 		class Vector : public Base
@@ -330,21 +400,14 @@ namespace avz
 			private:
 				std::vector<TextSquare*> tss;
 
-				inline auto& makeTs(const std::string& mStr)
-				{
-					auto& ts(create<TextSquare>(Vec2f{0.f, 0.f}));
-					ts = mStr;
-					return ts;
-				}
-
 				inline void refreshPositions()
 				{
 					if(tss.empty()) return;
 
-					tss[0]->tLocal.pos = Vec2f{0.f, 0.f};					
-					for(auto i(1u); i < tss.size(); ++i) 
+					tss[0]->tLocal.pos = ssvs::zeroVec2f;
+					for(auto i(1u); i < tss.size(); ++i)
 					{
-						tss[i]->tLocal.pos = tss[i - 1]->tLocal.pos + Vec2f{65.f, 0.f};						
+						tss[i]->tLocal.pos = tss[i - 1]->tLocal.pos + Vec2f{65.f, 0.f};
 					}
 				}
 
@@ -353,31 +416,31 @@ namespace avz
 
 				inline void pushFront(const std::string& mStr)
 				{
-					createTA(5.f) += [this, mStr](auto& mTA, FT mFT)
-					{
-						auto& ts(makeTs(mStr));
-						tss.emplace(std::begin(tss), &ts);
-						refreshPositions();
-					};
+					auto& ts(create<TextSquare>(ssvs::zeroVec2f));
+					
+					this->createTA() += [this, &ts](auto& mTA, FT mFT){ tss.emplace(std::begin(tss), &ts); };
+					ts.taShow();
+					ts = mStr;
+					this->createTA() += [this](auto& mTA, FT mFT){ this->refreshPositions(); };					
 				}
 				inline void pushBack(const std::string& mStr)
 				{
-					createTA(5.f) += [this, mStr](auto& mTA, FT mFT)
-					{
-						auto& ts(makeTs(mStr));
-						tss.emplace_back(&ts);
-						refreshPositions();
-					};
+					auto& ts(create<TextSquare>(ssvs::zeroVec2f));
+					
+					this->createTA() += [this, &ts](auto& mTA, FT mFT){ tss.emplace_back(&ts); };
+					ts.taShow();
+					ts = mStr;
+					this->createTA() += [this](auto& mTA, FT mFT){ this->refreshPositions(); };					
 				}
 
 				inline void update(FT mFT) override
 				{
-					//tLocal.rot += 0.01f * mFT;
+					tLocal.rot += 0.01f * mFT;
 				}
 
 				inline void swap(SizeT mA, SizeT mB)
 				{
-					createTA(5.f) += [this, mA, mB](auto& mTA, FT mFT)
+					createTA() += [this, mA, mB](auto& mTA, FT mFT)
 					{
 						auto& tsA(*tss[mA]);
 						auto& tsB(*tss[mB]);
@@ -388,22 +451,22 @@ namespace avz
 						tsA.highlight();
 						tsB.highlight();
 
-						tsA.translate(tsA.tLocal.pos + Vec2f{0, -100});
-						tsB.translate(tsB.tLocal.pos + Vec2f{0, -100});
+						tsA.taTranslate(tsA.tLocal.pos + Vec2f{0, -100});
+						tsB.taTranslate(tsB.tLocal.pos + Vec2f{0, -100});
 
-						tsA.translate(Vec2f{pTSB.x, tsA.tLocal.pos.y - 100});
-						simultaneously();
-						tsB.translate(Vec2f{pTSA.x, tsB.tLocal.pos.y - 100});
+						tsA.taTranslate(Vec2f{pTSB.x, tsA.tLocal.pos.y - 100});
+						this->simultaneously();
+						tsB.taTranslate(Vec2f{pTSA.x, tsB.tLocal.pos.y - 100});
 
-						tsA.translate(pTSB);
-						tsB.translate(pTSA);
+						tsA.taTranslate(pTSB);
+						tsB.taTranslate(pTSA);
 
 						tsA.unhighlight();
 						simultaneously();
 						tsB.unhighlight();
 
 						std::swap(tss[mA], tss[mB]);
-					};
+					};				
 				}
 		};
 	}
@@ -417,8 +480,10 @@ namespace avz
 
 			WRecycler wRecycler;
 			TARecycler taRecycler;
-			std::vector<TAPtr> taQueue;
-			std::vector<TAPtr> taInExec;
+
+			Internal::TACtx rootTACtx;
+			Internal::TACtx* currentTACtx;
+
 			ssvs::GameWindow* gameWindow;
 			float speedFactor{1.f};
 
@@ -428,25 +493,14 @@ namespace avz
 			}
 			template<typename... TArgs> inline auto& createTA(TArgs&&... mArgs)
 			{
-				return taRecycler.getCreateEmplace(taQueue, ssvu::fwd<TArgs>(mArgs)...);
+				return taRecycler.getCreateEmplace(currentTACtx->taQueue, ssvu::fwd<TArgs>(mArgs)...);
 			}
 
-			void simultaneously()
-			{
-				taQueue.back()->simultaneous = true;
-			}
-
-			void execFirstTA()
-			{
-				auto ptr(taQueue.front().get());
-				taInExec.emplace_back(std::move(taQueue.front()));
-				taQueue.erase(std::begin(taQueue));
-				if(ptr->simultaneous) execFirstTA();
-			}
+			inline void simultaneously() { currentTACtx->simultaneously(); }
 
 		public:
 			inline Ctx(ssvs::GameWindow& mGameWindow)
-				: gameWindow{&mGameWindow}, root{*this}
+				: gameWindow{&mGameWindow}, root{*this}, currentTACtx{&rootTACtx}
 			{
 
 			}
@@ -455,25 +509,12 @@ namespace avz
 
 			inline void skipAnim()
 			{
-				for(auto& ta : taInExec)
-				{
-					ta->current = ta->target - 0.005f;
-				}
+				currentTACtx->skipAnim();
 			}
 
 			inline void update(FT mFT)
 			{
-				if(!taQueue.empty() && taInExec.empty())
-				{
-					execFirstTA();
-				}
-
-				for(auto& ta : taInExec)
-				{
-					ta->update(mFT * speedFactor);
-				}
-
-				taInExec.erase(std::remove_if(std::begin(taInExec), std::end(taInExec), [](const auto& mTA){ return mTA->isDone(); }), std::end(taInExec));
+				currentTACtx->update(mFT, speedFactor);
 
 				root.transformHierarchy();
 				root.updateHierarchy(mFT);
@@ -496,10 +537,7 @@ namespace avz
 	}
 	template<typename T, typename... TArgs> inline T& Internal::Widget::create(TArgs&&... mArgs)
 	{
-		auto wPtr(ctx->wRecycler.create<T>(*ctx, ssvu::fwd<TArgs>(mArgs)...));
-		auto result(wPtr.get());
-		children.emplace_back(std::move(wPtr));
-		return ssvu::castUp<T>(*result);
+		return ctx->wRecycler.getCreateEmplace<T>(children, *ctx, ssvu::fwd<TArgs>(mArgs)...);
 	}
 	inline void Internal::Widget::simultaneously()
 	{
@@ -583,8 +621,6 @@ class AlgoVizTestApp : public Boilerplate::App
 
 int main()
 {
-	// TODO: nested timed actions!
-
 	Boilerplate::AppRunner<AlgoVizTestApp>{"AlgoVee tests", 1440, 900};
 	return 0;
 }
