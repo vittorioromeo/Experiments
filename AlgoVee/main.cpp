@@ -39,7 +39,7 @@ namespace Boilerplate
 	{
 		private:
 			ssvs::GameWindow gameWindow;
-			ssvu::AlignedStorageBasic<T> app;
+			ssvu::AlignedStorageFor<T> app;
 
 		public:
 			inline AppRunner(const std::string& mTitle, SizeT mWidth, SizeT mHeight)
@@ -72,7 +72,7 @@ namespace avz
 
 			if(!loaded)
 			{
-				assetManager.load<sf::Font>("testFont", "/usr/share/fonts/TTF/Ubuntu-Regular.ttf");
+				assetManager.load<sf::Font>("testFont", "/usr/share/fonts/TTF/LiberationSans-Regular.ttf");
 				loaded = true;
 			}
 
@@ -132,8 +132,7 @@ namespace avz
 				Ctx* ctx{nullptr};
 				std::vector<ssvu::PolyRecycler<Internal::Widget>::PtrType> children;
 
-			public:
-				sf::Transform tt;
+			public:				
 				Transform tLocal, tFinal;
 
 			public:
@@ -156,9 +155,6 @@ namespace avz
 						
 						tFinal.pos = tLocal.pos + mParent->tFinal.pos;
 						ssvs::rotateRadAround(tFinal.pos, mParent->tFinal.pos, tFinal.rot);
-
-						//auto lp(tLocal.pos);
-						//tFinal.pos = lp + mParent->tFinal.pos;
 					}
 					for(auto& c : children) c->transformHierarchy(this);
 				}
@@ -305,7 +301,7 @@ namespace avz
 				inline TextSquare(Ctx& mCtx, const Vec2f& mPos)
 					: Base{mCtx, mPos}
 				{
-					text = &create<Text>(mPos);
+					text = &create<Text>(Vec2f{0.f, 0.f});
 					bg.setSize(Vec2f{65, 65});
 					bg.setOutlineColor(sf::Color::White);
 					bg.setOutlineThickness(3);
@@ -345,8 +341,11 @@ namespace avz
 				{
 					if(tss.empty()) return;
 
-					tss[0]->tLocal.pos = Vec2f{0.f, 0.f};
-					for(auto i(1u); i < tss.size(); ++i) tss[i]->tLocal.pos = tss[i - 1]->tLocal.pos + Vec2f{65.f, 0.f};
+					tss[0]->tLocal.pos = Vec2f{0.f, 0.f};					
+					for(auto i(1u); i < tss.size(); ++i) 
+					{
+						tss[i]->tLocal.pos = tss[i - 1]->tLocal.pos + Vec2f{65.f, 0.f};						
+					}
 				}
 
 			public:
@@ -354,15 +353,21 @@ namespace avz
 
 				inline void pushFront(const std::string& mStr)
 				{
-					auto& ts(makeTs(mStr));
-					tss.emplace(std::begin(tss), &ts);
-					refreshPositions();
+					createTA(5.f) += [this, mStr](auto& mTA, FT mFT)
+					{
+						auto& ts(makeTs(mStr));
+						tss.emplace(std::begin(tss), &ts);
+						refreshPositions();
+					};
 				}
 				inline void pushBack(const std::string& mStr)
 				{
-					auto& ts(makeTs(mStr));
-					tss.emplace_back(&ts);
-					refreshPositions();
+					createTA(5.f) += [this, mStr](auto& mTA, FT mFT)
+					{
+						auto& ts(makeTs(mStr));
+						tss.emplace_back(&ts);
+						refreshPositions();
+					};
 				}
 
 				inline void update(FT mFT) override
@@ -372,30 +377,33 @@ namespace avz
 
 				inline void swap(SizeT mA, SizeT mB)
 				{
-					auto& tsA(*tss[mA]);
-					auto& tsB(*tss[mB]);
+					createTA(5.f) += [this, mA, mB](auto& mTA, FT mFT)
+					{
+						auto& tsA(*tss[mA]);
+						auto& tsB(*tss[mB]);
 
-					auto pTSA(tsA.tLocal.pos);
-					auto pTSB(tsB.tLocal.pos);
+						auto pTSA(tsA.tLocal.pos);
+						auto pTSB(tsB.tLocal.pos);
 
-					tsA.highlight();
-					tsB.highlight();
+						tsA.highlight();
+						tsB.highlight();
 
-					tsA.translate(tsA.tLocal.pos + Vec2f{0, -100});
-					tsB.translate(tsB.tLocal.pos + Vec2f{0, -100});
+						tsA.translate(tsA.tLocal.pos + Vec2f{0, -100});
+						tsB.translate(tsB.tLocal.pos + Vec2f{0, -100});
 
-					tsA.translate(Vec2f{pTSB.x, tsA.tLocal.pos.y - 100});
-					simultaneously();
-					tsB.translate(Vec2f{pTSA.x, tsB.tLocal.pos.y - 100});
+						tsA.translate(Vec2f{pTSB.x, tsA.tLocal.pos.y - 100});
+						simultaneously();
+						tsB.translate(Vec2f{pTSA.x, tsB.tLocal.pos.y - 100});
 
-					tsA.translate(pTSB);
-					tsB.translate(pTSA);
+						tsA.translate(pTSB);
+						tsB.translate(pTSA);
 
-					tsA.unhighlight();
-					simultaneously();
-					tsB.unhighlight();
+						tsA.unhighlight();
+						simultaneously();
+						tsB.unhighlight();
 
-					std::swap(tss[mA], tss[mB]);
+						std::swap(tss[mA], tss[mB]);
+					};
 				}
 		};
 	}
@@ -575,6 +583,8 @@ class AlgoVizTestApp : public Boilerplate::App
 
 int main()
 {
+	// TODO: nested timed actions!
+
 	Boilerplate::AppRunner<AlgoVizTestApp>{"AlgoVee tests", 1440, 900};
 	return 0;
 }
