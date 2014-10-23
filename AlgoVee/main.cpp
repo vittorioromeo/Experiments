@@ -104,10 +104,10 @@ namespace avz
 				inline TimedAction(const TimedAction&) = default;
 				inline TimedAction(TimedAction&&) = default;
 
-				inline void update(FT mFT) 
-				{ 
+				inline void update(FT mFT)
+				{
 					current = ssvu::getClampedMax(current + mFT, target);
-					action(*this, mFT); 
+					action(*this, mFT);
 				}
 				inline bool isDone() const noexcept { return current >= target; }
 
@@ -172,7 +172,7 @@ namespace avz
 				{
 					for(auto& ta : taInExec)
 					{
-						ta->current = ta->target - 0.001f;
+						ta->current = ta->target;
 					}
 				}
 		};
@@ -183,9 +183,9 @@ namespace avz
 	{
 		struct Transform
 		{
-			Vec2f pos;
-			Vec2f scale;
-			float rot;
+			Vec2f pos{0.f, 0.f};
+			Vec2f scale{1.f, 1.f};
+			float rot{0.f};
 		};
 
 		class Widget
@@ -199,13 +199,16 @@ namespace avz
 				inline void transformHierarchyImpl(Widget* mParent)
 				{
 					tFinal.rot = tLocal.rot + mParent->tFinal.rot;
-					tFinal.scale = tLocal.scale + mParent->tFinal.scale;
+					tFinal.scale.x = tLocal.scale.x * mParent->tFinal.scale.x;
+					tFinal.scale.y = tLocal.scale.y * mParent->tFinal.scale.y;
 
-					tFinal.pos = tLocal.pos + mParent->tFinal.pos;
+					tFinal.pos.x = tLocal.pos.x * tFinal.scale.x + mParent->tFinal.pos.x;
+					tFinal.pos.y = tLocal.pos.y * tFinal.scale.y + mParent->tFinal.pos.y;
 					ssvs::rotateRadAround(tFinal.pos, mParent->tFinal.pos, tFinal.rot);
-				
+
 					for(auto& c : children) c->transformHierarchyImpl(this);
 				}
+
 
 			public:
 				Transform tLocal, tFinal;
@@ -216,6 +219,8 @@ namespace avz
 				template<typename... TArgs> TimedAction& createTA(TArgs&&...);
 				template<typename T, typename... TArgs> T& create(TArgs&&...);
 				void simultaneously();
+				void makeTACtx();
+				void restoreTACtx();
 
 				inline Widget(Ctx& mCtx) : ctx{&mCtx} { }
 
@@ -223,7 +228,7 @@ namespace avz
 				inline virtual void draw() { }
 
 				inline void transformHierarchy()
-				{		
+				{
 					for(auto& c : children) c->transformHierarchyImpl(this);
 				}
 
@@ -304,7 +309,7 @@ namespace avz
 				inline Base(Ctx& mCtx, const Vec2f& mPos) : Internal::Widget{mCtx}
 				{
 					tLocal.pos = mPos;
-					tLocal.scale = ssvs::zeroVec2f;
+					tLocal.scale = Vec2f{1.f, 1.f};
 					tLocal.rot = 0.f;
 				}
 		};
@@ -383,12 +388,16 @@ namespace avz
 
 				inline void taHightlight()		{ taColorize(bgColor, bgColorDef, bgColorHgl); }
 				inline void taUnhightlight()	{ taColorize(bgColor, bgColorHgl, bgColorDef); }
+
+				inline auto& getText() noexcept 			{ return *text; }
+				inline const auto& getText() const noexcept	{ return *text; }
 		};
 
-		class Vector : public Base
+		template<typename T> class Vector : public Base
 		{
-			private:
+			public:
 				std::vector<TextSquare*> tss;
+				std::vector<T> data;
 
 				inline void refreshPositions()
 				{
@@ -404,23 +413,31 @@ namespace avz
 			public:
 				inline Vector(Ctx& mCtx, const Vec2f& mPos) : Base{mCtx, mPos} { }
 
-				inline void taPushFront(const std::string& mStr)
+				inline void taPushFront(const T& mX)
 				{
+					// Instant
+					data.emplace(std::begin(data), mX);
 					auto& ts(create<TextSquare>(ssvs::zeroVec2f));
-					
+					auto xStr(ssvu::toStr(mX));
+
+					// Timed
 					this->createTA() += [this, &ts](auto&, FT){ tss.emplace(std::begin(tss), &ts); };
 					this->createTA() += [this](auto&, FT){ this->refreshPositions(); };
 					ts.taShow();
-					ts = mStr;					
+					ts = xStr;
 				}
-				inline void taPushBack(const std::string& mStr)
+				inline void taPushBack(const T& mX)
 				{
+					// Instant
+					data.emplace_back(mX);
 					auto& ts(create<TextSquare>(ssvs::zeroVec2f));
-					
+					auto xStr(ssvu::toStr(mX));
+
+					// Timed
 					this->createTA() += [this, &ts](auto&, FT){ tss.emplace_back(&ts); };
 					this->createTA() += [this](auto&, FT){ this->refreshPositions(); };
 					ts.taShow();
-					ts = mStr;					
+					ts = xStr;
 				}
 
 				inline void update(FT) override
@@ -428,35 +445,59 @@ namespace avz
 					//tLocal.rot += 0.01f * mFT;
 				}
 
+				inline const auto& operator[](SizeT mI) const noexcept { return data[mI]; }
+
 				inline void taSwap(SizeT mA, SizeT mB)
 				{
-					createTA() += [this, mA, mB](auto&, FT)
+					// Instant
+					std::swap(data[mA], data[mB]);
+
+					// Timed
+					this->createTA() += [this, mA, mB](auto&, FT)
 					{
+						ssvu::lo("make") << "\n";
+						makeTACtx();
+
+						ssvu::lo("taswapstart") << mA << " <-> " << mB << "\n";
+
 						auto& tsA(*tss[mA]);
 						auto& tsB(*tss[mB]);
 
-						auto pTSA(tsA.tLocal.pos);
-						auto pTSB(tsB.tLocal.pos);
-
+						auto pTSA(tsB.tLocal.pos);
+						auto pTSB(tsA.tLocal.pos);
+	
 						tsA.taHightlight();
 						tsB.taHightlight();
 
 						tsA.taTranslate(tsA.tLocal.pos + Vec2f{0, -100});
 						tsB.taTranslate(tsB.tLocal.pos + Vec2f{0, -100});
 
-						tsA.taTranslate(Vec2f{pTSB.x, tsA.tLocal.pos.y - 100});
+						tsA.taTranslate(Vec2f{pTSA.x, tsA.tLocal.pos.y - 100});
 						this->simultaneously();
-						tsB.taTranslate(Vec2f{pTSA.x, tsB.tLocal.pos.y - 100});
+						tsB.taTranslate(Vec2f{pTSB.x, tsB.tLocal.pos.y - 100});
 
-						tsA.taTranslate(pTSB);
-						tsB.taTranslate(pTSA);
+						tsA.taTranslate(pTSA);
+						tsB.taTranslate(pTSB);
 
 						tsA.taUnhightlight();
 						simultaneously();
 						tsB.taUnhightlight();
 
+						ssvu::lo("pre-restore") << "\n";
+						this->createTA() += [this](auto&, FT)
+						{
+							ssvu::lo("restore") << "\n";
+							restoreTACtx();
+						};
+					};
+
+					this->createTA() += [this, mA, mB](auto&, FT)
+					{
+						ssvu::lo("taswap") << mA << " <-> " << mB << "\n";
 						std::swap(tss[mA], tss[mB]);
-					};				
+						ssvu::lo() << "\n\n";
+					};
+				
 				}
 		};
 	}
@@ -471,11 +512,13 @@ namespace avz
 			WRecycler wRecycler;
 			TARecycler taRecycler;
 
-			Internal::TACtx rootTACtx;
-			Internal::TACtx* currentTACtx;
+			ssvu::VecUPtr<Internal::TACtx> taCtxStack;
+			int toPop{0};
 
 			ssvs::GameWindow* gameWindow;
 			float speedFactor{1.f};
+
+			inline auto& getCurrentTACtx() noexcept { return *taCtxStack.back(); }
 
 			template<typename T> inline void render(T& mX)
 			{
@@ -483,24 +526,33 @@ namespace avz
 			}
 			template<typename... TArgs> inline auto& createTA(TArgs&&... mArgs)
 			{
-				return taRecycler.getCreateEmplace(currentTACtx->taQueue, ssvu::fwd<TArgs>(mArgs)...);
+				return taRecycler.getCreateEmplace(getCurrentTACtx().taQueue, ssvu::fwd<TArgs>(mArgs)...);
 			}
 
-			inline void simultaneously() { currentTACtx->simultaneously(); }
+			inline void simultaneously() { getCurrentTACtx().simultaneously(); }
+
+
+			inline void makeTACtx()		{ taCtxStack.emplace_back(ssvu::makeUPtr<Internal::TACtx>()); }
+			inline void restoreTACtx()	{ ++toPop; }
 
 		public:
-			inline Ctx(ssvs::GameWindow& mGameWindow) : root{*this}, currentTACtx{&rootTACtx}, gameWindow{&mGameWindow} { }
+			inline Ctx(ssvs::GameWindow& mGameWindow) : root{*this}, gameWindow{&mGameWindow} 
+			{ 
+				//taCtxStack.reserve(10);
+				makeTACtx();
+			}
 
 			inline void setSpeedFactor(float mX) noexcept { speedFactor = mX; }
 
 			inline void skipAnim()
 			{
-				currentTACtx->skipAnim();
+				getCurrentTACtx().skipAnim();
 			}
 
 			inline void update(FT mFT)
-			{
-				currentTACtx->update(mFT, speedFactor);
+			{				
+				for(; toPop > 0; --toPop) { taCtxStack.pop_back(); ssvu::lo("BACK TO CONTEXT") << taCtxStack.size() - 1 << "\n"; }
+				getCurrentTACtx().update(mFT, speedFactor);
 
 				root.transformHierarchy();
 				root.updateHierarchy(mFT);
@@ -525,10 +577,10 @@ namespace avz
 	{
 		return ctx->wRecycler.getCreateEmplace<T>(children, *ctx, ssvu::fwd<TArgs>(mArgs)...);
 	}
-	inline void Internal::Widget::simultaneously()
-	{
-		ctx->simultaneously();
-	}
+
+	inline void Internal::Widget::simultaneously()	{ ctx->simultaneously(); }
+	inline void Internal::Widget::makeTACtx()		{ ctx->makeTACtx(); }
+	inline void Internal::Widget::restoreTACtx()	{ ctx->restoreTACtx(); }
 }
 
 class AlgoVizTestApp : public Boilerplate::App
@@ -542,7 +594,7 @@ class AlgoVizTestApp : public Boilerplate::App
 
 			gs.addInput({{IK::Escape}}, [this](FT){ gameWindow->stop(); });
 			gs.addInput({{IK::Space}}, [this](FT){ ctx.skipAnim(); }, IT::Once);
-			gs.addInput({{IK::X}}, [this](FT){ ctx.setSpeedFactor(2.5f); }, [this](FT){ ctx.setSpeedFactor(1.f); });
+			gs.addInput({{IK::X}}, [this](FT){ ctx.setSpeedFactor(12.5f); }, [this](FT){ ctx.setSpeedFactor(1.f); });
 
 			gs.addInput({{IK::A}}, [this](FT){ gameCamera.pan(-4, 0); });
 			gs.addInput({{IK::D}}, [this](FT){ gameCamera.pan(4, 0); });
@@ -554,32 +606,33 @@ class AlgoVizTestApp : public Boilerplate::App
 
 		inline void initTest()
 		{
-			/*
-			auto& t(ctx.create<avz::w::Text>(Vec2f{100.f, 100.f}));
-			t.setStr("hello");
-			t.setStr("world!");
-			t.setStr("im");
-			t.setStr("a");
-			t.setStr("fucking");
-			t.setStr("text");
+			auto& v(ctx.create<avz::w::Vector<int>>(Vec2f{100.f, 100.f}));
+			v.taPushFront(9);
+			v.taPushBack(0);
+			v.taPushBack(4);
+			v.taPushBack(10);
+			v.taPushBack(2);
+			v.taPushFront(1);
+			v.taPushFront(8);
+			v.taPushFront(3);
+			v.taPushFront(5);
+			v.taPushBack(7);
+			v.taPushBack(6);
 
-			auto& ts(ctx.create<avz::w::TextSquare>(Vec2f{250.f, 100.f}));
-			ts.getText().setStr("0");
-			ts.getText().setStr("1");
-			ts.getText().setStr("2");
-			ts.getText().setStr("3");
-			ts.getText().setStr("4");
-			*/
+			int num = 11;
+			for(int i = 1; i < num; i++)
+			{
+				for(int j = 0; j < num - 1; j++)
+				{
+					if(v[j] > v[j + 1])
+					{
+						ssvu::lo("must swap") << j << " <-> " << j + 1 << "\n";
+						v.taSwap(j, j + 1);
+					}
+				}
+			}
 
-			auto& v(ctx.create<avz::w::Vector>(Vec2f{100.f, 100.f}));
-			v.taPushBack("C");
-			v.taPushBack("D");
-			v.taPushBack("E");
-			v.taPushFront("A");
-			v.taPushFront("B");
-
-			v.taSwap(0, 3);
-			v.taSwap(1, 2);
+			ssvu::lo() << v.data << std::endl;
 		}
 
 		inline void update(FT mFT)
