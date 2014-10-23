@@ -1,8 +1,8 @@
 
 #include <SSVUtils/Core/Core.hpp>
 #include <SSVUtils/Benchmark/Benchmark.hpp>
-#include <SSVUtilsJson/SSVUtilsJson.hpp>
 #include <SSVUtils/Json/Json.hpp>
+#include <SSVUtils/Test/Test.hpp>
 #include <SSVUtils/Tests/TestsJson.hpp>
 
 template<typename T> struct TestVec2
@@ -109,14 +109,7 @@ int main()
 	
 
 	
-		if(false)
-		{
-			SSVU_BENCHMARK_LOG_SCOPE_EXIT("ssvuj");
-			for(int i = 0; i < 10000; ++i)
-			{
-				auto document(ssvuj::getFromString(src));
-			}
-		}
+	
 	}
 
 	/*ssvu::lo("Value") << sizeof(Value) << std::endl;
