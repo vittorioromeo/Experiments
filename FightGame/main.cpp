@@ -108,8 +108,7 @@ class FGGame : public Boilerplate::App
 			gs.addInput({{IK::D}}, [this](FT){ gameCamera.pan(4, 0); });
 			gs.addInput({{IK::W}}, [this](FT){ gameCamera.pan(0, -4); });
 			gs.addInput({{IK::S}}, [this](FT){ gameCamera.pan(0, 4); });
-			gs.addInput({{IK::Q
-			}}, [this](FT){ gameCamera.zoomOut(1.1f); });
+			gs.addInput({{IK::Q}}, [this](FT){ gameCamera.zoomOut(1.1f); });
 			gs.addInput({{IK::E}}, [this](FT){ gameCamera.zoomIn(1.1f); });
 		}
 
