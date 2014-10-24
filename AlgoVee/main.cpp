@@ -63,21 +63,23 @@ namespace Boilerplate
 
 namespace avz
 {
-	struct Assets
-	{
-		inline static auto& getAM()
-		{
-			static bool loaded{false};
-			static ssvs::AssetManager assetManager;
+	class Assets
+	{	
+		private:
+			ssvs::AssetManager assetManager;
 
-			if(!loaded)
+		public:
+			sf::Font* liberationSans;
+
+		private:
+			inline Assets()
 			{
-				assetManager.load<sf::Font>("testFont", "/usr/share/fonts/TTF/LiberationSans-Regular.ttf");
-				loaded = true;
+				assetManager.load<sf::Font>("liberationSans", "/usr/share/fonts/TTF/LiberationSans-Regular.ttf");
+				liberationSans = &assetManager.get<sf::Font>("liberationSans");
 			}
 
-			return assetManager;
-		}
+		public:
+			inline static auto& get() noexcept { static Assets result; return result; }
 	};
 
 	class Ctx;
@@ -337,7 +339,7 @@ namespace avz
 
 			public:
 				inline Text(Ctx& mCtx, const Vec2f& mPos)
-					: Base{mCtx, mPos}, impl{"", Assets::getAM().get<sf::Font>("testFont"), 30}
+					: Base{mCtx, mPos}, impl{"", *Assets::get().liberationSans, 30}
 				{
 					impl.setScale(0.f, 0.f);
 					impl.setColor(sf::Color::White);
@@ -391,6 +393,9 @@ namespace avz
 
 				inline auto& getText() noexcept 			{ return *text; }
 				inline const auto& getText() const noexcept	{ return *text; }
+
+				inline auto& getBG() noexcept { return bg; }
+				inline const auto& getBG() const noexcept { return bg; }
 		};
 
 		template<typename T> class Vector : public Base
@@ -445,7 +450,41 @@ namespace avz
 					//tLocal.rot += 0.01f * mFT;
 				}
 
+				inline auto& operator[](SizeT mI) noexcept { return data[mI]; }
 				inline const auto& operator[](SizeT mI) const noexcept { return data[mI]; }
+
+				inline void taHightlight(SizeT mI) 
+				{  
+					this->createTA() += [this, mI](auto&, FT){ tss[mI]->taHightlight(); };
+				}
+				inline void taUnhightlight(SizeT mI) 
+				{  
+					this->createTA() += [this, mI](auto&, FT){ tss[mI]->taUnhightlight(); };
+				}
+
+				inline void taSet(SizeT mI, T mX)
+				{
+					this->createTA() += [this, mI, mX](auto&, FT) 
+					{
+						(*tss[mI]) = ssvu::toStr(mX);
+					};
+				}
+
+				inline void taTranslateTo(SizeT mI, const Vec2f& mP)
+				{
+					this->createTA() += [this, mI, mP](auto&, FT) 
+					{
+						tss[mI]->taTranslate(mP);
+					};
+				}
+
+				inline void taTranslateBy(SizeT mI, const Vec2f& mP)
+				{
+					this->createTA() += [this, mI, mP](auto&, FT) 
+					{
+						tss[mI]->taTranslate(tss[mI]->tLocal.pos + mP);
+					};
+				}
 
 				inline void taSwap(SizeT mA, SizeT mB)
 				{
@@ -497,8 +536,13 @@ namespace avz
 						std::swap(tss[mA], tss[mB]);
 						ssvu::lo() << "\n\n";
 					};
-				
 				}
+
+				inline auto& getTS(SizeT mI) noexcept { return tss[mI]; }
+
+				inline auto getSize() const noexcept { return data.size(); }
+				inline auto& getData() noexcept { return data; }
+				inline const auto& getData() const noexcept { return data; }
 		};
 	}
 
@@ -604,6 +648,94 @@ class AlgoVizTestApp : public Boilerplate::App
 			gs.addInput({{IK::E}}, [this](FT){ gameCamera.zoomIn(1.1f); });
 		}
 
+		inline auto mergeImpl(avz::w::Vector<int>& mV, SizeT mLB, SizeT mMid, SizeT mUB)
+		{
+			std::vector<int> result;
+			result.resize(mUB - mLB);
+
+			auto i(0u);
+			auto iA(mLB); auto iB(mMid);
+
+			while(iA < mMid && iB < mUB)
+			{
+				if(mV[iA] < mV[iB]) 
+				{
+					result[i++] = mV[iA++];
+				}
+				else
+				{
+					result[i++] = mV[iB++];
+				}
+			}
+
+			while(iA < mMid) result[i++] = mV[iA++];
+			while(iB < mUB) result[i++] = mV[iB++];
+
+			ssvu::lo("R") << result << "\n";
+
+
+
+/*
+			auto i0(mLB); auto i1(mMid);
+			for(auto j(mLB); j < mUB; ++j)
+			{
+				if(i0 < mMid && (i1 >= mUB || mV[i0] <= mV[i1]))
+				{
+					result[j] = mV[i0];
+					++i0;
+				}
+				else
+				{
+					result[j] = mV[i1];
+					++i1;
+				}
+			}
+*/
+			return result;
+		}
+
+		inline void mergeSortImpl(avz::w::Vector<int>& mV, SizeT mLB, SizeT mUB)
+		{
+			if(mUB - mLB < 2) return;
+
+			//ssvu::lo("msi") << mLB << " -> " << mUB << std::endl;
+
+			auto mid((mUB + mLB) / 2);
+
+			for(auto i(mLB); i < mid; ++i) 
+			{
+				mV.taHightlight(i); 
+				mV.taTranslateBy(i, Vec2f{0.f, 85.f});
+			}
+			mergeSortImpl(mV, mLB, mid);
+			for(auto i(mLB); i < mid; ++i) 
+			{
+				mV.taUnhightlight(i); 
+				mV.taTranslateBy(i, Vec2f{0.f, -85.f});
+			}
+
+			for(auto i(mid); i < mUB; ++i)
+			{
+				mV.taHightlight(i); 
+				mV.taTranslateBy(i, Vec2f{0.f, 85.f});
+			}
+			mergeSortImpl(mV, mid, mUB);
+			for(auto i(mid); i < mUB; ++i)
+			{
+				mV.taUnhightlight(i); 
+				mV.taTranslateBy(i, Vec2f{0.f, -85.f});
+			}
+			
+			auto mergedData(mergeImpl(mV, mLB, mid, mUB));
+			
+			auto k(0u);
+			for(auto i(mLB); i < mUB; ++i) 
+			{
+				mV.taSet(i, mergedData[k]);
+				mV[i] = mergedData[k++]; 	
+			}
+		}
+
 		inline void initTest()
 		{
 			auto& v(ctx.create<avz::w::Vector<int>>(Vec2f{100.f, 100.f}));
@@ -619,7 +751,10 @@ class AlgoVizTestApp : public Boilerplate::App
 			v.taPushBack(7);
 			v.taPushBack(6);
 
-			int num = 11;
+			ssvu::lo() << v.data << std::endl;	
+			mergeSortImpl(v, 0, v.getSize());
+			ssvu::lo() << v.data << std::endl;	
+			/*int num = 11;
 			for(int i = 1; i < num; i++)
 			{
 				for(int j = 0; j < num - 1; j++)
@@ -632,7 +767,7 @@ class AlgoVizTestApp : public Boilerplate::App
 				}
 			}
 
-			ssvu::lo() << v.data << std::endl;
+			*/
 		}
 
 		inline void update(FT mFT)
