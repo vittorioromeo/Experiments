@@ -106,7 +106,8 @@ class FGFactory
 		 }
 
 	public:
-		inline FGFactory(FGGame& mGame, sses::Manager& mMgr) : game{mGame}, mgr{mMgr} { }
+		inline FGFactory(FGGame& mGame, sses::Manager& mMgr) 
+			: game{mGame}, mgr{mMgr} { }
 
 		inline auto& createTestEntity(const Vec2i& mPos, const Vec2i& mSize, const Vec2f& mVel)
 		{
@@ -121,7 +122,6 @@ class FGGame : public Boilerplate::App
 {
 	private:
 		sses::Manager mgr;
-		FGFactory factory;
 
 		inline void initInput()
 		{
@@ -139,7 +139,7 @@ class FGGame : public Boilerplate::App
 
 		inline void initTest()
 		{
-			factory.createTestEntity(Vec2i{0, 0}, Vec2i{4500, 12000}, Vec2f{100.f, 100.f});
+
 		}
 
 		inline void update(FT mFT)
@@ -156,7 +156,7 @@ class FGGame : public Boilerplate::App
 		}
 
 	public:
-		inline FGGame(ssvs::GameWindow& mGameWindow) : Boilerplate::App{mGameWindow}, factory{*this, mgr}
+		inline FGGame(ssvs::GameWindow& mGameWindow) : Boilerplate::App{mGameWindow}
 		{
 			gameState.onUpdate += [this](FT mFT){ update(mFT); };
 			gameState.onDraw += [this]{ draw(); };
