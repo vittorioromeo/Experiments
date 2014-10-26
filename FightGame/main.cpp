@@ -3,34 +3,53 @@
 #include "../AlgoVee/Common.hpp"
 #include "../AlgoVee/Boilerplate.hpp"
 
+
+
+// Typedefs
 using Entity = sses::Entity;
 using Component = sses::Component;
-
 using World = ssvsc::World<ssvsc::HashGrid, ssvsc::Impulse>;
 using Body = World::BodyType;
 using Sensor = World::SensorType;
 using DetectionInfo = World::DetectionInfoType;
 using ResolutionInfo = World::ResolutionInfoType;
 
-template<typename T> inline constexpr float toPixels(T mValue)					{ return mValue / 100.f; }
-template<typename T> inline constexpr int toCoords(T mValue)					{ return mValue * 100; }
-template<typename T> inline ssvs::Vec2f toPixels(const ssvs::Vec2<T>& mValue)	{ return {toPixels(mValue.x), toPixels(mValue.y)}; }
-template<typename T> inline ssvs::Vec2i toCoords(const ssvs::Vec2<T>& mValue)	{ return {toCoords(mValue.x), toCoords(mValue.y)}; }
-template<typename T> inline ssvs::Vec2i toCoords(T mX, T mY)					{ return {toCoords(mX), toCoords(mY)}; }
 
+
+// Utility functions
+constexpr float pxCrRatio{100.f};
+template<typename T> inline constexpr float toPx(T mValue)					{ return mValue / pxCrRatio; }
+template<typename T> inline constexpr int toCr(T mValue)					{ return mValue * pxCrRatio; }
+template<typename T> inline ssvs::Vec2f toPx(const ssvs::Vec2<T>& mValue)	{ return {toPx(mValue.x), toPx(mValue.y)}; }
+template<typename T> inline ssvs::Vec2i toCr(const ssvs::Vec2<T>& mValue)	{ return {toCr(mValue.x), toCr(mValue.y)}; }
+template<typename T> inline ssvs::Vec2f toPx(T mX, T mY)					{ return {toPx(mX), toPx(mY)}; }
+template<typename T> inline ssvs::Vec2i toCr(T mX, T mY)					{ return {toCr(mX), toCr(mY)}; }
+
+
+
+// Enums
 enum FGGroup : unsigned int
 {
 	FGGSolid,
 	FGGFighter
 };
 
+
+
+// Foward declarations
 class FGGame;
 class FGFactory;
 
+
+
+// Forward declarations (components)
 class FGCFighter;
 class FGCPhys;
 class FGCPhysRender;
 
+
+
+// Assets, factory, game
 class FGAssets 
 { 
 	inline static auto& get()
@@ -91,8 +110,8 @@ class FGGame : public Boilerplate::App
 
 		inline void initTest()
 		{
-			factory.createTestWall(toCoords(-200, 1200), toCoords(1000, 1400));
-			factory.createTestEntity(toCoords(400, 0), toCoords(60, 140), Vec2f{100.f, 100.f});
+			factory.createTestWall(toCr(-200, 1200), toCr(1000, 1400));
+			factory.createTestEntity(toCr(400, 0), toCr(60, 140), Vec2f{100.f, 100.f});
 		}
 
 		inline void update(FT mFT)
@@ -131,6 +150,8 @@ class FGGame : public Boilerplate::App
 		inline const auto& getInputJumping() const noexcept { return inputJumping; }
 };
 
+
+// Components
 class FGCPhys : public sses::Component
 {
 	public:
@@ -161,7 +182,7 @@ class FGCPhys : public sses::Component
 
 		inline void setMass(float mMass) noexcept		{ body.setMass(mMass); }	
 		inline const Vec2i& getPosI() const noexcept	{ return body.getPosition(); }
-		inline Vec2f getPosPx() const noexcept			{ return toPixels(body.getPosition()); }
+		inline Vec2f getPosPx() const noexcept			{ return toPx(body.getPosition()); }
 		inline Vec2f getPosF() const noexcept			{ return Vec2f(body.getPosition()); }
 		inline const Vec2f& getVel() const noexcept		{ return body.getVelocity(); }
 		inline const Vec2f& getOldVel() const noexcept	{ return body.getOldVelocity(); }
@@ -170,9 +191,9 @@ class FGCPhys : public sses::Component
 		inline float getTop() const noexcept			{ return body.getShape().getTop(); }
 		inline float getBottom() const noexcept			{ return body.getShape().getBottom(); }
 	
-		inline Vec2f getSizePx() const noexcept			{ return toPixels(body.getSize()); }
+		inline Vec2f getSizePx() const noexcept			{ return toPx(body.getSize()); }
 		inline Vec2i getHalfSize() const noexcept 		{ return body.getSize() / 2; }
-		inline Vec2f getHalfSizePx() const noexcept		{ return toPixels(getHalfSize()); }
+		inline Vec2f getHalfSizePx() const noexcept		{ return toPx(getHalfSize()); }
 		
 		inline float getWidth() const noexcept			{ return body.getSize().x; }
 		inline float getHeight() const noexcept			{ return body.getSize().y; }
@@ -265,8 +286,8 @@ class FGCFighter : public sses::Component
 		{
 			if(crouching)
 			{
-				body->setPosition(body->getPosition() - Vec2i{0, (toCoords(fc.heightStanding) - toCoords(fc.heightCrouching)) / 2});
-				body->setHeight(toCoords(fc.heightStanding));
+				body->setPosition(body->getPosition() - Vec2i{0, (toCr(fc.heightStanding) - toCr(fc.heightCrouching)) / 2});
+				body->setHeight(toCr(fc.heightStanding));
 			}
 			crouching = false;
 		}
@@ -275,8 +296,8 @@ class FGCFighter : public sses::Component
 			if(isInAir()) return;
 			if(!crouching)
 			{
-				body->setPosition(body->getPosition() + Vec2i{0, (toCoords(fc.heightStanding) - toCoords(fc.heightCrouching)) / 2});
-				body->setHeight(toCoords(fc.heightCrouching));
+				body->setPosition(body->getPosition() + Vec2i{0, (toCr(fc.heightStanding) - toCr(fc.heightCrouching)) / 2});
+				body->setHeight(toCr(fc.heightCrouching));
 			}
 			crouching = true;
 		}
@@ -304,7 +325,7 @@ class FGCFighter : public sses::Component
 			body->setRestitutionY(0.3f);
 			body->setMass(1.f);
 			body->setVelTransferMultX(0.6f);			
-			body->setWidth(toCoords(fc.width));
+			body->setWidth(toCr(fc.width));
 
 			body->onPreUpdate += [this]
 			{
@@ -334,7 +355,7 @@ class FGCFighter : public sses::Component
 			sf::RectangleShape xshp;
 			xshp.setOrigin(Vec2f(0.5f, 0.5f));
 			xshp.setFillColor(sf::Color::Red);
-			xshp.setPosition(toPixels(body->getPosition() + Vec2i{0, body->getHeight() / 2}));
+			xshp.setPosition(toPx(body->getPosition() + Vec2i{0, body->getHeight() / 2}));
 			xshp.setSize(Vec2f(1, 1));
 			game.render(xshp);
 		}
@@ -342,7 +363,7 @@ class FGCFighter : public sses::Component
 		inline void moveLeft()
 		{
 			auto speed(crouching ? fc.speedCrouching : fc.speedStanding);
-			auto crSpd(toCoords(speed));
+			auto crSpd(toCr(speed));
 
 			auto diff((-crSpd) - body->getVelocity().x);
 			ssvu::clamp(diff, -crSpd, crSpd);
@@ -353,7 +374,7 @@ class FGCFighter : public sses::Component
 		inline void moveRight()
 		{
 			auto speed(crouching ? fc.speedCrouching : fc.speedStanding);
-			auto crSpd(toCoords(speed));
+			auto crSpd(toCr(speed));
 
 			auto diff(crSpd - body->getVelocity().x);
 			ssvu::clamp(diff, -crSpd, crSpd);
@@ -371,7 +392,7 @@ class FGCFighter : public sses::Component
 		inline void jump()
 		{
 			if(isInAir() || crouching) return;
-			body->applyAccel(Vec2f(0.f, -toCoords(fc.jumpStrength)));
+			body->applyAccel(Vec2f(0.f, -toCr(fc.jumpStrength)));
 		}
 };
 
@@ -419,7 +440,7 @@ class FGCPlayerControl : public sses::Component
 
 
 
-
+// Out-of-class definitions
 
 inline void FGCPhysRender::draw()
 {
@@ -446,6 +467,9 @@ inline Entity& FGFactory::createTestEntity(const Vec2i& mPos, const Vec2i& mSize
 	return e;
 }
 
+
+
+// Main
 
 int main()
 {
