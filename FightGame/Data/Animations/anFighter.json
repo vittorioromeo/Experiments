@@ -1,0 +1,67 @@
+{
+	"crouch":
+	{
+		"frames": 
+		[
+			["crouch", 100]
+		]
+	},
+
+	"crouchWalk":
+	{
+		"frames": 
+		[
+			["crouch", 100]
+		]
+	},
+
+	"crouchAttack":
+	{
+		"frames": 
+		[
+			["crouchAttack", 100]
+		]
+	},
+
+	"jump":
+	{
+		"frames": 
+		[
+			["walk0", 100]
+		]
+	},
+
+	"fall":
+	{
+		"frames": 
+		[
+			["walk1", 100]
+		]
+	},
+
+	"stand":
+	{
+		"frames": 
+		[
+			["stand", 100]
+		]
+	},
+
+	"standAttack":
+	{
+		"frames": 
+		[
+			["standAttack", 100]
+		]
+	},
+
+	"walk":
+	{
+		"frames":
+		[			
+			["walk0", 6.5],
+			["walk1", 6.5],
+			["walk2", 6.5]			
+		]
+	}
+}

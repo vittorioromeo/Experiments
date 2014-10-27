@@ -1,0 +1,9 @@
+{
+	"tileSize": [400, 400],
+
+	"labels": 
+	[
+		["crouch", "crouchAttack", "stand", "standAttack"],
+		["walk0", "walk1", "walk2"]
+	]
+}
