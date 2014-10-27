@@ -82,7 +82,7 @@ inline void FGCRender::draw() { for(const auto& s : sprites) game.render(s); }
 
 int main()
 {
-	Boilerplate::AppRunner<FGGame>{"UNIMETUMPULATE", 1440, 900};
+	Boilerplate::AppRunner<FGGame>{"TUMPULATUNIme", 1440, 900};
 	return 0;
 }
 
