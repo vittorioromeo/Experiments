@@ -8,6 +8,11 @@ class FGCPhys : public sses::Component
 		FGGame& game;		
 		World& world;
 		Body& body;
+		float xFriction{0.1f};
+		bool affectedByGravity{true};
+
+		Sensor* groundSensor{nullptr};
+		bool inAir{false};
 		
 	public:
 		ssvu::Delegate<void(Entity&)> onDetection;
@@ -15,12 +20,37 @@ class FGCPhys : public sses::Component
 
 		inline FGCPhys(FGGame& mGame, bool mIsStatic, const Vec2i& mPos, const Vec2i& mSize) 
 			: game(mGame), world{mGame.getWorld()}, body{world.create(mPos, mSize, mIsStatic)} { }
+
+		inline ~FGCPhys() 
+		{
+			// CRASH - DEBUG TODO: 
+			body.destroy(); groundSensor->destroy(); 
+		}
 		
-		inline void init() { }
+		inline void init() 
+		{
+			body.setUserData(&getEntity());
+
+			groundSensor = &world.createSensor(getPosI(), Vec2i(100, 100));
+			groundSensor->addGroupsToCheck(FGGroup::FGGSolid);
+
+			groundSensor->onPreUpdate += [this]
+			{ 
+				groundSensor->setPosition(body.getPosition() + Vec2i{0, body.getHeight() / 2}); 
+				inAir = true; 
+			};
+			groundSensor->onDetection += [this](const DetectionInfo& mDI)
+			{
+				if(&mDI.body == &body) return;
+				inAir = false;				
+			};
+		}
 
 		inline void update(FT mFT) override
 		{
-			body.applyAccel(gravityAcc);			
+			if(affectedByGravity) body.applyAccel(gravityAcc);		
+
+			if(!isInAir()) setVel(Vec2f{getVel().x * (1.f - xFriction), getVel().y});
 		}
 
 		inline void setPos(const Vec2i& mPos) noexcept	{ body.setPosition(mPos); }
@@ -28,6 +58,7 @@ class FGCPhys : public sses::Component
 		inline void setMass(float mMass) noexcept		{ body.setMass(mMass); }
 		inline void setWidth(float mWidth) noexcept		{ body.setWidth(mWidth); }
 		inline void setHeight(float mHeight) noexcept	{ body.setHeight(mHeight); }
+		inline void setAffectedByGravity(bool mValue) noexcept { affectedByGravity = mValue; }
 
 		inline const Vec2i& getPosI() const noexcept	{ return body.getPosition(); }
 		inline Vec2f getPosPx() const noexcept			{ return toPx(body.getPosition()); }
@@ -53,6 +84,10 @@ class FGCPhys : public sses::Component
 
 		inline auto& getWorld() noexcept { return world; }
 		inline const auto& getWorld() const noexcept { return world; }
+
+		inline bool isInAir() const noexcept { return inAir; }
+
+		inline auto& getGroundSensor() noexcept { return *groundSensor; }
 };
 
 Vec2f FGCPhys::gravityAcc{0.f, 35.f};

@@ -13,7 +13,7 @@ class FGAssets
 		
 		ssvs::Tileset tsFighter{ssvj::Val::fromFile("Data/Tilesets/tsFighter.json").as<ssvs::Tileset>()};
 
-		ssvs::Animation anFgStanding, anFgStandWalking, anFgStandAttacking, anFgCrouching, anFgCrouchWalking, anFgCrouchAttacking, anFgJumping, anFgFalling;
+		ssvs::Animation anFgStandStop, anFgStandWalk, anFgStandAttack, anFgCrouchStop, anFgCrouchWalk, anFgCrouchAttack, anFgJump, anFgFall;
 
 		inline FGAssets()
 		{
@@ -21,14 +21,14 @@ class FGAssets
 
 			auto animFile(ssvj::Val::fromFile("Data/Animations/anFighter.json"));
 
-			anFgStanding = 			ssvs::getAnimationFromJson(tsFighter, animFile["stand"]);
-			anFgStandWalking = 		ssvs::getAnimationFromJson(tsFighter, animFile["walk"]);
-			anFgStandAttacking = 	ssvs::getAnimationFromJson(tsFighter, animFile["standAttack"]);
-			anFgCrouching = 		ssvs::getAnimationFromJson(tsFighter, animFile["crouch"]);
-			anFgCrouchWalking = 	ssvs::getAnimationFromJson(tsFighter, animFile["crouchWalk"]);
-			anFgCrouchAttacking = 	ssvs::getAnimationFromJson(tsFighter, animFile["crouchAttack"]);
-			anFgJumping = 			ssvs::getAnimationFromJson(tsFighter, animFile["jump"]);
-			anFgFalling = 			ssvs::getAnimationFromJson(tsFighter, animFile["fall"]);
+			anFgStandStop = 			ssvs::getAnimationFromJson(tsFighter, animFile["stand"]);
+			anFgStandWalk = 		ssvs::getAnimationFromJson(tsFighter, animFile["walk"]);
+			anFgStandAttack = 	ssvs::getAnimationFromJson(tsFighter, animFile["standAttack"]);
+			anFgCrouchStop = 		ssvs::getAnimationFromJson(tsFighter, animFile["crouch"]);
+			anFgCrouchWalk = 	ssvs::getAnimationFromJson(tsFighter, animFile["crouchWalk"]);
+			anFgCrouchAttack = 	ssvs::getAnimationFromJson(tsFighter, animFile["crouchAttack"]);
+			anFgJump = 			ssvs::getAnimationFromJson(tsFighter, animFile["jump"]);
+			anFgFall = 			ssvs::getAnimationFromJson(tsFighter, animFile["fall"]);
 		}
 
 		inline static auto& get()

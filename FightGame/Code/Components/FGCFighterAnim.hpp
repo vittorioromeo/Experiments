@@ -21,20 +21,73 @@ class FGCFighterAnim : public sses::Component
 
 		inline void update(FT mFT) override
 		{
-			using Action = FGCFighter::Action;
+			using FAC = FGCFighter::Action;
+			using FMS = FGCFighter::MovStatus;
+			using FAS = FGCFighter::AtkStatus;
+
+			auto ac(cFighter->getAction());
+			auto ms(cFighter->getMovStatus());
+			auto as(cFighter->getAtkStatus());
 
 			cRender->setFlippedX(cFighter->isFacingLeft());			
 
-			switch(cFighter->getAction())
+			if(ac == FAC::Stand)
 			{
-				case Action::Standing: 			currentAnim = &FGAssets::get().anFgStanding; 			break;
-				case Action::StandWalking: 		currentAnim = &FGAssets::get().anFgStandWalking; 		break;
-				case Action::StandAttacking: 	currentAnim = &FGAssets::get().anFgStandAttacking; 		break;
-				case Action::Crouching: 		currentAnim = &FGAssets::get().anFgCrouching; 			break;
-				case Action::CrouchWalking: 	currentAnim = &FGAssets::get().anFgCrouchWalking; 		break;
-				case Action::CrouchAttacking: 	currentAnim = &FGAssets::get().anFgCrouchAttacking; 	break;
-				case Action::Jumping: 			currentAnim = &FGAssets::get().anFgJumping; 			break;
-				case Action::Falling: 			currentAnim = &FGAssets::get().anFgFalling; 			break;
+				if(ms == FMS::Move)
+				{
+					if(as == FAS::Attack)
+					{
+						currentAnim = &FGAssets::get().anFgStandAttack;
+					}
+					else if(as == FAS::Idle)
+					{
+						currentAnim = &FGAssets::get().anFgStandWalk;
+					}
+				}
+				else if(ms == FMS::Stop)
+				{
+					if(as == FAS::Attack)
+					{	
+						currentAnim = &FGAssets::get().anFgStandAttack;
+					}
+					else if(as == FAS::Idle)
+					{	
+						currentAnim = &FGAssets::get().anFgStandStop;
+					}
+				}
+			}
+			else if(ac == FAC::Crouch)
+			{
+				if(ms == FMS::Move)
+				{
+					if(as == FAS::Attack)
+					{
+						currentAnim = &FGAssets::get().anFgCrouchAttack;
+					}
+					else if(as == FAS::Idle)
+					{
+						currentAnim = &FGAssets::get().anFgCrouchWalk;
+					}
+				}
+				else if(ms == FMS::Stop)
+				{
+					if(as == FAS::Attack)
+					{
+						currentAnim = &FGAssets::get().anFgCrouchAttack;
+					}
+					else if(as == FAS::Idle)
+					{
+						currentAnim = &FGAssets::get().anFgCrouchStop;
+					}
+				}
+			}
+			else if(ac == FAC::Jump)
+			{	
+				currentAnim = &FGAssets::get().anFgJump;
+			}
+			else if(ac == FAC::Fall)
+			{
+				currentAnim = &FGAssets::get().anFgFall;
 			}
 
 			currentAnim->update(mFT);

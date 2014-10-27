@@ -17,10 +17,19 @@
 #include "../FightGame/Code/Components/FGCFighter.hpp"
 #include "../FightGame/Code/Components/FGCFighterAnim.hpp"
 #include "../FightGame/Code/Components/FGCPlayerControl.hpp"
+#include "../FightGame/Code/Components/FGCProj.hpp"
 
 inline void FGCPhysRender::draw()
 {
 	game.render(shp);
+}
+
+inline void FGCFighter::damage(FGCProj& mCProj)
+{
+	auto force(mCProj.getBody().getVelocity());
+	force.y -= toCr(10.f);
+
+	cPhys->getBody().applyAccel(force * 0.3f);
 }
 
 inline Entity& FGFactory::createTestWall(const Vec2i& mMin, const Vec2i& mMax)
@@ -32,25 +41,39 @@ inline Entity& FGFactory::createTestWall(const Vec2i& mMin, const Vec2i& mMax)
 	return e;
 }
 
-inline Entity& FGFactory::createTestEntity(const Vec2i& mPos, const Vec2i& mSize, const Vec2f& mVel)
+inline Entity& FGFactory::createTestEntity(const Vec2i& mPos, const Vec2i& mSize, const Vec2f& mVel, bool mPlayer)
 {
 	auto& e(createEntity());
 	auto& cPhys(e.createComponent<FGCPhys>(game, false, mPos, mSize));
-	cPhys.setVel(mVel);
 	auto& cPhysRender(e.createComponent<FGCPhysRender>(game));
 	auto& cFighter(e.createComponent<FGCFighter>(game));
-	auto& cPlayerControl(e.createComponent<FGCPlayerControl>(game));
+	if(mPlayer) e.createComponent<FGCPlayerControl>(game);
 	auto& cRender(e.createComponent<FGCRender>(game));
 	auto& cFighterAnim(e.createComponent<FGCFighterAnim>(game, FGAssets::get().tsFighter));
+	
+	cPhys.setVel(mVel);
 
 	cRender.emplaceSprite(*(FGAssets::get().txFighterMarco));
 	cRender.setScaleWithBody(false);
 
-	cRender.globalScale = 0.5f;	
+	cRender.setGlobalScale(0.5f);	
 	cRender.setGlobalOffset(Vec2f(0.f, -90.f));
-	cRender.anchor = FGCRender::Anchor::Bottom;
+	cRender.setAnchor(FGCRender::Anchor::Bottom);
 
 	e.setDrawPriority(-1000);
+
+	return e;
+}
+
+inline Entity& FGFactory::createProjPunch(Body& mParent, const Vec2i& mPos, const Vec2i& mSize, const Vec2f& mVel, float mLife)
+{
+	auto& e(createEntity());
+	auto& cPhys(e.createComponent<FGCPhys>(game, false, mPos, mSize));
+	auto& cPhysRender(e.createComponent<FGCPhysRender>(game));
+	auto& cProj(e.createComponent<FGCProj>(game, mParent, mLife));
+	
+	cPhys.setVel(mVel);
+	cPhys.setAffectedByGravity(false);
 
 	return e;
 }

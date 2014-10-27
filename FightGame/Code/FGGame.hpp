@@ -11,7 +11,7 @@ class FGGameInput
 	private:
 		FGGame& game;
 		int iX;
-		bool iCrouch, iJump;
+		bool iCrouch, iJump, iAttack;
 
 		void initInput();
 
@@ -21,9 +21,10 @@ class FGGameInput
 			initInput();
 		}
 
-		inline int getX() const noexcept { return iX; }
-		inline bool getCrouch() const noexcept { return iCrouch; }
-		inline bool getJump() const noexcept { return iJump; }
+		inline int getX() const noexcept 		{ return iX; }
+		inline bool getCrouch() const noexcept 	{ return iCrouch; }
+		inline bool getJump() const noexcept 	{ return iJump; }
+		inline bool getAttack() const noexcept 	{ return iAttack; }
 };
 
 class FGGame : public Boilerplate::App
@@ -39,7 +40,8 @@ class FGGame : public Boilerplate::App
 		inline void initTest()
 		{
 			factory.createTestWall(toCr(-200, 1200), toCr(1000, 1400));
-			factory.createTestEntity(toCr(400, 0), toCr(60, 140), Vec2f{100.f, 100.f});
+			factory.createTestEntity(toCr(400, 100), toCr(60, 140), Vec2f{100.f, 100.f}, true);
+			factory.createTestEntity(toCr(600, 100), toCr(60, 140), Vec2f{100.f, 100.f}, false);
 		}
 
 		inline void update(FT mFT)
@@ -70,6 +72,7 @@ class FGGame : public Boilerplate::App
 			gameWindow->draw(mX);
 		}
 
+		inline auto& getFactory() noexcept { return factory; }
 		inline auto& getWorld() noexcept { return world; }
 		inline const auto& getInput() const noexcept { return input; }		
 };
@@ -90,4 +93,5 @@ inline void FGGameInput::initInput()
 	add2StateInput(gs, {{IK::Up}}, iJump);
 	add2StateInput(gs, {{IK::Down}}, iCrouch);
 	add3StateInput(gs, {{IK::Left}}, {{IK::Right}}, iX);
+	add2StateInput(gs, {{IK::Z}}, iAttack);
 }

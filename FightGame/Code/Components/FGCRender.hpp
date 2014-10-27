@@ -13,10 +13,10 @@ class FGCRender : public sses::Component
 		bool flippedX{false}, flippedY{false}, scaleWithBody{false};
 		ssvs::Vec2f globalOffset;
 
-	public:
 		Anchor anchor{Anchor::Center};
 		float globalScale{1.f};
 
+	public:
 		inline FGCRender(FGGame& mGame) : game(mGame) { }
 
 		inline void init()
@@ -26,10 +26,9 @@ class FGCRender : public sses::Component
 
 		inline void update(FT) override
 		{
-			Vec2f position;
+			auto position(cPhys->getPosPx());
 
-			if(anchor == Anchor::Center) position = cPhys->getPosPx();
-			else if(anchor == Anchor::Bottom) position = toPx(cPhys->getPosF() + Vec2f(0.f, cPhys->getHalfHeight()));
+			if(anchor == Anchor::Bottom) position += toPx(Vec2f(0.f, cPhys->getHalfHeight()));
 		
 			const auto& size(cPhys->getSizePx());
 
@@ -55,13 +54,15 @@ class FGCRender : public sses::Component
 		inline void setFlippedY(bool mFlippedY)	noexcept					{ flippedY = mFlippedY; }
 		inline void setScaleWithBody(bool mScale) noexcept					{ scaleWithBody = mScale; }
 		inline void setGlobalOffset(const ssvs::Vec2f& mOffset) noexcept	{ globalOffset = mOffset; }
+		inline void setGlobalScale(float mScale) noexcept					{ globalScale = mScale; }
+		inline void setAnchor(Anchor mAnchor) noexcept						{ anchor = mAnchor; }
 
-		inline bool isFlippedX() const noexcept							{ return flippedX; }
-		inline bool isFlippedY() const noexcept							{ return flippedY; }
-		inline const decltype(sprites)& getSprites() const noexcept		{ return sprites; }
-		inline const decltype(offsets)& getOffsets() const noexcept		{ return offsets; }
-		inline decltype(sprites)& getSprites() noexcept					{ return sprites; }
-		inline decltype(offsets)& getOffsets() noexcept					{ return offsets; }
-		inline sf::Sprite& operator[](unsigned int mIdx)				{ return sprites[mIdx]; }
-		inline const sf::Sprite& operator[](unsigned int mIdx) const	{ return sprites[mIdx]; }
+		inline bool isFlippedX() const noexcept			{ return flippedX; }
+		inline bool isFlippedY() const noexcept			{ return flippedY; }
+		inline const auto& getSprites() const noexcept	{ return sprites; }
+		inline const auto& getOffsets() const noexcept	{ return offsets; }
+		inline auto& getSprites() noexcept				{ return sprites; }
+		inline auto& getOffsets() noexcept				{ return offsets; }
+		inline auto& operator[](SizeT mIdx)				{ return sprites[mIdx]; }
+		inline const auto& operator[](SizeT mIdx) const	{ return sprites[mIdx]; }
 };

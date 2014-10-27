@@ -13,6 +13,8 @@ struct FighterClass
 
 	int heightStanding;
 	int heightCrouching;
+
+	float delayAttack;
 };
 
 inline auto getTestFC()
@@ -31,6 +33,8 @@ inline auto getTestFC()
 	result.heightStanding = 150;
 	result.heightCrouching = 65;
 
+	result.delayAttack = 15.f;
+
 	return result;
 }
 
@@ -39,9 +43,17 @@ class FGCFighter : public sses::Component
 	public:	
 		enum class Action
 		{
-			Standing, StandAttacking, StandWalking, 
-			Crouching, CrouchWalking, CrouchAttacking, 
-			Jumping, Falling
+			Stand, Crouch, Jump, Fall
+		};
+
+		enum class MovStatus
+		{
+			Move, Stop
+		};	
+
+		enum class AtkStatus
+		{
+			Attack, Idle
 		};
 		
 		enum class Dir{Left, Right};
@@ -50,17 +62,18 @@ class FGCFighter : public sses::Component
 		FGGame& game;
 		FGCPhys* cPhys{nullptr};
 		Body* body{nullptr};
-		
-		Sensor* groundSensor{nullptr};
-		bool inAir{false};
 
-		Action action{Action::Standing};
+		Action action{Action::Stand};
+		AtkStatus atkStatus{AtkStatus::Idle};
+		MovStatus movStatus{MovStatus::Stop};
 
 		FighterClass fc;
 		int hp;
 
 		Dir dir;
-		bool crouching{true};
+		bool crouching{false};
+
+		float atkDelay{0.f};
 
 		inline auto getCrouchDiffVec()
 		{
@@ -87,9 +100,6 @@ class FGCFighter : public sses::Component
 			cPhys = &getEntity().getComponent<FGCPhys>();
 			body = &cPhys->getBody();
 
-			groundSensor = &cPhys->getWorld().createSensor(cPhys->getPosI(), Vec2i(100, 100));
-			groundSensor->addGroupsToCheck(FGGroup::FGGSolid);
-
 			fc = getTestFC();
 			hp = fc.hp;
 
@@ -97,44 +107,35 @@ class FGCFighter : public sses::Component
 			body->addGroups(FGGroup::FGGSolid, FGGroup::FGGFighter);
 			body->addGroupsToCheck(FGGroup::FGGSolid, FGGroup::FGGFighter);
 			body->setRestitutionX(0.3f);
-			body->setRestitutionY(0.3f);
+			body->setRestitutionY(0.0f);
 			body->setMass(1.f);
 			body->setVelTransferMultX(0.6f);			
-			body->setWidth(toCr(fc.width));
+			body->setWidth(toCr(fc.width));		
 
-			body->onPreUpdate += [this]
-			{
-				
-			};
-
-			groundSensor->onPreUpdate += [this]
-			{ 
-				groundSensor->setPosition(body->getPosition() + Vec2i{0, body->getHeight() / 2}); 
-				inAir = true; 
-			};
-			groundSensor->onDetection += [this](const DetectionInfo& mDI)
-			{
-				if(&mDI.body == this->body) return;
-				inAir = false;				
-			};
+			cPhys->getGroundSensor().getShape().setWidth(body->getWidth());
 		}
 
-		inline void update(FT) override
+		inline void update(FT mFT) override
 		{
 			if(isInAir())
 			{
-				if(body->getVelocity().y > 0) action = Action::Falling;
-				else action = Action::Jumping;
-			}
-			else if(!crouching)
-			{
-				if(std::abs(body->getVelocity().x) < 100) action = Action::Standing;
-				else action = Action::StandWalking;
+				action = (body->getVelocity().y > 0) ? Action::Fall : Action::Jump;
 			}
 			else
 			{
-				if(std::abs(body->getVelocity().x) < 100) action = Action::Crouching;
-				else action = Action::CrouchWalking;	
+				action = crouching ? Action::Crouch : Action::Stand;
+			}
+
+			movStatus = (std::abs(body->getVelocity().x) < 100) ? MovStatus::Stop : MovStatus::Move;
+
+			if(atkDelay > 0.f) 
+			{
+				atkStatus = AtkStatus::Attack;
+				atkDelay -= mFT;
+			}
+			else
+			{
+				atkStatus = AtkStatus::Idle;
 			}
 		}
 
@@ -175,8 +176,26 @@ class FGCFighter : public sses::Component
 			crouching = true;
 		}
 
-		inline bool isInAir() const noexcept 		{ return inAir; }
+		inline void attack()
+		{
+			if(atkDelay > 0.f) return;
+
+			atkDelay = fc.delayAttack;
+
+			auto offset(toCr(0.f, -60.f));
+			if(crouching) offset = toCr(0.f, -25.f);
+
+			auto speed(Vec2f(toCr(40.f, 0.f)));
+			if(isFacingLeft()) speed.x *= -1.f;
+
+			game.getFactory().createProjPunch(*body, cPhys->getPosI() + offset, toCr(20.f, 20.f), speed, 1.4f);
+		}
+
+		void damage(FGCProj& mCProj);
+
+		inline bool isInAir() const noexcept 		{ return cPhys->isInAir(); }
 		inline bool isFacingLeft() const noexcept 	{ return dir == Dir::Left; }
 		inline auto getAction() const noexcept		{ return action; }
-
+		inline auto getMovStatus() const noexcept	{ return movStatus; }
+		inline auto getAtkStatus() const noexcept	{ return atkStatus; }
 };

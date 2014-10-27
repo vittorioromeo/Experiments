@@ -2,6 +2,7 @@
 
 enum FGGroup : unsigned int
 {
-	FGGSolid,
-	FGGFighter
+	FGGSolid = 0,
+	FGGFighter = 1,
+	FGGProj = 2
 };
