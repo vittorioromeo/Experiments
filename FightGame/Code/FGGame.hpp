@@ -30,8 +30,8 @@ class FGGameInput
 class FGGame : public Boilerplate::App
 {
 	private:
-		sses::Manager mgr;
 		World world{1000, 1000, 3000, 500};
+		sses::Manager mgr;
 		FGFactory factory;
 
 		FGGameInput input{*this};
