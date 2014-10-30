@@ -17,9 +17,7 @@ class FGCRender : public sses::Component
 		float globalScale{1.f};
 
 	public:
-		inline FGCRender(FGGame& mGame) : game(mGame) { }
-
-		inline void init()
+		inline FGCRender(Entity& mE, FGGame& mGame) : Component{mE}, game(mGame) 
 		{
 			cPhys = &getEntity().getComponent<FGCPhys>();
 		}

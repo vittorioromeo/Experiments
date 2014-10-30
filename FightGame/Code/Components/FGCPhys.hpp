@@ -18,16 +18,8 @@ class FGCPhys : public sses::Component
 		ssvu::Delegate<void(Entity&)> onDetection;
 		ssvu::Delegate<void(const Vec2i&)> onResolution;
 
-		inline FGCPhys(FGGame& mGame, bool mIsStatic, const Vec2i& mPos, const Vec2i& mSize) 
-			: game(mGame), world{mGame.getWorld()}, body{world.create(mPos, mSize, mIsStatic)} { }
-
-		inline ~FGCPhys() 
-		{
-			// CRASH - DEBUG TODO: 
-			body.destroy(); groundSensor->destroy(); 
-		}
-		
-		inline void init() 
+		inline FGCPhys(Entity& mE, FGGame& mGame, bool mIsStatic, const Vec2i& mPos, const Vec2i& mSize) 
+			: Component{mE}, game(mGame), world{mGame.getWorld()}, body{world.create(mPos, mSize, mIsStatic)} 
 		{
 			body.setUserData(&getEntity());
 
@@ -44,6 +36,12 @@ class FGCPhys : public sses::Component
 				if(&mDI.body == &body) return;
 				inAir = false;				
 			};
+		}
+		
+		inline ~FGCPhys() 
+		{
+			// CRASH - DEBUG TODO: 
+			body.destroy(); groundSensor->destroy(); 
 		}
 
 		inline void update(FT mFT) override

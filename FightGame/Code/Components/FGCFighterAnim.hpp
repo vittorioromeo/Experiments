@@ -11,9 +11,7 @@ class FGCFighterAnim : public sses::Component
 		ssvs::Animation* currentAnim{nullptr};
 
 	public:
-		inline FGCFighterAnim(FGGame& mGame, ssvs::Tileset& mTileset) : game(mGame), tileset(mTileset) { }
-
-		inline void init()
+		inline FGCFighterAnim(Entity& mE, FGGame& mGame, ssvs::Tileset& mTileset) : Component{mE}, game(mGame), tileset(mTileset) 
 		{
 			cRender = &getEntity().getComponent<FGCRender>();
 			cFighter = &getEntity().getComponent<FGCFighter>();

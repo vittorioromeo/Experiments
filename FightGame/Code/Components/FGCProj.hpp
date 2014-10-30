@@ -10,13 +10,8 @@ class FGCProj : public sses::Component
 		float life;
 
 	public:
-		inline FGCProj(FGGame& mGame, Body& mParent, float mLife) : game(mGame), parent{&mParent}, life{mLife}
+		inline FGCProj(Entity& mE, FGGame& mGame, Body& mParent, float mLife) : Component{mE}, game(mGame), parent{&mParent}, life{mLife}
  		{
-
-		}
-
-		inline void init() 
-		{
 			cPhys = &getEntity().getComponent<FGCPhys>();
 			body = &cPhys->getBody();
 

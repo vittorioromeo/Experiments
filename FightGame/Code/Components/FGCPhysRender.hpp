@@ -10,9 +10,7 @@ class FGCPhysRender : public sses::Component
 		sf::RectangleShape shp;
 
 	public:
-		inline FGCPhysRender(FGGame& mGame) : game(mGame) { }
-
-		inline void init()
+		inline FGCPhysRender(Entity& mE, FGGame& mGame) : Component{mE}, game(mGame)
 		{
 			cPhys = &getEntity().getComponent<FGCPhys>();
 		}

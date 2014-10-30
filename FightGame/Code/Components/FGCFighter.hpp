@@ -93,9 +93,7 @@ class FGCFighter : public sses::Component
 		}
 
 	public:
-		inline FGCFighter(FGGame& mGame) : game(mGame) { }
-
-		inline void init()
+		inline FGCFighter(Entity& mE, FGGame& mGame) : Component{mE}, game(mGame) 
 		{
 			cPhys = &getEntity().getComponent<FGCPhys>();
 			body = &cPhys->getBody();

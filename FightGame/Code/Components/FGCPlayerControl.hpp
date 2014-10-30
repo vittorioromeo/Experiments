@@ -7,9 +7,7 @@ class FGCPlayerControl : public sses::Component
 		FGCFighter* cFighter{nullptr};
 
 	public:
-		inline FGCPlayerControl(FGGame& mGame) : game(mGame) { }
-
-		inline void init()
+		inline FGCPlayerControl(Entity& mE, FGGame& mGame) : Component{mE}, game(mGame)
 		{
 			cFighter = &getEntity().getComponent<FGCFighter>();
 		}
