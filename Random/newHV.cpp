@@ -30,13 +30,13 @@ namespace ssvu
 		};
  		
     	template<typename T, typename TF, SizeT... TIs>
-	    inline void tplForImpl(T&& mT, TF mF, std::index_sequence<TIs...>)
+	    inline void tplForImpl(T&& mT, const TF& mF, std::index_sequence<TIs...>)
 	    {
 	        auto l{(mF(std::get<TIs>(mT)), 0)...};
 	    }
 
 	    template<typename... TTs, typename TF>
-		inline void tplFor(std::tuple<TTs...>& mT, TF mF)
+		inline void tplFor(std::tuple<TTs...>& mT, const TF& mF)
 		{
 		    tplForImpl(mT, mF, std::index_sequence_for<TTs...>{});
 		}
@@ -64,7 +64,7 @@ namespace ssvu
 			template<typename T, typename TR> inline TR getImpl() noexcept
 			{
 				SSVU_ASSERT(isAlive());				
-				return hVec->template getFromMark<T>(hVec->marks[markIdx]);
+				return hVec->template getItemFromMark<T>(markIdx);
 			}
 
 		public:
@@ -102,11 +102,13 @@ namespace ssvu
 			SizeT sizeNext{0u};
 			
 			// These move togheter
-			GrowableArray<Stat> statuses;
+			GrowableArray<Stat> stats;
 			std::tuple<GrowableArray<TTs>...> tplArrays;
 			
 			// This is separated
 			GrowableArray<Mark> marks;
+
+			template<typename TF> inline void tplFor(const TF& mF) { Internal::tplFor(tplArrays, mF); }
 
 			template<typename T> inline auto& getArrayOf() noexcept
 			{
@@ -114,19 +116,19 @@ namespace ssvu
 				return std::get<GrowableArray<T>>(tplArrays); 
 			}
 
-			template<typename T> inline auto& getFromMark(const Mark& mMark) noexcept 
+			template<typename T> inline auto& getItemFromMark(HIdx mMarkIdx) noexcept 
 			{ 
-				return getArrayOf<T>()[mMark.statIdx]; 
+				return getArrayOf<T>()[marks[mMarkIdx].statIdx]; 
 			}
 
-			inline auto& getMark(const Stat& mStat)	noexcept 
+			inline auto& getMarkFromStat(HIdx mStatIdx) noexcept 
 			{
-				return marks[mStat.markIdx]; 
+				return marks[stats[mStatIdx].markIdx]; 
 			}
 
 			inline void destroy(HIdx mMarkIdx) noexcept
 			{
-				statuses[marks[mMarkIdx].statIdx].alive = false;
+				stats[marks[mMarkIdx].statIdx].alive = false;
 			}
 
 			/// @brief Increases internal storage capacity by mAmount.
@@ -135,18 +137,14 @@ namespace ssvu
 				auto capacityNew(capacity + mAmount);
 				SSVU_ASSERT(capacityNew >= 0 && capacityNew >= capacity);
 
-				Internal::tplFor(tplArrays, [this, capacityNew](auto& mA)
-				{ 
-					mA.grow(capacity, capacityNew); 
-				});				
-
-				statuses.grow(capacity, capacityNew);					
+				tplFor([this, capacityNew](auto& mA){ mA.grow(capacity, capacityNew); });
+				stats.grow(capacity, capacityNew);					
 				marks.grow(capacity, capacityNew);
 
 				// Initialize resized storage
 				for(; capacity < capacityNew; ++capacity)
 				{
-					statuses.initAt(capacity, capacity);					
+					stats.initAt(capacity, capacity);					
 					marks.initAt(capacity, capacity);
 				}
 			}
@@ -167,8 +165,14 @@ namespace ssvu
 				if(capacity <= sizeNext) growCapacityTo((capacity + growAmount) * growMultiplier);
 			}
 		
-			inline bool isAliveAt(SizeT mI) const noexcept	{ return statuses[mI].alive; }
-			inline bool isDeadAt(SizeT mI) const noexcept	{ return !statuses[mI].alive; }
+			inline bool isAliveAt(SizeT mI) const noexcept	{ return stats[mI].alive; }
+			inline bool isDeadAt(SizeT mI) const noexcept	{ return !stats[mI].alive; }
+
+			inline void swapItemsAndStat(HIdx mI0, HIdx mI1) noexcept
+			{
+				tplFor([this, mI0, mI1](auto& mA){ std::swap(mA[mI0], mA[mI1]); });				
+				std::swap(stats[mI0], stats[mI1]);			
+			}
 
 		public:
 			inline HV2() { growCapacityBy(10); }
@@ -188,14 +192,10 @@ namespace ssvu
 
 				for(auto i(0u); i < size; ++i)
 				{
-					SSVU_ASSERT(statuses[i].alive);
-					statuses[i].alive = false;
+					SSVU_ASSERT(stats[i].alive);
+					stats[i].alive = false;
 
-					Internal::tplFor(tplArrays, [this, i](auto& mA)
-					{ 
-						mA.deinitAt(i); 
-					});		
-					
+					tplFor([this, i](auto& mA){ mA.deinitAt(i); });		
 					++(marks[i].ctr);
 				}
 
@@ -213,17 +213,17 @@ namespace ssvu
 				growIfNeeded();
 
 				// `sizeNext` now is the first empty valid index - we create our atom there
-				Internal::tplFor(tplArrays, [this](auto& mA)
+				tplFor([this](auto& mA)
 				{ 
 					//mA.initAt(sizeNext, fwd<TArgs>(mArgs)...);
 					mA.initAt(sizeNext);
 				});		
-				statuses[sizeNext].alive = true;
+				stats[sizeNext].alive = true;
 
 				// Update the mark				
-				getMark(statuses[sizeNext]).statIdx = sizeNext;
+				getMarkFromStat(sizeNext).statIdx = sizeNext;
 
-				Handle result{*this, statuses[sizeNext].markIdx, getMark(statuses[sizeNext]).ctr};
+				Handle result{*this, stats[sizeNext].markIdx, getMarkFromStat(sizeNext).ctr};
 				
 				// Update next size
 				++sizeNext;
@@ -256,12 +256,8 @@ namespace ssvu
 
 					SSVU_ASSERT(isDeadAt(iD) && isAliveAt(iA));
 					
-					Internal::tplFor(tplArrays, [this, iD, iA](auto& mA)
-					{ 
-						std::swap(mA[iD], mA[iA]);						
-					});				
-					std::swap(statuses[iD], statuses[iA]);			
-					getMark(statuses[iD]).statIdx = iD;
+					swapItemsAndStat(iD, iA);					
+					getMarkFromStat(iD).statIdx = iD;
 
 					SSVU_ASSERT(isAliveAt(iD) && isDeadAt(iA));
 
@@ -282,12 +278,8 @@ namespace ssvu
 				{
 					SSVU_ASSERT(isDeadAt(iD));
 					
-					Internal::tplFor(tplArrays, [this, iD](auto& mA)
-					{ 
-						mA.deinitAt(iD); 
-					});		
-
-					++(getMark(statuses[iD]).ctr);
+					tplFor([this, iD](auto& mA) { mA.deinitAt(iD); });
+					++getMarkFromStat(iD).ctr;
 				}
 			}
 	};
