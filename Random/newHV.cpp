@@ -15,39 +15,30 @@ namespace ssvu
 	{
 		struct HVMark
 		{
-			HIdx atomIdx;
+			HIdx statIdx;
 			HCtr ctr;
 
-			inline HVMark(HIdx mAtomIdx) noexcept : atomIdx{mAtomIdx} { }
+			inline HVMark(HIdx mStatIdx) noexcept : statIdx{mStatIdx} { }
 		};
 
-		struct HVStatus
+		struct HVStat
 		{				
 			HIdx markIdx;
 			bool alive{false};
 
-			inline HVStatus(HIdx mMarkIdx) noexcept : markIdx{mMarkIdx} { }
+			inline HVStat(HIdx mMarkIdx) noexcept : markIdx{mMarkIdx} { }
 		};
  		
- 		template<int... Is>
-    	struct seq { };
-
-    	template<int N, int... Is>
-    	struct gen_seq : gen_seq<N - 1, N - 1, Is...> { };
-
-    	template<int... Is>
-    	struct gen_seq<0, Is...> : seq<Is...> { };
-
-    	template<typename T, typename F, int... Is>
-	    inline void for_each(T&& t, F f, seq<Is...>)
+    	template<typename T, typename TF, SizeT... TIs>
+	    inline void tplForImpl(T&& mT, TF mF, std::index_sequence<TIs...>)
 	    {
-	        auto l = { (f(std::get<Is>(t)), 0)... };
+	        auto l{(mF(std::get<TIs>(mT)), 0)...};
 	    }
 
-	    template<typename... Ts, typename F>
-		inline void tplFor(std::tuple<Ts...>& t, F f)
+	    template<typename... TTs, typename TF>
+		inline void tplFor(std::tuple<TTs...>& mT, TF mF)
 		{
-		    for_each(t, f, gen_seq<sizeof...(Ts)>());
+		    tplForImpl(mT, mF, std::index_sequence_for<TTs...>{});
 		}
 	}
 
@@ -101,7 +92,7 @@ namespace ssvu
 	template<typename... TTs> class HV2
 	{
 		public:
-			using Status = Internal::HVStatus;
+			using Stat = Internal::HVStat;
 			using Mark = Internal::HVMark;	
 			using Handle = HVHandle<TTs...>;		
 
@@ -111,7 +102,7 @@ namespace ssvu
 			SizeT sizeNext{0u};
 			
 			// These move togheter
-			GrowableArray<Status> statuses;
+			GrowableArray<Stat> statuses;
 			std::tuple<GrowableArray<TTs>...> tplArrays;
 			
 			// This is separated
@@ -125,19 +116,18 @@ namespace ssvu
 
 			template<typename T> inline auto& getFromMark(const Mark& mMark) noexcept 
 			{ 
-				return getArrayOf<T>()[mMark.atomIdx]; 
+				return getArrayOf<T>()[mMark.statIdx]; 
 			}
 
-			inline auto& getMark(const Status& mStatus)	noexcept 
+			inline auto& getMark(const Stat& mStat)	noexcept 
 			{
-				return marks[mStatus.markIdx]; 
+				return marks[mStat.markIdx]; 
 			}
 
 			inline void destroy(HIdx mMarkIdx) noexcept
 			{
-				statuses[marks[mMarkIdx].atomIdx].alive = false;
+				statuses[marks[mMarkIdx].statIdx].alive = false;
 			}
-
 
 			/// @brief Increases internal storage capacity by mAmount.
 			inline void growCapacityBy(SizeT mAmount)
@@ -231,7 +221,7 @@ namespace ssvu
 				statuses[sizeNext].alive = true;
 
 				// Update the mark				
-				getMark(statuses[sizeNext]).atomIdx = sizeNext;
+				getMark(statuses[sizeNext]).statIdx = sizeNext;
 
 				Handle result{*this, statuses[sizeNext].markIdx, getMark(statuses[sizeNext]).ctr};
 				
@@ -271,7 +261,7 @@ namespace ssvu
 						std::swap(mA[iD], mA[iA]);						
 					});				
 					std::swap(statuses[iD], statuses[iA]);			
-					getMark(statuses[iD]).atomIdx = iD;
+					getMark(statuses[iD]).statIdx = iD;
 
 					SSVU_ASSERT(isAliveAt(iD) && isDeadAt(iA));
 
@@ -316,15 +306,15 @@ namespace ssvu
 struct ST0
 {
 	char data[10];
-	ST0() { ssvu::lo("ST0 CTOR") << " \n"; }
-	~ST0() { ssvu::lo("ST0 DTOR") << " \n"; }
+	ST0() 	{ ssvu::lo("ST0 CTOR") << " \n"; }
+	~ST0() 	{ ssvu::lo("ST0 DTOR") << " \n"; }
 };
 
 struct ST1
 {
 	char data[20];
-	ST1() { ssvu::lo("ST1 CTOR") << " \n"; }
-	~ST1() { ssvu::lo("ST1 DTOR") << " \n"; }
+	ST1() 	{ ssvu::lo("ST1 CTOR") << " \n"; }
+	~ST1() 	{ ssvu::lo("ST1 DTOR") << " \n"; }
 };
 
 int main()
@@ -353,7 +343,6 @@ int main()
 	ssvu::lo("h0 str") << h0.get<std::string>() << "\n"; 
 	ssvu::lo("h1 str") << h1.get<std::string>() << "\n";
 	ssvu::lo("h2 str") << h2.get<std::string>() << "\n";
-
 
 	return 0;
 }
