@@ -286,28 +286,31 @@ namespace ssvu
 				inline decltype(auto) operator->() const noexcept	{ return &impl.template get<const T&>(this->itr); }
 		};
 
-		struct HVItrSingleImplFast
+		template<typename T> struct HVItrSingleImplPtr
 		{
-			template<typename TR, typename TV> inline TR get(const TV& mValue) const noexcept { return *mValue; }
+			template<typename TR> inline TR get(T* mPtr) const noexcept { return *mPtr; }
 		};
 
-		/*template<typename T> struct HVItrImplIdx
+		template<typename THV, typename T> struct HVItrSingleImplIdx
 		{
-			T* hVec;
-			inline HVItrImplIdx(HandleVector<T>& mHVec) noexcept : hVec(&mHVec) { }
-			template<typename TR, typename TV> inline TR get(const TV& mValue) noexcept { return hVec->getDataAt(mValue); }
+			THV& hVec;
+			inline HVItrSingleImplIdx(THV& mHVec) noexcept : hVec{mHVec} { }
+			template<typename TR> inline TR get(SizeT mI) const noexcept { return hVec.getItems()[mI]; }
 		};
 
-		template<typename T> struct HVItrImplAtom
+		/*template<typename T> struct HVItrImplAtom
 		{
 			T* hVec;
 			inline HVItrImplAtom(HandleVector<T>& mHVec) noexcept : hVec(&mHVec) { }
 			template<typename TR, typename TV> inline TR get(const TV& mValue) noexcept { return hVec->getAtomAt(mValue); }
 		};*/
 
-		template<typename T> using HVItrSingleFast = HVItrSingleBase<T, T*, HVItrSingleImplFast>;
-		/*template<typename T> using HVItrIdx = HVItrBase<T, HIdx, HVItrImplIdx<T>>;
-		template<typename T> using HVItrAtom = HVItrBase<T, HIdx, HVItrImplAtom<Atom<T>>>;*/
+		template<typename T> using HVItrSinglePtr =			HVItrSingleBase<T,			T*,			HVItrSingleImplPtr<T>>;
+		template<typename T> using HVItrConstSinglePtr =	HVItrSingleBase<const T,	const T*,	HVItrSingleImplPtr<const T>>;
+
+		template<typename T> using HVItrSingleIdx =			HVItrSingleBase<T,			HIdx,		HVItrSingleImplIdx<HVSingle<T>,			T>>;
+		template<typename T> using HVItrConstSingleIdx =	HVItrSingleBase<const T,	HIdx,		HVItrSingleImplIdx<const HVSingle<T>,	const T>>;
+		/*template<typename T> using HVItrAtom = HVItrBase<T, HIdx, HVItrImplAtom<Atom<T>>>;*/
 	}
 
 
@@ -318,7 +321,10 @@ namespace ssvu
 
 		public:
 			using Handle = HVHandleSingle<T>;
-			using ItrFast = Internal::HVItrSingleFast<T>;
+			using ItrPtr = Internal::HVItrSinglePtr<T>;
+			using ItrCPtr = Internal::HVItrConstSinglePtr<T>;
+			using ItrIdx = Internal::HVItrSingleIdx<T>;
+			using ItrCIdx = Internal::HVItrConstSingleIdx<T>;
 
 		private:
 			GrowableArray<T> items;
@@ -355,8 +361,24 @@ namespace ssvu
 			inline auto& operator=(const HVSingle&) = delete;
 			inline auto& operator=(HVSingle&&) = delete;
 
-			inline auto begin() noexcept	{ return ItrFast{&items[0]}; }
-			inline auto end() noexcept		{ return ItrFast{&items[this->size]}; }
+			inline auto& getItems() noexcept 				{ return items; }
+			inline const auto& getItems() const noexcept	{ return items; }
+
+			inline auto begin() noexcept			{ return ItrPtr{&items[0]}; }
+			inline auto end() noexcept				{ return ItrPtr{&items[this->size]}; }
+			inline auto endNext() noexcept			{ return ItrPtr{&items[this->sizeNext]}; }
+
+			inline auto begin() const noexcept		{ return ItrCPtr{&items[0]}; }
+			inline auto end() const noexcept		{ return ItrCPtr{&items[this->size]}; }
+			inline auto endNext() const noexcept	{ return ItrCPtr{&items[this->sizeNext]}; }
+
+			inline auto beginIdx() noexcept			{ return ItrIdx{0, *this}; }
+			inline auto endIdx() noexcept			{ return ItrIdx{this->size, *this}; }
+			inline auto endIdxNext() noexcept		{ return ItrIdx{this->sizeNext, *this}; }
+
+			inline auto beginIdx() const noexcept	{ return ItrCIdx{0, *this}; }
+			inline auto endIdx() const noexcept		{ return ItrCIdx{this->size, *this}; }
+			inline auto endIdxNext() const noexcept	{ return ItrCIdx{this->sizeNext, *this}; }
 	};
 
 
@@ -470,6 +492,16 @@ int main()
 		h2.setDead();
 
 		for(auto& s : test) ssvu::lo() << s << ", " << std::endl;
+		for(auto& s : makeRange(test.beginIdx(), test.endIdx())) ssvu::lo() << s << ", " << std::endl;
+
+		for(const auto& s : test) ssvu::lo() << s << ", " << std::endl;
+		for(const auto& s : makeRange(test.beginIdx(), test.endIdx())) ssvu::lo() << s << ", " << std::endl;
+
+		const auto& ctest(test);
+
+
+		for(const auto& s : ctest) ssvu::lo() << s << ", " << std::endl;
+		for(const auto& s : makeRange(ctest.beginIdx(), ctest.endIdx())) ssvu::lo() << s << ", " << std::endl;
 	}
 
 	{
