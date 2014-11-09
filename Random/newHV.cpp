@@ -14,7 +14,7 @@ namespace ssvu
 	{
 		template<typename, typename> class HVImpl;
 	}
-	
+
 	template<typename> class HVSingle;
 	template<typename...> class HVMulti;
 
@@ -36,7 +36,7 @@ namespace ssvu
 			bool alive{false};
 
 			inline HVStat(HIdx mMarkIdx) noexcept : markIdx{mMarkIdx} { }
-		};	
+		};
 
 		template<typename T> class HVHandleBase
 		{
@@ -69,7 +69,7 @@ namespace ssvu
 		template<typename, typename> friend class ssvu::Internal::HVImpl;
 
 		private:
-			inline HVHandleSingle(HVSingle<T>& mHVec, HIdx mMarkIdx, HCtr mCtr) noexcept 
+			inline HVHandleSingle(HVSingle<T>& mHVec, HIdx mMarkIdx, HCtr mCtr) noexcept
 				: Internal::HVHandleBase<HVSingle<T>>{mHVec, mMarkIdx, mCtr} { }
 
 			/// @brief Internal implementation method that returns a reference or a const reference to the item.
@@ -99,7 +99,7 @@ namespace ssvu
 		template<typename, typename> friend class ssvu::Internal::HVImpl;
 
 		private:
-			inline HVHandleMulti(HVMulti<TTs...>& mHVec, HIdx mMarkIdx, HCtr mCtr) noexcept 
+			inline HVHandleMulti(HVMulti<TTs...>& mHVec, HIdx mMarkIdx, HCtr mCtr) noexcept
 				: Internal::HVHandleBase<HVMulti<TTs...>>{mHVec, mMarkIdx, mCtr} { }
 
 			/// @brief Internal implementation method that returns a reference or a const reference to the item tuple.
@@ -126,12 +126,18 @@ namespace ssvu
 
 	namespace Internal
 	{
-		/// @brief Base HandleVector class.
-		class HVBase
+		/// @brief Base CTRP HandleVector class.
+		template<typename TDerived, typename THandle> class HVImpl
 		{
+			template<typename> friend class ssvu::Internal::HVHandleBase;
+
 			public:
 				using Stat = Internal::HVStat;
 				using Mark = Internal::HVMark;
+				using Handle = THandle;
+
+			private:
+				inline auto& getTD() noexcept { return castUp<TDerived>(*this); }
 
 			protected:
 				SizeT capacity{0u};
@@ -141,29 +147,6 @@ namespace ssvu
 				GrowableArray<Stat> stats;
 				GrowableArray<Mark> marks;
 
-			public:
-				inline auto getCapacity() const noexcept	{ return capacity; }
-				inline auto getSize() const noexcept		{ return size; }
-				inline auto getSizeNext() const noexcept	{ return sizeNext; }
-
-				inline auto& getStats() noexcept				{ return stats; }
-				inline const auto& getStats() const noexcept	{ return stats; }
-
-				inline auto& getMarks() noexcept				{ return marks; }
-				inline const auto& getMarks() const noexcept	{ return marks; }
-		};
-
-		template<typename TDerived, typename THandle> class HVImpl : public HVBase
-		{
-			template<typename> friend class ssvu::Internal::HVHandleBase;
-
-			private:
-				inline auto& getTD() noexcept { return castUp<TDerived>(*this); }
-
-			public:
-				using Handle = THandle;
-
-			protected:
 				/// @brief Increases internal storage capacity by mAmount.
 				inline void growCapacityBy(SizeT mAmount)
 				{
@@ -198,9 +181,6 @@ namespace ssvu
 					if(SSVU_LIKELY(capacity > sizeNext)) return;
 					growCapacityTo((capacity + growAmount) * growMultiplier);
 				}
-
-				inline bool isAliveAt(SizeT mI) const noexcept	{ return stats[mI].alive; }
-				inline bool isDeadAt(SizeT mI) const noexcept	{ return !stats[mI].alive; }
 
 				inline auto& getMarkFromStat(HIdx mStatIdx) noexcept { return marks[stats[mStatIdx].markIdx]; }
 				inline auto& getStatFromMark(HIdx mMarkIdx) noexcept { return stats[marks[mMarkIdx].statIdx]; }
@@ -274,8 +254,62 @@ namespace ssvu
 							++(getMarkFromStat(mD).ctr);
 						});
 				}
+
+				inline auto getCapacity() const noexcept	{ return capacity; }
+				inline auto getSize() const noexcept		{ return size; }
+				inline auto getSizeNext() const noexcept	{ return sizeNext; }
+
+				inline auto& getStats() noexcept				{ return stats; }
+				inline const auto& getStats() const noexcept	{ return stats; }
+
+				inline auto& getMarks() noexcept				{ return marks; }
+				inline const auto& getMarks() const noexcept	{ return marks; }
+
+				inline bool isAliveAt(SizeT mI) const noexcept	{ return stats[mI].alive; }		
 		};
 	}
+
+	namespace Internal
+	{
+		template<typename T, typename TItrValue, typename TImpl> class HVItrSingleBase : public BaseAdaptorItrRnd<TItrValue, TImpl>
+		{
+			protected:
+				TImpl impl;
+
+			public:
+				template<typename... TArgs> inline HVItrSingleBase(TItrValue mValue, TArgs&&... mArgs) noexcept 
+					: BaseAdaptorItrRnd<TItrValue, TImpl>{mValue}, impl{fwd<TArgs>(mArgs)...} { }
+
+				inline decltype(auto) operator*() noexcept			{ return impl.template get<T&>(this->itr); }
+				inline decltype(auto) operator*() const noexcept	{ return impl.template get<const T&>(this->itr); }
+				inline decltype(auto) operator->() noexcept			{ return &impl.template get<T&>(this->itr); }
+				inline decltype(auto) operator->() const noexcept	{ return &impl.template get<const T&>(this->itr); }
+		};
+
+		struct HVItrSingleImplFast
+		{
+			template<typename TR, typename TV> inline TR get(const TV& mValue) const noexcept { return *mValue; }
+		};
+
+		/*template<typename T> struct HVItrImplIdx
+		{
+			T* hVec;
+			inline HVItrImplIdx(HandleVector<T>& mHVec) noexcept : hVec(&mHVec) { }
+			template<typename TR, typename TV> inline TR get(const TV& mValue) noexcept { return hVec->getDataAt(mValue); }
+		};
+
+		template<typename T> struct HVItrImplAtom
+		{
+			T* hVec;
+			inline HVItrImplAtom(HandleVector<T>& mHVec) noexcept : hVec(&mHVec) { }
+			template<typename TR, typename TV> inline TR get(const TV& mValue) noexcept { return hVec->getAtomAt(mValue); }
+		};*/
+
+		template<typename T> using HVItrSingleFast = HVItrSingleBase<T, T*, HVItrSingleImplFast>;
+		/*template<typename T> using HVItrIdx = HVItrBase<T, HIdx, HVItrImplIdx<T>>;
+		template<typename T> using HVItrAtom = HVItrBase<T, HIdx, HVItrImplAtom<Atom<T>>>;*/
+	}
+
 
 	template<typename T> class HVSingle : public Internal::HVImpl<HVSingle<T>, HVHandleSingle<T>>
 	{
@@ -284,6 +318,7 @@ namespace ssvu
 
 		public:
 			using Handle = HVHandleSingle<T>;
+			using ItrFast = Internal::HVItrSingleFast<T>;
 
 		private:
 			GrowableArray<T> items;
@@ -319,6 +354,9 @@ namespace ssvu
 
 			inline auto& operator=(const HVSingle&) = delete;
 			inline auto& operator=(HVSingle&&) = delete;
+
+			inline auto begin() noexcept	{ return ItrFast{&items[0]}; }
+			inline auto end() noexcept		{ return ItrFast{&items[this->size]}; }
 	};
 
 
@@ -430,6 +468,8 @@ int main()
 		ssvu::lo("h0 str") << *h0 << "\n";
 
 		h2.setDead();
+
+		for(auto& s : test) ssvu::lo() << s << ", " << std::endl;
 	}
 
 	{
