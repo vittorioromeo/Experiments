@@ -298,21 +298,12 @@ namespace ssvu
 			template<typename TR> inline TR get(SizeT mI) const noexcept { return hVec.getItems()[mI]; }
 		};
 
-		/*template<typename T> struct HVItrImplAtom
-		{
-			T* hVec;
-			inline HVItrImplAtom(HandleVector<T>& mHVec) noexcept : hVec(&mHVec) { }
-			template<typename TR, typename TV> inline TR get(const TV& mValue) noexcept { return hVec->getAtomAt(mValue); }
-		};*/
-
 		template<typename T> using HVItrSinglePtr =			HVItrSingleBase<T,			T*,			HVItrSingleImplPtr<T>>;
 		template<typename T> using HVItrConstSinglePtr =	HVItrSingleBase<const T,	const T*,	HVItrSingleImplPtr<const T>>;
 
 		template<typename T> using HVItrSingleIdx =			HVItrSingleBase<T,			HIdx,		HVItrSingleImplIdx<HVSingle<T>,			T>>;
 		template<typename T> using HVItrConstSingleIdx =	HVItrSingleBase<const T,	HIdx,		HVItrSingleImplIdx<const HVSingle<T>,	const T>>;
-		/*template<typename T> using HVItrAtom = HVItrBase<T, HIdx, HVItrImplAtom<Atom<T>>>;*/
 	}
-
 
 	template<typename T> class HVSingle : public Internal::HVImpl<HVSingle<T>, HVHandleSingle<T>>
 	{
@@ -321,10 +312,10 @@ namespace ssvu
 
 		public:
 			using Handle = HVHandleSingle<T>;
-			using ItrPtr = Internal::HVItrSinglePtr<T>;
-			using ItrCPtr = Internal::HVItrConstSinglePtr<T>;
-			using ItrIdx = Internal::HVItrSingleIdx<T>;
-			using ItrCIdx = Internal::HVItrConstSingleIdx<T>;
+			using ItrSinglePtr = Internal::HVItrSinglePtr<T>;
+			using ItrSingleCPtr = Internal::HVItrConstSinglePtr<T>;
+			using ItrSingleIdx = Internal::HVItrSingleIdx<T>;
+			using ItrSingleCIdx = Internal::HVItrConstSingleIdx<T>;
 
 		private:
 			GrowableArray<T> items;
@@ -364,21 +355,21 @@ namespace ssvu
 			inline auto& getItems() noexcept 				{ return items; }
 			inline const auto& getItems() const noexcept	{ return items; }
 
-			inline auto begin() noexcept			{ return ItrPtr{&items[0]}; }
-			inline auto end() noexcept				{ return ItrPtr{&items[this->size]}; }
-			inline auto endNext() noexcept			{ return ItrPtr{&items[this->sizeNext]}; }
+			inline auto begin() noexcept			{ return ItrSinglePtr{&items[0]}; }
+			inline auto end() noexcept				{ return ItrSinglePtr{&items[this->size]}; }
+			inline auto endNext() noexcept			{ return ItrSinglePtr{&items[this->sizeNext]}; }
 
-			inline auto begin() const noexcept		{ return ItrCPtr{&items[0]}; }
-			inline auto end() const noexcept		{ return ItrCPtr{&items[this->size]}; }
-			inline auto endNext() const noexcept	{ return ItrCPtr{&items[this->sizeNext]}; }
+			inline auto begin() const noexcept		{ return ItrSingleCPtr{&items[0]}; }
+			inline auto end() const noexcept		{ return ItrSingleCPtr{&items[this->size]}; }
+			inline auto endNext() const noexcept	{ return ItrSingleCPtr{&items[this->sizeNext]}; }
 
-			inline auto beginIdx() noexcept			{ return ItrIdx{0, *this}; }
-			inline auto endIdx() noexcept			{ return ItrIdx{this->size, *this}; }
-			inline auto endIdxNext() noexcept		{ return ItrIdx{this->sizeNext, *this}; }
+			inline auto beginIdx() noexcept			{ return ItrSingleIdx{0, *this}; }
+			inline auto endIdx() noexcept			{ return ItrSingleIdx{this->size, *this}; }
+			inline auto endIdxNext() noexcept		{ return ItrSingleIdx{this->sizeNext, *this}; }
 
-			inline auto beginIdx() const noexcept	{ return ItrCIdx{0, *this}; }
-			inline auto endIdx() const noexcept		{ return ItrCIdx{this->size, *this}; }
-			inline auto endIdxNext() const noexcept	{ return ItrCIdx{this->sizeNext, *this}; }
+			inline auto beginIdx() const noexcept	{ return ItrSingleCIdx{0, *this}; }
+			inline auto endIdx() const noexcept		{ return ItrSingleCIdx{this->size, *this}; }
+			inline auto endIdxNext() const noexcept	{ return ItrSingleCIdx{this->sizeNext, *this}; }
 	};
 
 
@@ -389,6 +380,10 @@ namespace ssvu
 
 		public:
 			using Handle = HVHandleMulti<TTs...>;
+			using ItrSinglePtr = Internal::HVItrSinglePtr<T>;
+			using ItrSingleCPtr = Internal::HVItrConstSinglePtr<T>;
+			using ItrSingleIdx = Internal::HVItrSingleIdx<T>;
+			using ItrSingleCIdx = Internal::HVItrConstSingleIdx<T>;
 
 		private:
 			std::tuple<GrowableArray<TTs>...> tplArrays;
@@ -436,6 +431,17 @@ namespace ssvu
 
 			inline auto& operator=(const HVMulti&) = delete;
 			inline auto& operator=(HVMulti&&) = delete;
+
+			template<typename T> inline auto beginSingle() noexcept 		{ return ItrSinglePtr(&getArrayOf<T>()[0]); }
+			template<typename T> inline auto endSingle() noexcept 			{ return ItrSinglePtr(&getArrayOf<T>()[size]); }
+			template<typename T> inline auto endNextSingle() noexcept		{ return ItrSinglePtr(&getArrayOf<T>()[sizeNext]); }
+
+			template<typename T> inline auto beginSingle() const noexcept 	{ return ItrSingleCPtr(&getArrayOf<T>()[0]); }
+			template<typename T> inline auto endSingle() const noexcept 	{ return ItrSingleCPtr(&getArrayOf<T>()[size]); }
+			template<typename T> inline auto endNextSingle() const noexcept	{ return ItrSingleCPtr(&getArrayOf<T>()[sizeNext]); }
+
+			// TODO: new class
+			template<typename T> inline auto beginSingleIdx() noexcept 		
 	};
 
 	template<typename T> inline bool Internal::HVHandleBase<T>::isAlive() const noexcept
