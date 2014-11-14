@@ -298,11 +298,21 @@ namespace ssvu
 			template<typename TR> inline TR get(SizeT mI) const noexcept { return hVec.getItems()[mI]; }
 		};
 
-		template<typename T> using HVItrSinglePtr =			HVItrSingleBase<T,			T*,			HVItrSingleImplPtr<T>>;
-		template<typename T> using HVItrConstSinglePtr =	HVItrSingleBase<const T,	const T*,	HVItrSingleImplPtr<const T>>;
+		template<typename THV, typename T> struct HVMultiItrSingleImplIdx
+		{
+			THV& hVec;
+			inline HVMultiItrSingleImplIdx(THV& mHVec) noexcept : hVec{mHVec} { }
+			template<typename TR> inline TR get(SizeT mI) const noexcept { return hVec.template getArrayOf<T>()[mI]; }
+		};
 
-		template<typename T> using HVItrSingleIdx =			HVItrSingleBase<T,			HIdx,		HVItrSingleImplIdx<HVSingle<T>,			T>>;
-		template<typename T> using HVItrConstSingleIdx =	HVItrSingleBase<const T,	HIdx,		HVItrSingleImplIdx<const HVSingle<T>,	const T>>;
+		template<typename T> using HVItrSinglePtr =				HVItrSingleBase<T,			T*,			HVItrSingleImplPtr<T>>;
+		template<typename T> using HVItrConstSinglePtr =		HVItrSingleBase<const T,	const T*,	HVItrSingleImplPtr<const T>>;
+
+		template<typename T> using HVItrSingleIdx =				HVItrSingleBase<T,			HIdx,		HVItrSingleImplIdx<HVSingle<T>,			T>>;
+		template<typename T> using HVItrConstSingleIdx =		HVItrSingleBase<const T,	HIdx,		HVItrSingleImplIdx<const HVSingle<T>,	const T>>;
+	
+		template<typename THV, typename T> using HVMultiItrSingleIdx =		HVItrSingleBase<T,			HIdx,		HVMultiItrSingleImplIdx<THV,			T>>;
+		template<typename THV, typename T> using HVMultiItrConstSingleIdx =	HVItrSingleBase<const T,	HIdx,		HVMultiItrSingleImplIdx<const THV,	const T>>;
 	}
 
 	template<typename T> class HVSingle : public Internal::HVImpl<HVSingle<T>, HVHandleSingle<T>>
@@ -380,10 +390,10 @@ namespace ssvu
 
 		public:
 			using Handle = HVHandleMulti<TTs...>;
-			using ItrSinglePtr = Internal::HVItrSinglePtr<T>;
-			using ItrSingleCPtr = Internal::HVItrConstSinglePtr<T>;
-			using ItrSingleIdx = Internal::HVItrSingleIdx<T>;
-			using ItrSingleCIdx = Internal::HVItrConstSingleIdx<T>;
+			template<typename T> using ItrSinglePtr = Internal::HVItrSinglePtr<T>;
+			template<typename T> using ItrSingleCPtr = Internal::HVItrConstSinglePtr<T>;
+			template<typename T> using ItrSingleIdx = Internal::HVMultiItrSingleIdx<HVMulti<TTs...>, T>;
+			template<typename T> using ItrSingleCIdx = Internal::HVMultiItrConstSingleIdx<HVMulti<TTs...>, T>;
 
 		private:
 			std::tuple<GrowableArray<TTs>...> tplArrays;
@@ -416,12 +426,7 @@ namespace ssvu
 			{
 				tplFor(tplArrays, mF);
 			}
-			template<typename T> inline auto& getArrayOf() noexcept
-			{
-				SSVU_ASSERT_STATIC_NM(Internal::CTHas<T, TTs...>());
-				return std::get<GrowableArray<T>>(tplArrays);
-			}
-
+			
 		public:
 			inline HVMulti() { this->growCapacityBy(25); }
 			inline ~HVMulti() { this->clear(); }
@@ -431,17 +436,28 @@ namespace ssvu
 
 			inline auto& operator=(const HVMulti&) = delete;
 			inline auto& operator=(HVMulti&&) = delete;
+	
+			template<typename T> inline auto& getArrayOf() noexcept
+			{
+				SSVU_ASSERT_STATIC_NM(Internal::CTHas<T, TTs...>());
+				return std::get<GrowableArray<T>>(tplArrays);
+			}
 
-			template<typename T> inline auto beginSingle() noexcept 		{ return ItrSinglePtr(&getArrayOf<T>()[0]); }
-			template<typename T> inline auto endSingle() noexcept 			{ return ItrSinglePtr(&getArrayOf<T>()[size]); }
-			template<typename T> inline auto endNextSingle() noexcept		{ return ItrSinglePtr(&getArrayOf<T>()[sizeNext]); }
+			template<typename T> inline auto beginSingle() noexcept 			{ return ItrSinglePtr<T>(&getArrayOf<T>()[0]); }
+			template<typename T> inline auto endSingle() noexcept 				{ return ItrSinglePtr<T>(&getArrayOf<T>()[this->size]); }
+			template<typename T> inline auto endNextSingle() noexcept			{ return ItrSinglePtr<T>(&getArrayOf<T>()[this->sizeNext]); }
 
-			template<typename T> inline auto beginSingle() const noexcept 	{ return ItrSingleCPtr(&getArrayOf<T>()[0]); }
-			template<typename T> inline auto endSingle() const noexcept 	{ return ItrSingleCPtr(&getArrayOf<T>()[size]); }
-			template<typename T> inline auto endNextSingle() const noexcept	{ return ItrSingleCPtr(&getArrayOf<T>()[sizeNext]); }
+			template<typename T> inline auto beginSingle() const noexcept 		{ return ItrSingleCPtr<T>(&getArrayOf<T>()[0]); }
+			template<typename T> inline auto endSingle() const noexcept 		{ return ItrSingleCPtr<T>(&getArrayOf<T>()[this->size]); }
+			template<typename T> inline auto endNextSingle() const noexcept		{ return ItrSingleCPtr<T>(&getArrayOf<T>()[this->sizeNext]); }
+			
+			template<typename T> inline auto beginSingleIdx() noexcept 			{ return ItrSingleIdx<T>(0, *this); }
+			template<typename T> inline auto endSingleIdx() noexcept 			{ return ItrSingleIdx<T>(this->size, *this); }
+			template<typename T> inline auto endNextSingleIdx() noexcept 		{ return ItrSingleIdx<T>(this->sizeNext, *this); }
 
-			// TODO: new class
-			template<typename T> inline auto beginSingleIdx() noexcept 		
+			template<typename T> inline auto beginSingleIdx() const noexcept 	{ return ItrSingleCIdx<T>(0, *this); }
+			template<typename T> inline auto endSingleIdx() const noexcept 		{ return ItrSingleCIdx<T>(this->size, *this); }
+			template<typename T> inline auto endNextSingleIdx() const noexcept 	{ return ItrSingleCIdx<T>(this->sizeNext, *this); }
 	};
 
 	template<typename T> inline bool Internal::HVHandleBase<T>::isAlive() const noexcept
@@ -557,6 +573,12 @@ int main()
 
 		std::get<2>(*h0) = "h0 str new";
 		ssvu::lo("h0 str") << std::get<2>(*h0) << "\n";
+
+		for(auto x : makeRange(test.beginSingle<std::string>(), test.endSingle<std::string>()))
+			ssvu::lo("aaa") << x << "\n";
+	
+		for(auto x : makeRange(test.beginSingleIdx<std::string>(), test.endSingleIdx<std::string>()))
+			ssvu::lo("aaa") << x << "\n";
 	}
 
 
