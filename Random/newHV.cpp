@@ -7,17 +7,6 @@
 
 namespace ssvu
 {
-	using HIdx = SizeT;
-	using HCtr = int;
-
-	namespace Internal
-	{
-		template<typename, typename> class HVImpl;
-	}
-
-	template<typename> class HVSingle;
-	template<typename...> class HVMulti;
-
 	namespace Internal
 	{
 		/// @brief Data structure keeping track of the validity of an item.
