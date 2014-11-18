@@ -5,7 +5,7 @@
 #ifndef SSVU_NEWHV
 #define SSVU_NEWHV
 
-#include <SSVUtils/Core/Core.hpp>
+#include "SSVUtils/Core/Core.hpp"
 #include "SSVUtils/Range/Range.hpp"
 #include "SSVUtils/GrowableArray/GrowableArray.hpp"
 //#include "SSVUtils/HandleVector/Internal/Common.hpp"

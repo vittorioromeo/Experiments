@@ -46,10 +46,7 @@ namespace ssvu
 			}
 
 			// Utilities
-			template<typename TF> inline void tsFor(const TF& mF)
-			{
-				tplFor(tplArrays, mF);
-			}
+			template<typename TF> inline void tsFor(const TF& mF) { tplFor(tplArrays, mF); }
 			
 		public:
 			inline HVMulti() { this->growCapacityBy(25); }
@@ -82,6 +79,18 @@ namespace ssvu
 			template<typename T> inline auto beginSingleIdx() const noexcept 	{ return ItrSingleCIdx<T>(0, *this); }
 			template<typename T> inline auto endSingleIdx() const noexcept 		{ return ItrSingleCIdx<T>(this->size, *this); }
 			template<typename T> inline auto endNextSingleIdx() const noexcept 	{ return ItrSingleCIdx<T>(this->sizeNext, *this); }
+
+			template<typename T> inline auto forSinglePtr() noexcept			{ return makeRange(beginSingle(), endSingle()); }
+			template<typename T> inline auto forNextSinglePtr() noexcept		{ return makeRange(beginSingle(), endNextSingle()); }
+
+			template<typename T> inline auto forSinglePtr() const noexcept		{ return makeRange(beginSingle(), endSingle()); }
+			template<typename T> inline auto forNextSinglePtr() const noexcept	{ return makeRange(beginSingle(), endNextSingle()); }
+
+			template<typename T> inline auto forSingleIdx() noexcept			{ return makeRange(beginSingleIdx(), endSingleIdx()); }
+			template<typename T> inline auto forNextSingleIdx() noexcept		{ return makeRange(beginSingleIdx(), endNextSingleIdx()); }
+
+			template<typename T> inline auto forSingleIdx() const noexcept		{ return makeRange(beginSingleIdx(), endSingleIdx()); }
+			template<typename T> inline auto forNextSingleIdx() const noexcept	{ return makeRange(beginSingleIdx(), endNextSingleIdx()); }
 	};
 }
 
