@@ -380,6 +380,18 @@ namespace ssvu
 			inline auto beginIdx() const noexcept	{ return ItrSingleCIdx{0, *this}; }
 			inline auto endIdx() const noexcept		{ return ItrSingleCIdx{this->size, *this}; }
 			inline auto endIdxNext() const noexcept	{ return ItrSingleCIdx{this->sizeNext, *this}; }
+
+			inline auto forPtr() noexcept			{ return makeRange(begin(), end()); }
+			inline auto forNextPtr() noexcept		{ return makeRange(begin(), endNext()); }
+
+			inline auto forPtr() const noexcept		{ return makeRange(begin(), end()); }
+			inline auto forNextPtr() const noexcept	{ return makeRange(begin(), endNext()); }
+
+			inline auto forIdx() noexcept			{ return makeRange(beginIdx(), endIdx()); }
+			inline auto forNextIdx() noexcept		{ return makeRange(beginIdx(), endIdxNext()); }
+			
+			inline auto forIdx() const noexcept		{ return makeRange(beginIdx(), endIdx()); }
+			inline auto forNextIdx() const noexcept	{ return makeRange(beginIdx(), endIdxNext()); }
 	};
 
 
