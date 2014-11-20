@@ -43,13 +43,13 @@ namespace ssvu
 			template<typename TR> inline TR get(SizeT mI) const noexcept { return hVec.template getArrayOf<T>()[mI]; }
 		};
 
-		template<typename T> using HVItrSinglePtr =				HVItrSingleBase<T,			T*,			HVItrSingleImplPtr<T>>;
-		template<typename T> using HVItrConstSinglePtr =		HVItrSingleBase<const T,	const T*,	HVItrSingleImplPtr<const T>>;
+		template<typename T> using HVItrSinglePtr =							HVItrSingleBase<T,			T*,			HVItrSingleImplPtr<T>>;
+		template<typename T> using HVItrConstSinglePtr =					HVItrSingleBase<const T,	const T*,	HVItrSingleImplPtr<const T>>;
 
-		template<typename T> using HVItrSingleIdx =				HVItrSingleBase<T,			HIdx,		HVItrSingleImplIdx<HVSingle<T>,			T>>;
-		template<typename T> using HVItrConstSingleIdx =		HVItrSingleBase<const T,	HIdx,		HVItrSingleImplIdx<const HVSingle<T>,	const T>>;
+		template<typename T> using HVItrSingleIdx =							HVItrSingleBase<T,			HIdx,		HVItrSingleImplIdx<HVSingle<T>,			T>>;
+		template<typename T> using HVItrConstSingleIdx =					HVItrSingleBase<const T,	HIdx,		HVItrSingleImplIdx<const HVSingle<T>,	const T>>;
 	
-		template<typename THV, typename T> using HVMultiItrSingleIdx =		HVItrSingleBase<T,			HIdx,		HVMultiItrSingleImplIdx<THV,			T>>;
+		template<typename THV, typename T> using HVMultiItrSingleIdx =		HVItrSingleBase<T,			HIdx,		HVMultiItrSingleImplIdx<THV,		T>>;
 		template<typename THV, typename T> using HVMultiItrConstSingleIdx =	HVItrSingleBase<const T,	HIdx,		HVMultiItrSingleImplIdx<const THV,	const T>>;
 	}
 }

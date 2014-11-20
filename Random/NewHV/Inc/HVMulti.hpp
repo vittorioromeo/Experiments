@@ -48,7 +48,7 @@ namespace ssvu
 			// Utilities
 			template<typename TF> inline void tsFor(const TF& mF) { tplFor(tplArrays, mF); }
 			
-		public:
+		public: 
 			inline HVMulti() { this->growCapacityBy(25); }
 			inline ~HVMulti() { this->clear(); }
 
