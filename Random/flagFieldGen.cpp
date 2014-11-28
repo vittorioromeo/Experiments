@@ -1,32 +1,43 @@
 #include <SSVUtils/Core/Core.hpp>
 #include <SSVUtils/Json/Json.hpp>
 
+using Idx = ssvu::SizeT;
+
 class SyncObjBase
 {
 	public:
 		virtual ~SyncObjBase() { }
 };
 
-template<ssvu::SizeT TI, typename TObj> class SyncFieldProxy
+template<Idx TI, typename TObj> class SyncFieldProxy
 {
 	private:
 		TObj& syncObj;
 		
 	public:
+        using Type = typename ssvu::RemoveRef<decltype(syncObj)>::template TypeAt<TI>;
+
 		inline SyncFieldProxy(TObj& mSyncObj) noexcept : syncObj{mSyncObj}
 		{
 
 		}
 
-		template<typename T> inline void operator=(T&& mX) 
+		template<typename T> inline auto& operator=(T&& mX) 
+            noexcept(std::is_nothrow_assignable<Type, T>()) 
 		{ 
-			syncObj.template setAt<TI>(ssvu::fwd<T>(mX)); 
+            auto& field(syncObj.template getFieldAt<TI>());
+            field = ssvu::fwd<T>(mX);
+			syncObj.template setBitAt<TI>(); 
+            return field;
 		}
+
+        inline auto& get() noexcept { return syncObj.template getFieldAt<TI>(); }
+        inline const auto& get() const noexcept { return syncObj.template getFieldAt<TI>(); }
 };
 
 template<typename... TArgs> class SyncObj : public SyncObjBase
 {
-	template<ssvu::SizeT, typename> friend class SyncFieldProxy;
+	template<Idx, typename> friend class SyncFieldProxy;
 
 	private:
 		static constexpr ssvu::SizeT fieldCount{sizeof...(TArgs)};
@@ -34,22 +45,20 @@ template<typename... TArgs> class SyncObj : public SyncObjBase
 		std::bitset<fieldCount> fieldFlags;	
 
 	public:
-        using TestType = SyncObj<TArgs...>;
-
-		template<ssvu::SizeT TI> 
+		template<Idx TI> 
 		using TypeAt = std::tuple_element_t<TI, decltype(fields)>;
 
+        template<Idx TI> 
+        using ProxyAt = SyncFieldProxy<TI, SyncObj<TArgs...>>;
+
 	private:
-		template<ssvu::SizeT TI, typename T> inline void setAt(T&& mX)
-		{
-			fieldFlags[TI] = true;
-			std::get<TI>(fields) = ssvu::fwd<T>(mX);		
-		}
+        template<Idx TI> inline auto& getFieldAt() noexcept { return std::get<TI>(fields); }
+        template<Idx TI> inline void setBitAt() noexcept { fieldFlags[TI] = true; }
 
 	public:
-		template<ssvu::SizeT TI> inline auto get() noexcept
+		template<Idx TI> inline auto get() noexcept
 		{
-			return SyncFieldProxy<TI, TestType>(*this);
+			return ProxyAt<TI>{*this};
 		}	
 
 		inline void resetFlags() noexcept { fieldFlags.reset(); }
@@ -58,7 +67,7 @@ template<typename... TArgs> class SyncObj : public SyncObjBase
 		{
 			using namespace ssvj;
 			
-			ssvu::SizeT idx{0u};
+			Idx idx{0u};
 			Val v{Obj{}};
 			
 			ssvu::tplFor(fields, [idx, &v](auto&& mI) mutable
@@ -75,7 +84,7 @@ template<typename... TArgs> class SyncObj : public SyncObjBase
 		{
 			using namespace ssvj;
 			
-			ssvu::SizeT idx{0u};
+			Idx idx{0u};
 			Val v{Obj{}};
 			
 			ssvu::tplFor(fields, [this, idx, &v](auto&& mI) mutable
@@ -99,18 +108,28 @@ struct TestPlayer : SyncObj
 >
 {
     public: 
-        SyncFieldProxy<0, TestType> x;
+        ProxyAt<0> x;
+        ProxyAt<1> y;
+        ProxyAt<2> health;
+        ProxyAt<3> name;
 
-        inline TestPlayer() : x{get<0>()} { }
+        inline TestPlayer() 
+            :   x{get<0>()},
+                y{get<1>()},
+                health{get<2>()},
+                name{get<3>()}
+        {
+
+        }
 };
 
 int main()
 {
 	TestPlayer player;
-	player.get<0>() = 10.f;
-	player.get<1>() = 15.f;
-	player.get<2>() = 100;
-	player.get<3>() = "hello";
+	player.x = 10.f;
+	player.y = 15.f;
+	player.health = 100;
+	player.name = "hello";
 
 	ssvu::lo("JSON_ALL") << "\n" << player.toJsonAll() << "\n";
 	ssvu::lo("JSON_CHANGED") << "\n" << player.toJsonChanged() << "\n";
@@ -119,12 +138,12 @@ int main()
 	ssvu::lo("JSON_CHANGED") << "\n" << player.toJsonChanged() << "\n";
 
 	player.resetFlags();
-	player.get<2>() = 33.f;
+	player.y = 33.f;
 	ssvu::lo("JSON_CHANGED") << "\n" << player.toJsonChanged() << "\n";
 
 	player.resetFlags();
 	player.x = 11.f;
-	player.get<2>() = 33.f;
+	player.name = "goodbye";
 	ssvu::lo("JSON_CHANGED") << "\n" << player.toJsonChanged() << "\n";
 
 	return 0;
