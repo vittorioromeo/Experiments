@@ -45,22 +45,15 @@ template<typename... TArgs> class SyncObj : public SyncObjBase
 		std::bitset<fieldCount> fieldFlags;	
 
 	public:
-		template<Idx TI> 
-		using TypeAt = std::tuple_element_t<TI, decltype(fields)>;
-
-        template<Idx TI> 
-        using ProxyAt = SyncFieldProxy<TI, SyncObj<TArgs...>>;
+		template<Idx TI> using TypeAt = std::tuple_element_t<TI, decltype(fields)>;
+        template<Idx TI> using ProxyAt = SyncFieldProxy<TI, SyncObj<TArgs...>>;
 
 	private:
         template<Idx TI> inline auto& getFieldAt() noexcept { return std::get<TI>(fields); }
         template<Idx TI> inline void setBitAt() noexcept { fieldFlags[TI] = true; }
 
 	public:
-		template<Idx TI> inline auto get() noexcept
-		{
-			return ProxyAt<TI>{*this};
-		}	
-
+		template<Idx TI> inline auto get() noexcept { return ProxyAt<TI>{*this}; }	
 		inline void resetFlags() noexcept { fieldFlags.reset(); }
 
 		inline auto toJsonAll()
@@ -73,7 +66,6 @@ template<typename... TArgs> class SyncObj : public SyncObjBase
 			ssvu::tplFor(fields, [idx, &v](auto&& mI) mutable
 			{ 
 				v[ssvu::toStr(idx)] = ssvu::fwd<decltype(mI)>(mI);				
-				
 				++idx;
 			});
 
@@ -89,9 +81,7 @@ template<typename... TArgs> class SyncObj : public SyncObjBase
 			
 			ssvu::tplFor(fields, [this, idx, &v](auto&& mI) mutable
 			{ 			
-				if(fieldFlags[idx])	
-					v[ssvu::toStr(idx)] = ssvu::fwd<decltype(mI)>(mI);				
-				
+				if(fieldFlags[idx])	v[ssvu::toStr(idx)] = ssvu::fwd<decltype(mI)>(mI);								
 				++idx;
 			});
 
