@@ -37,5 +37,7 @@ int main(void)
  	tryReceive(&sockfd, recvBuff, sizeof(recvBuff));
  	printf("Data received\n");
  
+	close(sockfd);
+	
 	return 0;
 }

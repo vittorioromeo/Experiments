@@ -25,21 +25,28 @@ int main()
 	}
 	printf("Socket listening\n");
 
-	while(1)
+	tryAcceptClient(&connfd, &listenfd);
+	printf("Socket accepted client\n");
+
+	int dio;
+
+	for(dio = 0; dio < 100; ++dio)
 	{
-		tryAcceptClient(&connfd, &listenfd);
-		printf("Socket accepted client\n");
 		
-		strcpy(sendBuff, "Message from server");
+
+		sprintf(sendBuff, "Message from server %d", dio);		
 		trySendStr(&connfd, sendBuff);
 		printf("Socket sent message\n");
 
-		closeClient(&connfd);
-		printf("Socket closed client\n");
 
-		sleep(1);
+		//sleep(10);
 	}
+	
+	closeClient(&connfd);
+	printf("Socket closed client\n");
 
+	close(listenfd);
+	close(connfd);
 	printf("Server shutdown\n");
 
 	return 0;
