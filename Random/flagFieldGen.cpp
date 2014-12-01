@@ -151,6 +151,58 @@ template<typename... TArgs> class SyncObj : public SyncObjBase
 		}
 };
 
+// TODO: to ssvu
+template<typename Dependent, std::size_t Index>
+using DependOn = Dependent;
+
+template<typename T, std::size_t N, typename Indices = std::make_index_sequence<N>>
+struct repeat;
+
+template<typename T, std::size_t N, std::size_t... Indices>
+struct repeat<T, N, std::index_sequence<Indices...>> {
+    using type = std::tuple<DependOn<T, Indices>...>;
+};
+
+// TODO: to ssvu
+template <class T, class Tuple>
+struct Index;
+
+template <class T, class... Types>
+struct Index<T, std::tuple<T, Types...>> {
+    static const std::size_t value = 0;
+};
+
+template <class T, class U, class... Types>
+struct Index<T, std::tuple<U, Types...>> {
+    static const std::size_t value = 1 + Index<T, std::tuple<Types...>>::value;
+};
+
+using ID = int;
+
+template<typename... TTypes> class SyncManager 
+{
+	private:
+		using TplVecs = std::tuple<std::vector<TTypes>...>;
+		using TplIDs = typename repeat<ID, sizeof...(TTypes)>::type;
+		TplVecs objVecs;
+		TplIDs objLastIDs;
+
+	public:
+		inline SyncManager()
+		{
+			ssvu::tplFor(objLastIDs, [](auto& mID){ mID = 0; });
+		}
+
+		template<typename T> inline auto& getVecOf() noexcept
+		{
+			return std::get<std::vector<T>>(objVecs);
+		}
+		template<typename T> inline auto& getLastIDOf() noexcept
+		{
+			return std::get<Index<T, decltype(objVecs)>>(objLastIDs);
+		}
+};
+
 struct TestPlayer : SyncObj
 <
 	float,			// X
@@ -177,6 +229,7 @@ struct TestPlayer : SyncObj
 
 int main()
 {
+	/*
 	TestPlayer player;
 	player.x = 10.f;
 	player.y = 15.f + player.x;
@@ -199,6 +252,9 @@ int main()
 	player.x = 11.f;
 	player.name = "goodbye";
 	ssvu::lo("JSON_CHANGED") << "\n" << player.toJsonChanged() << "\n";
+	*/
 
+	SyncManager<TestPlayer> sm;
+	
 	return 0;
 }
