@@ -152,29 +152,31 @@ template<typename... TArgs> class SyncObj : public SyncObjBase
 };
 
 // TODO: to ssvu
-template<typename Dependent, std::size_t Index>
-using DependOn = Dependent;
+template<typename T, ssvu::SizeT TI> using IndexDep = T;
+template<typename T, ssvu::SizeT TN, typename TIdxs = ssvu::IdxSeq<TN>> struct TplRepeatImpl;
 
-template<typename T, std::size_t N, typename Indices = std::make_index_sequence<N>>
-struct repeat;
-
-template<typename T, std::size_t N, std::size_t... Indices>
-struct repeat<T, N, std::index_sequence<Indices...>> {
-    using type = std::tuple<DependOn<T, Indices>...>;
+template<typename T, ssvu::SizeT TN, ssvu::SizeT... TIdxs>
+struct TplRepeatImpl<T, TN, ssvu::IdxSeq<TIdxs...>> 
+{
+    using Type = std::tuple<IndexDep<T, TIdxs>...>;
 };
+
+template<typename T, ssvu::SizeT TN, typename TIdxs = ssvu::IdxSeq<TN>>
+using TplRepeat = typename TplRepeatImpl<T, TN, TIdxs>::Type;
 
 // TODO: to ssvu
-template <class T, class Tuple>
-struct Index;
+template<typename T, typename TTpl> struct TplIdxOf;
 
-template <class T, class... Types>
-struct Index<T, std::tuple<T, Types...>> {
-    static const std::size_t value = 0;
+template<typename T, typename... TTypes>
+struct TplIdxOf<T, std::tuple<T, TTypes...>> 
+{
+    static constexpr ssvu::SizeT value{0u};
 };
 
-template <class T, class U, class... Types>
-struct Index<T, std::tuple<U, Types...>> {
-    static const std::size_t value = 1 + Index<T, std::tuple<Types...>>::value;
+template<typename T1, typename T2, typename... TTypes>
+struct TplIdxOf<T1, std::tuple<T2, TTypes...>> 
+{
+    static constexpr ssvu::SizeT value{1 + TplIdxOf<T1, std::tuple<TTypes...>>::value};
 };
 
 using ID = int;
@@ -183,7 +185,7 @@ template<typename... TTypes> class SyncManager
 {
 	private:
 		using TplVecs = std::tuple<std::vector<TTypes>...>;
-		using TplIDs = typename repeat<ID, sizeof...(TTypes)>::type;
+		using TplIDs = TplRepeat<ID, sizeof...(TTypes)>;
 		TplVecs objVecs;
 		TplIDs objLastIDs;
 
@@ -199,7 +201,7 @@ template<typename... TTypes> class SyncManager
 		}
 		template<typename T> inline auto& getLastIDOf() noexcept
 		{
-			return std::get<Index<T, decltype(objVecs)>>(objLastIDs);
+			return std::get<TplIdxOf<T, decltype(objVecs)>>(objLastIDs);
 		}
 };
 
