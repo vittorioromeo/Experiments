@@ -4,7 +4,7 @@
 #define DEFINE_SIMPLE_SYNCFIELDPROXY_MUTABLE_OPERATION(mOp) \
 	template<typename T> \
 	inline auto& operator mOp (T&& mX) \
-	noexcept(noexcept(std::declval<SyncFieldProxy<TI, TObj>>().get() mOp ssvu::fwd<T>(mX))) \
+	noexcept(noexcept(std::declval<FieldProxy<TI, TObj>>().get() mOp ssvu::fwd<T>(mX))) \
 	{ \
 		this->syncObj.template setBitAt<TI>(); \
 		this->get() mOp ssvu::fwd<T>(mX); \
@@ -12,7 +12,7 @@
 	}
 
 #define ENABLEIF_IS_SYNCFIELDPROXY(mType) \
-	ssvu::EnableIf<typename IsSyncFieldProxy<ssvu::RemoveAll<mType>>::Type{}>* = nullptr
+	ssvu::EnableIf<typename IsFieldProxy<ssvu::RemoveAll<mType>>::Type{}>* = nullptr
 
 #define SIMPLE_SYNCFIELDPROXY_OPERATION_TEMPLATE() \
 	template<typename T, typename TP, ENABLEIF_IS_SYNCFIELDPROXY(TP)> 
@@ -37,32 +37,35 @@ namespace syn
 	using Idx = ssvu::SizeT;
 	using ID = int;
 
-	class SyncObjBase
+	namespace Impl
 	{
-		public:
-			virtual ~SyncObjBase() { }
-	};
+		class ObjBase
+		{
+			public:
+				virtual ~ObjBase() { }
+		};
+	}
 
-	template<Idx TI, typename TObj> class SyncFieldProxy
+	template<Idx TI, typename TObj> class FieldProxy
 	{
 		private:
 			TObj& syncObj;
 			
 		public:
-	        using Type = typename ssvu::RemoveRef<decltype(syncObj)>::template TypeAt<TI>;
+			using Type = typename ssvu::RemoveRef<decltype(syncObj)>::template TypeAt<TI>;
 
-			inline SyncFieldProxy(TObj& mSyncObj) noexcept : syncObj{mSyncObj}
+			inline FieldProxy(TObj& mSyncObj) noexcept : syncObj{mSyncObj}
 			{
 
 			}
 
 			template<typename T> inline auto& operator=(T&& mX) 
-	            noexcept(std::is_nothrow_assignable<Type, T>()) 
+				noexcept(std::is_nothrow_assignable<Type, T>()) 
 			{ 
-	            auto& field(syncObj.template getFieldAt<TI>());
-	            field = ssvu::fwd<T>(mX);
+				auto& field(syncObj.template getFieldAt<TI>());
+				field = ssvu::fwd<T>(mX);
 				syncObj.template setBitAt<TI>(); 
-	            return field;
+				return field;
 			}
 
 			DEFINE_SIMPLE_SYNCFIELDPROXY_MUTABLE_OPERATION(+=)
@@ -71,19 +74,19 @@ namespace syn
 			DEFINE_SIMPLE_SYNCFIELDPROXY_MUTABLE_OPERATION(/=)
 			DEFINE_SIMPLE_SYNCFIELDPROXY_MUTABLE_OPERATION(%=)
 
-	        inline auto& get() noexcept { return syncObj.template getFieldAt<TI>(); }
-	        inline const auto& get() const noexcept { return syncObj.template getFieldAt<TI>(); }
+			inline auto& get() noexcept { return syncObj.template getFieldAt<TI>(); }
+			inline const auto& get() const noexcept { return syncObj.template getFieldAt<TI>(); }
 
-	        inline auto& operator->() noexcept { return &get(); }
-	        inline const auto& operator->() const noexcept { return &get(); }
+			inline auto& operator->() noexcept { return &get(); }
+			inline const auto& operator->() const noexcept { return &get(); }
 	};
 
-	template<typename T> struct IsSyncFieldProxy
+	template<typename T> struct IsFieldProxy
 	{
 		using Type = std::false_type;
 	};
 
-	template<Idx TI, typename TObj> struct IsSyncFieldProxy<SyncFieldProxy<TI, TObj>>
+	template<Idx TI, typename TObj> struct IsFieldProxy<FieldProxy<TI, TObj>>
 	{
 		using Type = std::true_type;
 	};
@@ -101,9 +104,9 @@ namespace syn
 	DEFINE_SIMPLE_SYNCFIELDPROXY_OPERATION(>=)
 	DEFINE_SIMPLE_SYNCFIELDPROXY_OPERATION(<=)
 
-	template<typename... TArgs> class SyncObj : public SyncObjBase
+	template<typename... TArgs> class SyncObj : public Impl::ObjBase
 	{
-		template<Idx, typename> friend class SyncFieldProxy;
+		template<Idx, typename> friend class FieldProxy;
 
 		private:
 			static constexpr ssvu::SizeT fieldCount{sizeof...(TArgs)};
@@ -112,11 +115,11 @@ namespace syn
 
 		public:
 			template<Idx TI> using TypeAt = std::tuple_element_t<TI, decltype(fields)>;
-	        template<Idx TI> using ProxyAt = SyncFieldProxy<TI, SyncObj<TArgs...>>;
+			template<Idx TI> using ProxyAt = FieldProxy<TI, SyncObj<TArgs...>>;
 
 		private:
-	        template<Idx TI> inline auto& getFieldAt() noexcept { return std::get<TI>(fields); }
-	        template<Idx TI> inline void setBitAt() noexcept { fieldFlags[TI] = true; }
+			template<Idx TI> inline auto& getFieldAt() noexcept { return std::get<TI>(fields); }
+			template<Idx TI> inline void setBitAt() noexcept { fieldFlags[TI] = true; }
 
 		public:
 			template<Idx TI> inline auto get() noexcept { return ProxyAt<TI>{*this}; }	
@@ -126,13 +129,11 @@ namespace syn
 			{
 				using namespace ssvj;
 				
-				Idx idx{0u};
 				Val v{Obj{}};
 				
-				ssvu::tplFor(fields, [idx, &v](auto&& mI) mutable
+				ssvu::tplForIdx(fields, [&v](auto mIdx, auto&& mI)
 				{ 
-					v[ssvu::toStr(idx)] = ssvu::fwd<decltype(mI)>(mI);				
-					++idx;
+					v[ssvu::toStr(mIdx)] = ssvu::fwd<decltype(mI)>(mI);				
 				});
 
 				return v;
@@ -142,13 +143,11 @@ namespace syn
 			{
 				using namespace ssvj;
 				
-				Idx idx{0u};
 				Val v{Obj{}};
 				
-				ssvu::tplFor(fields, [this, idx, &v](auto&& mI) mutable
+				ssvu::tplForIdx(fields, [this, &v](auto mIdx, auto&& mI)
 				{ 			
-					if(fieldFlags[idx])	v[ssvu::toStr(idx)] = ssvu::fwd<decltype(mI)>(mI);								
-					++idx;
+					if(fieldFlags[mIdx]) v[ssvu::toStr(mIdx)] = ssvu::fwd<decltype(mI)>(mI);								
 				});
 
 				return v;
@@ -166,10 +165,7 @@ namespace syn
 		template<typename TManager, ssvu::SizeT TI, typename T, typename... TTypes>
 		inline static void initManager(TManager& mManager)
 		{
-			for(auto i(0u); i < 100; ++i) 
-			{
-				
-			}
+			// for(auto i(0u); i < 100; ++i) { }
 
 			mManager.funcsCreate[TI] = [&mManager](ID mID){ mManager.template createImpl<T>(mID); };
 			mManager.funcsRemove[TI] = [&mManager](ID mID){ mManager.template removeImpl<T>(mID); };
@@ -230,14 +226,9 @@ namespace syn
 
 			std::array<ObjBitset, typeCount> bitsetIDs;			
 
-			template<typename T> inline bool isPresent(ID mID) const noexcept
-			{
-				return bitsetIDs[getTypeID<T>()][mID];
-			}
-			template<typename T> inline void setPresent(ID mID, bool mX) noexcept
-			{
-				bitsetIDs[getTypeID<T>()][mID] = mX;
-			}
+			template<typename T> inline auto& getBitsetFor() noexcept { return bitsetIDs[getTypeID<T>()]; }
+			template<typename T> inline bool isPresent(ID mID) const noexcept { return getBitsetFor<T>()[mID]; }
+			template<typename T> inline void setPresent(ID mID, bool mX) noexcept { getBitsetFor<T>()[mID] = mX; }
 
 			template<typename T> inline void createImpl(ID mID)
 			{
@@ -383,20 +374,20 @@ struct TestPlayer : syn::SyncObj
 	std::string		// Name
 >
 {
-    public: 
-        ProxyAt<0> x;
-        ProxyAt<1> y;
-        ProxyAt<2> health;
-        ProxyAt<3> name;
+	public: 
+		ProxyAt<0> x;
+		ProxyAt<1> y;
+		ProxyAt<2> health;
+		ProxyAt<3> name;
 
-        inline TestPlayer() 
-            :   x{get<0>()},
-                y{get<1>()},
-                health{get<2>()},
-                name{get<3>()}
-        {
+		inline TestPlayer() 
+			:   x{get<0>()},
+				y{get<1>()},
+				health{get<2>()},
+				name{get<3>()}
+		{
 
-        }
+		}
 };
 
 struct TestEnemy : syn::SyncObj
@@ -406,18 +397,18 @@ struct TestEnemy : syn::SyncObj
 	int			// Health
 >
 {
-    public: 
-        ProxyAt<0> x;
-        ProxyAt<1> y;
-        ProxyAt<2> health;
+	public: 
+		ProxyAt<0> x;
+		ProxyAt<1> y;
+		ProxyAt<2> health;
 
-        inline TestEnemy() 
-            :   x{get<0>()},
-                y{get<1>()},
-                health{get<2>()}
-        {
+		inline TestEnemy() 
+			:   x{get<0>()},
+				y{get<1>()},
+				health{get<2>()}
+		{
 
-        }
+		}
 };
 
 template<typename T> struct LifetimeManager;
