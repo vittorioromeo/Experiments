@@ -15,13 +15,13 @@
 	ssvu::EnableIf<typename IsFieldProxy<ssvu::RemoveAll<mType>>::Type{}>* = nullptr
 
 #define SIMPLE_SYNCFIELDPROXY_OPERATION_TEMPLATE() \
-	template<typename T, typename TP, ENABLEIF_IS_SYNCFIELDPROXY(TP)> 
+	template<typename T, typename TP, ENABLEIF_IS_SYNCFIELDPROXY(TP)>
 
 #define SIMPLE_SYNCFIELDPROXY_OPERATION_BODY(mOp) \
 	noexcept(noexcept(ssvu::fwd<TP>(mP).get() mOp ssvu::fwd<T>(mX))) \
 	{ \
 		return ssvu::fwd<TP>(mP).get() mOp ssvu::fwd<T>(mX); \
-	} 
+	}
 
 #define DEFINE_SIMPLE_SYNCFIELDPROXY_OPERATION(mOp) \
 	SIMPLE_SYNCFIELDPROXY_OPERATION_TEMPLATE() \
@@ -30,7 +30,7 @@
 	\
 	SIMPLE_SYNCFIELDPROXY_OPERATION_TEMPLATE() \
 	inline auto operator mOp (T&& mX, TP&& mP) \
-	SIMPLE_SYNCFIELDPROXY_OPERATION_BODY(mOp) 
+	SIMPLE_SYNCFIELDPROXY_OPERATION_BODY(mOp)
 
 namespace syn
 {
@@ -50,7 +50,7 @@ namespace syn
 	{
 		private:
 			TObj& syncObj;
-			
+
 		public:
 			using Type = typename ssvu::RemoveRef<decltype(syncObj)>::template TypeAt<TI>;
 
@@ -59,12 +59,12 @@ namespace syn
 
 			}
 
-			template<typename T> inline auto& operator=(T&& mX) 
-				noexcept(std::is_nothrow_assignable<Type, T>()) 
-			{ 
+			template<typename T> inline auto& operator=(T&& mX)
+				noexcept(std::is_nothrow_assignable<Type, T>())
+			{
 				auto& field(syncObj.template getFieldAt<TI>());
 				field = ssvu::fwd<T>(mX);
-				syncObj.template setBitAt<TI>(); 
+				syncObj.template setBitAt<TI>();
 				return field;
 			}
 
@@ -111,7 +111,7 @@ namespace syn
 		private:
 			static constexpr ssvu::SizeT fieldCount{sizeof...(TArgs)};
 			std::tuple<TArgs...> fields;
-			std::bitset<fieldCount> fieldFlags;	
+			std::bitset<fieldCount> fieldFlags;
 
 		public:
 			template<Idx TI> using TypeAt = std::tuple_element_t<TI, decltype(fields)>;
@@ -122,33 +122,33 @@ namespace syn
 			template<Idx TI> inline void setBitAt() noexcept { fieldFlags[TI] = true; }
 
 		public:
-			template<Idx TI> inline auto get() noexcept { return ProxyAt<TI>{*this}; }	
+			template<Idx TI> inline auto get() noexcept { return ProxyAt<TI>{*this}; }
 			inline void resetFlags() noexcept { fieldFlags.reset(); }
 
 			inline auto toJsonAll()
 			{
 				using namespace ssvj;
-				
+
 				Val v{Obj{}};
-				
-				ssvu::tplForIdx(fields, [&v](auto mIdx, auto&& mI)
-				{ 
-					v[ssvu::toStr(mIdx)] = ssvu::fwd<decltype(mI)>(mI);				
-				});
+
+				ssvu::tplForIdx([&v](auto mIdx, auto&& mI)
+				{
+					v[ssvu::toStr(mIdx)] = ssvu::fwd<decltype(mI)>(mI);
+				}, fields);
 
 				return v;
 			}
-			
+
 			inline auto toJsonChanged()
 			{
 				using namespace ssvj;
-				
+
 				Val v{Obj{}};
-				
-				ssvu::tplForIdx(fields, [this, &v](auto mIdx, auto&& mI)
-				{ 			
-					if(fieldFlags[mIdx]) v[ssvu::toStr(mIdx)] = ssvu::fwd<decltype(mI)>(mI);								
-				});
+
+				ssvu::tplForIdx([this, &v](auto mIdx, auto&& mI)
+				{
+					if(fieldFlags[mIdx]) v[ssvu::toStr(mIdx)] = ssvu::fwd<decltype(mI)>(mI);
+				}, fields);
 
 				return v;
 			}
@@ -159,14 +159,12 @@ namespace syn
 		template<typename TManager, ssvu::SizeT>
 		inline static void initManager(TManager&)
 		{
-		
+
 		}
 
 		template<typename TManager, ssvu::SizeT TI, typename T, typename... TTypes>
 		inline static void initManager(TManager& mManager)
 		{
-			// for(auto i(0u); i < 100; ++i) { }
-
 			mManager.funcsCreate[TI] = [&mManager](ID mID){ mManager.template createImpl<T>(mID); };
 			mManager.funcsRemove[TI] = [&mManager](ID mID){ mManager.template removeImpl<T>(mID); };
 			mManager.funcsUpdate[TI] = [&mManager](ID mID){ mManager.template updateImpl<T>(mID); };
@@ -175,29 +173,9 @@ namespace syn
 		}
 	};
 
-	/*enum class SyncAction : ssvu::SizeT
-	{
-		None = 0,
-		Create = 1,
-		Remove = 2,
-		Update = 3
-	};
-
-	template<typename... TTypes> class SyncState
-	{
-		public:
-			static constexpr ssvu::SizeT typeCount{sizeof...(TTypes)};
-			template<typename> using Dependent = std::vector<SyncAction>;
- 
-		private:
-			std::array<std::array<SyncAction, 100>, typeCount> actions;
-
-		public:
-	};*/
-
 	constexpr ssvu::SizeT maxObjs{100};
 
-	template<template<typename> class TLFManager, typename... TTypes> class SyncManager 
+	template<template<typename> class TLFManager, typename... TTypes> class SyncManager
 	{
 		friend struct ManagerHelper;
 
@@ -215,7 +193,7 @@ namespace syn
 
 			using ObjBitset = std::bitset<maxObjs>;
 			//using TplBitset = ssvu::TplRepeat<ID, typeCount>;
-			
+
 			TplLFManagers lfManagers;
 			TplHandleMaps handleMaps;
 			TplIDs lastIDs;
@@ -224,7 +202,7 @@ namespace syn
 			std::array<ssvu::Func<void(ID)>, typeCount> funcsRemove;
 			std::array<ssvu::Func<void(ID)>, typeCount> funcsUpdate;
 
-			std::array<ObjBitset, typeCount> bitsetIDs;			
+			std::array<ObjBitset, typeCount> bitsetIDs;
 
 			template<typename T> inline auto& getBitsetFor() noexcept { return bitsetIDs[getTypeID<T>()]; }
 			template<typename T> inline bool isPresent(ID mID) const noexcept { return getBitsetFor<T>()[mID]; }
@@ -259,7 +237,7 @@ namespace syn
 				getLFManagerFor<T>().update(handle);
 
 				// ??
-			}	
+			}
 
 		public:
 			inline SyncManager()
@@ -327,22 +305,56 @@ namespace syn
 				funcsUpdate[mIDType](mID);
 			}
 
-			inline auto getDiffWith(const SyncManager& mX)
+			struct Diff
 			{
-				ssvj::Val result{ssvj::Arr{}};
-				auto iType(0u);
-
-				ssvu::tplFor(handleMaps, [this, iType, &result, &mX](auto& mI) mutable
+				struct DiffTypeData
 				{
-					result.emplace(ssvj::Obj{});
-					auto& jObj(result[iType]);
+					std::vector<ID> toCreate, toRemove;
+					std::map<ID, ssvj::Val> toUpdate;
 
-					jObj["create"] = ssvj::Arr{};
-					jObj["remove"] = ssvj::Arr{};
-					jObj["update"] = ssvj::Obj{};
+					inline auto toJson() const
+					{
+						using namespace ssvj;
 
-					const auto& myBitset(bitsetIDs[iType]);
-					const auto& otherBitset(mX.bitsetIDs[iType]);
+						Val result{Obj{}};
+
+						result["create"] = Arr{};
+						result["remove"] = Arr{};
+						result["update"] = Obj{};
+
+						auto& jCreate(result["create"]);
+						auto& jRemove(result["remove"]);
+						auto& jUpdate(result["update"]);
+
+						for(const auto& x : toCreate) jCreate.emplace(x);
+						for(const auto& x : toRemove) jRemove.emplace(x);
+						for(const auto& x : toUpdate) jUpdate[ssvu::toStr(x.first)] = x.second;
+
+						return result;
+					}
+				};
+
+				ssvu::TplRepeat<DiffTypeData, typeCount> diffTypeDatas;
+
+				inline auto toJson()
+				{
+					using namespace ssvj;
+
+					Val result{Arr{}};
+					ssvu::tplFor([this, &result](const auto& mI){ result.emplace(mI.toJson()); }, diffTypeDatas);
+					return result;
+				}
+			};
+
+
+			inline auto getDiffWith2(const SyncManager& mX)
+			{
+				Diff result;
+
+				ssvu::tplForIdx([this, &result, &mX](auto mIType, auto& mI, auto& dtd) mutable
+				{				
+					const auto& myBitset(bitsetIDs[mIType]);
+					const auto& otherBitset(mX.bitsetIDs[mIType]);
 
 					auto otherBitsetToCreate((~otherBitset) & myBitset);
 					auto otherBitsetToRemove((~myBitset) & otherBitset);
@@ -350,18 +362,23 @@ namespace syn
 
 					for(auto i(0u); i < maxObjs; ++i)
 					{
-						if(otherBitsetToCreate[i]) jObj["create"].emplace(i);
-						if(otherBitsetToRemove[i]) jObj["remove"].emplace(i);
-						if(otherBitsetToUpdate[i]) 
-						{
-							jObj["update"][ssvu::toStr(i)] = mI[i]->toJsonChanged();
-						}
+						if(otherBitsetToCreate[i]) dtd.toCreate.emplace_back(i);
+						if(otherBitsetToRemove[i]) dtd.toRemove.emplace_back(i);
+						if(otherBitsetToUpdate[i]) dtd.toUpdate[i] = mI[i]->toJsonChanged();
 					}
-
-					++iType;
-				});
+				}, handleMaps, result.diffTypeDatas);
 
 				return result;
+			}
+
+			inline auto getDiffWith(const SyncManager& mX)
+			{
+				return getDiffWith2(mX).toJson();
+			}
+
+			inline void applyDiff(const Diff& mX)
+			{
+
 			}
 	};
 }
@@ -374,13 +391,13 @@ struct TestPlayer : syn::SyncObj
 	std::string		// Name
 >
 {
-	public: 
+	public:
 		ProxyAt<0> x;
 		ProxyAt<1> y;
 		ProxyAt<2> health;
 		ProxyAt<3> name;
 
-		inline TestPlayer() 
+		inline TestPlayer()
 			:   x{get<0>()},
 				y{get<1>()},
 				health{get<2>()},
@@ -392,17 +409,17 @@ struct TestPlayer : syn::SyncObj
 
 struct TestEnemy : syn::SyncObj
 <
-	float,			// X
-	float,			// Y
+	float,		// X
+	float,		// Y
 	int			// Health
 >
 {
-	public: 
+	public:
 		ProxyAt<0> x;
 		ProxyAt<1> y;
 		ProxyAt<2> health;
 
-		inline TestEnemy() 
+		inline TestEnemy()
 			:   x{get<0>()},
 				y{get<1>()},
 				health{get<2>()}
@@ -430,7 +447,7 @@ template<> struct LifetimeManager<TestPlayer>
 	inline void remove(Handle mHandle)
 	{
 		ssvu::eraseRemoveIf(storage, [this, mHandle](const auto& mUPtr)
-		{ 
+		{
 			return mUPtr.get() == mHandle;
 		});
 	}
@@ -458,7 +475,7 @@ template<> struct LifetimeManager<TestEnemy>
 	inline void remove(Handle mHandle)
 	{
 		ssvu::eraseRemoveIf(storage, [this, mHandle](const auto& mUPtr)
-		{ 
+		{
 			return mUPtr.get() == mHandle;
 		});
 	}
@@ -485,6 +502,8 @@ int main()
 
 	h1->x = 100;
 	ssvu::lo() << server.getDiffWith(client) << std::endl;
+
+	//ssvu::lo() << sizeof h1->x << std::endl;
 
 	return 0;
 }
