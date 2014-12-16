@@ -104,13 +104,65 @@ namespace syn
 	DEFINE_SIMPLE_SYNCFIELDPROXY_OPERATION(>=)
 	DEFINE_SIMPLE_SYNCFIELDPROXY_OPERATION(<=)
 
+	template<typename TObj> struct SerializationHelper
+	{
+		inline static void setFromJson(const ssvj::Val& mVal, TObj& mObj)
+		{
+			ssvu::tplForIdx([&mVal, &mObj](auto mIdx, auto& mField)
+			{
+				auto key(ssvu::toStr(mIdx));
+				
+				if(mVal.has(key))
+				{
+					mField = mVal[key].template as<ssvu::RemoveAll<decltype(mField)>>();
+				}
+				
+			}, mObj.fields);
+		}
+
+		inline static auto getAllToJson(const TObj& mObj)
+		{
+			ssvj::Val result{ssvj::Obj{}};
+
+			ssvu::tplForIdx([&result, &mObj](auto mIdx, auto&& mField)
+			{
+				auto key(ssvu::toStr(mIdx));
+				result[key] = ssvu::fwd<decltype(mField)>(mField);
+
+			}, mObj.fields);
+
+			return result;
+		}
+
+		inline static auto getChangedToJson(const TObj& mObj)
+		{
+			ssvj::Val result{ssvj::Obj{}};
+
+			ssvu::tplForIdx([&result, &mObj](auto mIdx, auto&& mField)
+			{
+				if(mObj.fieldFlags[mIdx])
+				{ 
+					auto key(ssvu::toStr(mIdx));
+					result[key] = ssvu::fwd<decltype(mField)>(mField);
+				}
+
+			}, mObj.fields);
+
+			return result;
+		}
+	};
+
 	template<typename... TArgs> class SyncObj : public Impl::ObjBase
 	{
 		template<Idx, typename> friend class FieldProxy;
+		template<typename> friend struct SerializationHelper;
+
+		public:
+			using TplFields = std::tuple<TArgs...>;
 
 		private:
 			static constexpr ssvu::SizeT fieldCount{sizeof...(TArgs)};
-			std::tuple<TArgs...> fields;
+			TplFields fields;
 			std::bitset<fieldCount> fieldFlags;
 
 		public:
@@ -125,33 +177,9 @@ namespace syn
 			template<Idx TI> inline auto get() noexcept { return ProxyAt<TI>{*this}; }
 			inline void resetFlags() noexcept { fieldFlags.reset(); }
 
-			inline auto toJsonAll()
-			{
-				using namespace ssvj;
-
-				Val v{Obj{}};
-
-				ssvu::tplForIdx([&v](auto mIdx, auto&& mI)
-				{
-					v[ssvu::toStr(mIdx)] = ssvu::fwd<decltype(mI)>(mI);
-				}, fields);
-
-				return v;
-			}
-
-			inline auto toJsonChanged()
-			{
-				using namespace ssvj;
-
-				Val v{Obj{}};
-
-				ssvu::tplForIdx([this, &v](auto mIdx, auto&& mI)
-				{
-					if(fieldFlags[mIdx]) v[ssvu::toStr(mIdx)] = ssvu::fwd<decltype(mI)>(mI);
-				}, fields);
-
-				return v;
-			}
+			inline void setFromJson(const ssvj::Val& mX) { SerializationHelper<SyncObj>::setFromJson(mX, *this); }
+			inline auto toJsonAll() { return SerializationHelper<SyncObj>::getAllToJson(*this); }
+			inline auto toJsonChanged() { return SerializationHelper<SyncObj>::getChangedToJson(*this); }
 	};
 
 	struct ManagerHelper
@@ -165,9 +193,9 @@ namespace syn
 		template<typename TManager, ssvu::SizeT TI, typename T, typename... TTypes>
 		inline static void initManager(TManager& mManager)
 		{
-			mManager.funcsCreate[TI] = [&mManager](ID mID){ mManager.template createImpl<T>(mID); };
-			mManager.funcsRemove[TI] = [&mManager](ID mID){ mManager.template removeImpl<T>(mID); };
-			mManager.funcsUpdate[TI] = [&mManager](ID mID){ mManager.template updateImpl<T>(mID); };
+			mManager.funcsCreate[TI] = &TManager::template createImpl<T>;
+			mManager.funcsRemove[TI] = &TManager::template removeImpl<T>;
+			mManager.funcsUpdate[TI] = &TManager::template updateImpl<T>;
 
 			initManager<TManager, TI + 1, TTypes...>(mManager);
 		}
@@ -194,27 +222,36 @@ namespace syn
 			using ObjBitset = std::bitset<maxObjs>;
 			//using TplBitset = ssvu::TplRepeat<ID, typeCount>;
 
+			using MemFnCreate = void(SyncManager<TLFManager, TTypes...>::*)(ID, const ssvj::Val&);
+			using MemFnRemove = void(SyncManager<TLFManager, TTypes...>::*)(ID);
+			using MemFnUpdate = void(SyncManager<TLFManager, TTypes...>::*)(ID, const ssvj::Val&);
+
 			TplLFManagers lfManagers;
 			TplHandleMaps handleMaps;
 			TplIDs lastIDs;
 
-			std::array<ssvu::Func<void(ID)>, typeCount> funcsCreate;
-			std::array<ssvu::Func<void(ID)>, typeCount> funcsRemove;
-			std::array<ssvu::Func<void(ID)>, typeCount> funcsUpdate;
+			std::array<MemFnCreate, typeCount> funcsCreate;
+			std::array<MemFnRemove, typeCount> funcsRemove;
+			std::array<MemFnUpdate, typeCount> funcsUpdate;
 
 			std::array<ObjBitset, typeCount> bitsetIDs;
 
+			void testFn(int) { }
+
 			template<typename T> inline auto& getBitsetFor() noexcept { return bitsetIDs[getTypeID<T>()]; }
+			template<typename T> inline const auto& getBitsetFor() const noexcept { return bitsetIDs[getTypeID<T>()]; }
 			template<typename T> inline bool isPresent(ID mID) const noexcept { return getBitsetFor<T>()[mID]; }
 			template<typename T> inline void setPresent(ID mID, bool mX) noexcept { getBitsetFor<T>()[mID] = mX; }
 
-			template<typename T> inline void createImpl(ID mID)
+			template<typename T> inline void createImpl(ID mID, const ssvj::Val& mVal)
 			{
 				SSVU_ASSERT(!isPresent<T>(mID));
 				setPresent<T>(mID, true);
 
 				auto& handle(getHandleFor<T>(mID));
 				handle = getLFManagerFor<T>().create();
+
+				handle->setFromJson(mVal);
 
 				getHandleMapFor<T>()[mID] = handle;
 			}
@@ -229,14 +266,14 @@ namespace syn
 
 				getHandleMapFor<T>().erase(mID);
 			}
-			template<typename T> inline void updateImpl(ID mID)
+			template<typename T> inline void updateImpl(ID mID, const ssvj::Val& mVal)
 			{
 				SSVU_ASSERT(isPresent<T>(mID));
 
 				auto& handle(getHandleFor<T>(mID));
 				getLFManagerFor<T>().update(handle);
 
-				// ??
+				handle->setFromJson(mVal);
 			}
 
 		public:
@@ -278,10 +315,10 @@ namespace syn
 				//return std::get<ssvu::TplIdxOf<T, decltype(handles)>>(lastIDs);
 			//}
 
-			template<typename T> inline auto serverCreate()
+			template<typename T> inline auto serverCreate(const ssvj::Val& mVal)
 			{
 				auto createID(getFirstFreeID<T>());
-				funcsCreate[getTypeID<T>()](createID);
+				(this->*funcsCreate[getTypeID<T>()])(createID, mVal);
 				return getHandleMapFor<T>()[createID];
 			}
 
@@ -290,27 +327,27 @@ namespace syn
 
 			}
 
-			inline void onReceivedPacketCreate(ID mIDType, ID mID)
+			inline void onReceivedPacketCreate(ID mIDType, ID mID, const ssvj::Val& mVal)
 			{
-				funcsCreate[mIDType](mID);
+				(this->*funcsCreate[mIDType])(mID, mVal);
 			}
 
 			inline void onReceivedPacketRemove(ID mIDType, ID mID)
 			{
-				funcsRemove[mIDType](mID);
+				(this->*funcsRemove[mIDType])(mID);
 			}
 
-			inline void onReceivedPacketUpdate(ID mIDType, ID mID)
+			inline void onReceivedPacketUpdate(ID mIDType, ID mID, const ssvj::Val& mVal)
 			{
-				funcsUpdate[mIDType](mID);
+				(this->*funcsUpdate[mIDType])(mID, mVal);
 			}
 
 			struct Diff
 			{
 				struct DiffTypeData
 				{
-					std::vector<ID> toCreate, toRemove;
-					std::map<ID, ssvj::Val> toUpdate;
+					std::map<ID, ssvj::Val> toCreate, toUpdate;
+					std::vector<ID> toRemove;
 
 					inline auto toJson() const
 					{
@@ -318,7 +355,7 @@ namespace syn
 
 						Val result{Obj{}};
 
-						result["create"] = Arr{};
+						result["create"] = Obj{};
 						result["remove"] = Arr{};
 						result["update"] = Obj{};
 
@@ -326,7 +363,7 @@ namespace syn
 						auto& jRemove(result["remove"]);
 						auto& jUpdate(result["update"]);
 
-						for(const auto& x : toCreate) jCreate.emplace(x);
+						for(const auto& x : toCreate) jCreate[ssvu::toStr(x.first)] = x.second;
 						for(const auto& x : toRemove) jRemove.emplace(x);
 						for(const auto& x : toUpdate) jUpdate[ssvu::toStr(x.first)] = x.second;
 
@@ -346,12 +383,11 @@ namespace syn
 				}
 			};
 
-
-			inline auto getDiffWith2(const SyncManager& mX)
+			inline auto getDiffWith(const SyncManager& mX)
 			{
 				Diff result;
 
-				ssvu::tplForIdx([this, &result, &mX](auto mIType, auto& mI, auto& dtd) mutable
+				ssvu::tplForIdx([this, &result, &mX](auto mIType, auto& mI, auto& mDTD) mutable
 				{				
 					const auto& myBitset(bitsetIDs[mIType]);
 					const auto& otherBitset(mX.bitsetIDs[mIType]);
@@ -361,24 +397,29 @@ namespace syn
 					auto otherBitsetToUpdate(myBitset & otherBitset);
 
 					for(auto i(0u); i < maxObjs; ++i)
-					{
-						if(otherBitsetToCreate[i]) dtd.toCreate.emplace_back(i);
-						if(otherBitsetToRemove[i]) dtd.toRemove.emplace_back(i);
-						if(otherBitsetToUpdate[i]) dtd.toUpdate[i] = mI[i]->toJsonChanged();
+					{						
+						if(otherBitsetToCreate[i]) mDTD.toCreate[i] = mI[i]->toJsonAll();
+						if(otherBitsetToRemove[i]) mDTD.toRemove.emplace_back(i);
+						if(otherBitsetToUpdate[i]) mDTD.toUpdate[i] = mI[i]->toJsonChanged();
 					}
 				}, handleMaps, result.diffTypeDatas);
 
 				return result;
 			}
 
-			inline auto getDiffWith(const SyncManager& mX)
-			{
-				return getDiffWith2(mX).toJson();
-			}
-
 			inline void applyDiff(const Diff& mX)
 			{
+				ssvu::tplForIdx([this, &mX](auto mIType, auto& mI, auto& mDTD) mutable
+				{				
+					for(auto i(0u); i < maxObjs; ++i)
+					{
+						for(const auto& p : mDTD.toCreate) this->onReceivedPacketCreate(mIType, p.first, p.second);
+						for(auto i : mDTD.toRemove) this->onReceivedPacketRemove(mIType, i);
+						for(const auto& p : mDTD.toUpdate) this->onReceivedPacketUpdate(mIType, p.first, p.second);
 
+						
+					}
+				}, handleMaps, mX.diffTypeDatas);
 			}
 	};
 }
@@ -492,16 +533,29 @@ int main()
 	syn::SyncManager<LifetimeManager, TestPlayer, TestEnemy> server;
 	syn::SyncManager<LifetimeManager, TestPlayer, TestEnemy> client;
 
-	auto h1(server.serverCreate<TestPlayer>());
+	ssvj::Val temp{ssvj::Obj{}};
+	temp["0"] = 10.f;
+	temp["1"] = 25.f;
+	temp["2"] = 100;
+	temp["3"] = "banana";
 
-	ssvu::lo() << server.getDiffWith(client) << std::endl;
+	auto h1(server.serverCreate<TestPlayer>(temp));
+
+	ssvu::lo() << server.getDiffWith(client).toJson() << std::endl;
 	//ssvu::lo() << client.getDiffWith(server) << std::endl;
 
-	client.serverCreate<TestPlayer>();
-	ssvu::lo() << server.getDiffWith(client) << std::endl;
+	//client.serverCreate<TestPlayer>();
+	//ssvu::lo() << server.getDiffWith(client).toJson() << std::endl;
 
-	h1->x = 100;
-	ssvu::lo() << server.getDiffWith(client) << std::endl;
+	//h1->x = 100;
+	//ssvu::lo() << server.getDiffWith(client).toJson() << std::endl;
+
+	client.applyDiff(server.getDiffWith(client));
+	ssvu::lo() << server.getDiffWith(client).toJson() << std::endl;
+
+	auto h1c(client.getHandleFor<TestPlayer>(0));
+
+	ssvu::lo() << h1c->toJsonAll() << std::endl;
 
 	//ssvu::lo() << sizeof h1->x << std::endl;
 
