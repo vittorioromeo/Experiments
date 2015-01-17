@@ -5,6 +5,10 @@
 #ifndef SSVU_NEWHV_ITERATOR
 #define SSVU_NEWHV_ITERATOR
 
+#include "SSVUtils/Core/Core.hpp"
+#include "SSVUtils/Range/Range.hpp"
+#include "../../NewHV/Inc/Common.hpp"
+
 namespace ssvu
 {
 	namespace Internal

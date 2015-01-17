@@ -37,6 +37,7 @@ namespace ssvu
 			}
 			template<typename... TArgs> inline void createImpl(TArgs&&... mArgs) // noexcept(...)
 			{
+				// TODO: tuple_emplace with N parameter packs for N types 
 				// TODO: fix initialization                                  v ????
 				tsFor([this, &mArgs...](auto& mA){ mA.initAt(this->sizeNext, fwd<TArgs>(mArgs)...); });
 			}
@@ -46,9 +47,9 @@ namespace ssvu
 			}
 
 			// Utilities
-			template<typename TF> inline void tsFor(const TF& mF) { tplFor(tplArrays, mF); }
-			
-		public: 
+			template<typename TF> inline void tsFor(const TF& mF) { tplFor(mF, tplArrays); }
+
+		public:
 			inline HVMulti() { this->growCapacityBy(25); }
 			inline ~HVMulti() { this->clear(); }
 
@@ -57,7 +58,7 @@ namespace ssvu
 
 			inline auto& operator=(const HVMulti&) = delete;
 			inline auto& operator=(HVMulti&&) = delete;
-	
+
 			template<typename T> inline auto& getArrayOf() noexcept
 			{
 				SSVU_ASSERT_STATIC_NM(Internal::CTHas<T, TTs...>());
@@ -71,7 +72,7 @@ namespace ssvu
 			template<typename T> inline auto beginSingle() const noexcept 		{ return ItrSingleCPtr<T>(&getArrayOf<T>()[0]); }
 			template<typename T> inline auto endSingle() const noexcept 		{ return ItrSingleCPtr<T>(&getArrayOf<T>()[this->size]); }
 			template<typename T> inline auto endNextSingle() const noexcept		{ return ItrSingleCPtr<T>(&getArrayOf<T>()[this->sizeNext]); }
-			
+
 			template<typename T> inline auto beginSingleIdx() noexcept 			{ return ItrSingleIdx<T>(0, *this); }
 			template<typename T> inline auto endSingleIdx() noexcept 			{ return ItrSingleIdx<T>(this->size, *this); }
 			template<typename T> inline auto endNextSingleIdx() noexcept 		{ return ItrSingleIdx<T>(this->sizeNext, *this); }

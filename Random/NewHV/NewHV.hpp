@@ -8,7 +8,6 @@
 #include "SSVUtils/Core/Core.hpp"
 #include "SSVUtils/Range/Range.hpp"
 #include "SSVUtils/GrowableArray/GrowableArray.hpp"
-//#include "SSVUtils/HandleVector/Internal/Common.hpp"
 #include "SSVUtils/UnionVariant/Internal/CTUtils.hpp"
 #include "SSVUtils/Internal/SharedFuncs.hpp"
 
@@ -16,18 +15,19 @@
 #include "../NewHV/Inc/Fwd.hpp"
 #include "../NewHV/Inc/Mark.hpp"
 #include "../NewHV/Inc/Stat.hpp"
-#include "../NewHV/Inc/HandleBase.hpp"
-#include "../NewHV/Inc/HandleSingle.hpp"
-#include "../NewHV/Inc/HandleMulti.hpp"
+#include "../NewHV/Inc/Handle/HandleBase.hpp"
+#include "../NewHV/Inc/Handle/HandleSingle.hpp"
+#include "../NewHV/Inc/Handle/HandleMulti.hpp"
 #include "../NewHV/Inc/Iterator.hpp"
-#include "../NewHV/Inc/HVImpl.hpp"
-#include "../NewHV/Inc/HVSingle.hpp"
-#include "../NewHV/Inc/HVMulti.hpp"
+#include "../NewHV/Inc/HV/HVImpl.hpp"
+#include "../NewHV/Inc/HV/HVSingle.hpp"
+#include "../NewHV/Inc/HV/HVMulti.hpp"
+
+#include "../NewHV/Inc/Handle/HandleBase.inl"
 
 #if defined(SSVU_API_HEADERONLY)
-	
+	#include "../NewHV/Src/Mark.cpp"
+	#include "../NewHV/Src/Stat.cpp"
 #endif
-
-#include "../NewHV/Src/HandleBase.inl"
 
 #endif

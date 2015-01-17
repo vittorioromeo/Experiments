@@ -5,9 +5,14 @@
 #ifndef SSVU_NEWHV_COMMON
 #define SSVU_NEWHV_COMMON
 
+#include "SSVUtils/Core/Core.hpp"
+
 namespace ssvu
 {
+	/// @brief Type used for handle indices.
 	using HIdx = SizeT;
+
+	/// @brief Type used for handle control counters.
 	using HCtr = int;	
 }
 

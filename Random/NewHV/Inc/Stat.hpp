@@ -5,6 +5,8 @@
 #ifndef SSVU_NEWHV_STAT
 #define SSVU_NEWHV_STAT
 
+#include "../../NewHV/Inc/Common.hpp"
+
 namespace ssvu
 {
 	namespace Internal
@@ -15,7 +17,7 @@ namespace ssvu
 			HIdx markIdx;
 			bool alive{false};
 
-			inline HVStat(HIdx mMarkIdx) noexcept : markIdx{mMarkIdx} { }
+			HVStat(HIdx mMarkIdx) noexcept;
 		};
 	}
 }

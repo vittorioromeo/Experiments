@@ -148,7 +148,7 @@ namespace ssvu
 				inline auto& getMarks() noexcept				{ return marks; }
 				inline const auto& getMarks() const noexcept	{ return marks; }
 
-				inline bool isAliveAt(SizeT mI) const noexcept	{ return stats[mI].alive; }		
+				inline bool isAliveAt(SizeT mI) const noexcept	{ return stats[mI].alive; }
 		};
 	}
 }
