@@ -40,6 +40,10 @@ namespace ssvu
 				// TODO: tuple_emplace with N parameter packs for N types 
 				// TODO: fix initialization                                  v ????
 				tsFor([this, &mArgs...](auto& mA){ mA.initAt(this->sizeNext, fwd<TArgs>(mArgs)...); });
+
+				// TODO: instead of passing margs, pass a single tuple argument that contains N tuples containing the 
+				// parameters used to initialize every single type
+				// basically, a tuple of tuples 
 			}
 			template<typename T> inline auto& getItemFromMark(HIdx mMarkIdx) noexcept
 			{
