@@ -7,16 +7,11 @@ namespace ssvu
 	{
 		template<typename...> struct List;
 
-		namespace Internal
-		{
-			struct NullType { };
-		}
-
-		using Null = typename Internal::NullType;
+		struct Null { };
 		template<bool TCond> using BoolResult = Conditional<TCond, std::true_type, std::false_type>;
 
-		template<int TN1, int TN2> inline constexpr int getMin() noexcept		{ return TN1 < TN2 ? TN1 : TN2; }
-		template<int TN1, int TN2> inline constexpr int getMax() noexcept		{ return TN1 > TN2 ? TN1 : TN2; }
+		template<int TN1, int TN2> inline constexpr int getMin() noexcept	{ return TN1 < TN2 ? TN1 : TN2; }
+		template<int TN1, int TN2> inline constexpr int getMax() noexcept	{ return TN1 > TN2 ? TN1 : TN2; }
 
 		namespace Internal
 		{
@@ -55,22 +50,22 @@ namespace ssvu
 			template<> struct PopBackHelper<List<>> { using Type = List<>; };
 
 			// List::SubList
-			template<std::size_t, std::size_t, std::size_t, typename, typename, typename> struct SubListImpl;
-			template<std::size_t, std::size_t, std::size_t, typename, typename> struct SubListDispatch;
-			template<std::size_t TS1, std::size_t TS2, std::size_t TSC, typename... TLA1s, typename... TLA2s> struct SubListImpl<TS1, TS2, TSC, List<TLA1s...>, List<TLA2s...>, std::false_type>
+			template<SizeT, SizeT, SizeT, typename, typename, typename> struct SubListImpl;
+			template<SizeT, SizeT, SizeT, typename, typename> struct SubListDispatch;
+			template<SizeT TS1, SizeT TS2, SizeT TSC, typename... TLA1s, typename... TLA2s> struct SubListImpl<TS1, TS2, TSC, List<TLA1s...>, List<TLA2s...>, std::false_type>
 			{
 				using Type = typename SubListDispatch<TS1, TS2, TSC + 1, List<TLA1s...>, typename List<TLA2s...>::template PushBack<typename List<TLA1s...>::template Elem<TSC>>>::Type;
 			};
-			template<std::size_t TS1, std::size_t TS2, std::size_t TSC, typename... TLA1s, typename... TLA2s> struct SubListImpl<TS1, TS2, TSC, List<TLA1s...>, List<TLA2s...>, std::true_type>
+			template<SizeT TS1, SizeT TS2, SizeT TSC, typename... TLA1s, typename... TLA2s> struct SubListImpl<TS1, TS2, TSC, List<TLA1s...>, List<TLA2s...>, std::true_type>
 			{
 				using Type = List<TLA2s...>;
 			};
-			template<std::size_t TS1, std::size_t TS2, std::size_t TSC, typename TL1, typename TL2> struct SubListDispatch
+			template<SizeT TS1, SizeT TS2, SizeT TSC, typename TL1, typename TL2> struct SubListDispatch
 			{
 				using Type = typename SubListImpl<TS1, TS2, TSC, TL1, TL2, BoolResult<TSC == TS2 || TSC >= TL1::getSize()>>::Type;
 			};
-			template<std::size_t, std::size_t, std::size_t, typename> struct SubListHelper;
-			template<std::size_t TS1, std::size_t TS2, std::size_t TSC, typename... TLAs> struct SubListHelper<TS1, TS2, TSC, List<TLAs...>>
+			template<SizeT, SizeT, SizeT, typename> struct SubListHelper;
+			template<SizeT TS1, SizeT TS2, SizeT TSC, typename... TLAs> struct SubListHelper<TS1, TS2, TSC, List<TLAs...>>
 			{
 				using Type = typename SubListDispatch<TS1, TS2, TSC, List<TLAs...>, List<>>::Type;
 			};
@@ -81,10 +76,10 @@ namespace ssvu
 			using Head = Internal::VAHead<TArgs...>;
 			using Tail = Internal::VATail<TArgs...>;
 
-			inline static constexpr std::size_t getSize() noexcept { return sizeof...(TArgs); }
+			inline static constexpr SizeT getSize() noexcept { return sizeof...(TArgs); }
 
-			template<std::size_t TS> using Elem = std::tuple_element_t<TS, std::tuple<TArgs...>>;
-			template<std::size_t TS> using ElemReverse = Elem<getSize() - 1 - TS>;
+			template<SizeT TS> using Elem = std::tuple_element_t<TS, std::tuple<TArgs...>>;
+			template<SizeT TS> using ElemReverse = Elem<getSize() - 1 - TS>;
 
 			template<typename T> using PushBack = List<TArgs..., T>;
 			template<typename T> using PushFront = List<T, TArgs...>;
@@ -92,7 +87,7 @@ namespace ssvu
 			using PopBack = typename Internal::PopBackHelper<List<TArgs...>>::Type;
 			using PopFront = typename Internal::PopFrontHelper<List<TArgs...>>::Type;
 
-			template<std::size_t TS1, std::size_t TS2> using SubList = typename Internal::SubListHelper<TS1, TS2, TS1, List<TArgs...>>::Type;
+			template<SizeT TS1, SizeT TS2> using SubList = typename Internal::SubListHelper<TS1, TS2, TS1, List<TArgs...>>::Type;
 
 			using Clear = List<>;
 

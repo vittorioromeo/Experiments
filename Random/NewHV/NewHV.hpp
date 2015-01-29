@@ -5,6 +5,8 @@
 #ifndef SSVU_NEWHV
 #define SSVU_NEWHV
 
+#define SSVU_API_HEADERONLY 1
+
 #include "SSVUtils/Core/Core.hpp"
 #include "SSVUtils/Range/Range.hpp"
 #include "SSVUtils/GrowableArray/GrowableArray.hpp"

@@ -28,7 +28,7 @@ template<bool TFmt, typename TN> inline void printNode(std::ostream& mStream, TN
 		printNode<TFmt>(mStream, *(mValue.getChildren().at(i)), mDepth + 1);
 		if(i == mValue.getChildren().size() - 1)
 		{
-			for(auto i(0u); i < mDepth + 1; ++i) callStringifyImpl<TFmt>(mStream, "|\t");
+			for(auto j(0u); j < mDepth + 1; ++j) callStringifyImpl<TFmt>(mStream, "|\t");
 			callStringifyImpl<TFmt>(mStream, "\n");
 		}
 	}
