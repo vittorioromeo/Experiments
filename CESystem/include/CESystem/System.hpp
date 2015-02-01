@@ -17,9 +17,9 @@ namespace ssvces
 		template<typename TPReq, typename TPArgs> struct ExpHelper;
 		template<template<typename...> class TPReq, typename... TP1, template<typename...> class TPArgs, typename... TP2> struct ExpHelper<TPReq<TP1...>, TPArgs<TP2...>>
 		{
-			template<typename TS> inline static void processImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)	{ mSystem.process(*mArgs1..., ssvu::fwd<TP2>(mArgs2)...); }
-			template<typename TS> inline static void addedImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)		{ Internal::callAdded(mSystem, *mArgs1..., ssvu::fwd<TP2>(mArgs2)...); }
-			template<typename TS> inline static void removedImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)	{ Internal::callRemoved(mSystem, *mArgs1..., ssvu::fwd<TP2>(mArgs2)...); }
+			template<typename TS> inline static void processImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)	{ mSystem.process(*mArgs1..., SSVU_FWD(mArgs2)...); }
+			template<typename TS> inline static void addedImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)		{ Internal::callAdded(mSystem, *mArgs1..., SSVU_FWD(mArgs2)...); }
+			template<typename TS> inline static void removedImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)	{ Internal::callRemoved(mSystem, *mArgs1..., SSVU_FWD(mArgs2)...); }
 		};
 	}
 
@@ -69,7 +69,7 @@ namespace ssvces
 			inline System() noexcept : SystemBase{TReq::getTypeIds(), TNot::getTypeIds()} { }
 			template<typename... TArgs> inline void processAll(TArgs&&... mArgs)
 			{
-				for(auto& t : tuples) TReq::onProcess(getTD(), t, std::make_tuple(ssvu::fwd<TArgs>(mArgs)...));
+				for(auto& t : tuples) TReq::onProcess(getTD(), t, std::make_tuple(SSVU_FWD(mArgs)...));
 			}
 	};
 }
