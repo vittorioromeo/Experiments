@@ -40,7 +40,7 @@ namespace ssvces
 	using ComponentRecycler = ssvu::PolyFixedRecycler<Component, maxComponents>;
 	using ComponentRecyclerPtr = ComponentRecycler::PtrType;
 
-	namespace Internal
+	namespace Impl
 	{
 		class SystemBase;
 
@@ -73,7 +73,7 @@ namespace ssvces
 		SSVU_DEFINE_MEMFN_CALLER(callRemoved, removed, void(TArgs...))	// `callRemoved(...)` only calls `T::removed` if it exists
 
 		// Shortcut to get the static Bitset of a pack of Component types
-		template<typename... TArgs> inline const TypeIdxBitset& getTypeIdxBitset() noexcept { static TypeIdxBitset bitset{Internal::getBuildBitset<TArgs...>()}; return bitset; }
+		template<typename... TArgs> inline const TypeIdxBitset& getTypeIdxBitset() noexcept { static TypeIdxBitset bitset{Impl::getBuildBitset<TArgs...>()}; return bitset; }
 
 		// Returns whether the first bitset contains all the value of the second one
 		inline bool containsAll(const TypeIdxBitset& mA, const TypeIdxBitset& mB) noexcept { return (mA & mB) == mB; }

@@ -6,7 +6,7 @@
 template<bool TFmt, typename TN> inline void printNode(std::ostream& mStream, TN& mValue, std::size_t mDepth)
 {
 	using namespace ssvu;
-	using namespace ssvu::Internal;
+	using namespace ssvu::Impl;
 
 	for(auto i(0u); i < mDepth; ++i) callStringifyImpl<TFmt>(mStream, "|\t");
 

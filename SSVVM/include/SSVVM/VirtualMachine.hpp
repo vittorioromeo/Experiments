@@ -7,7 +7,7 @@
 
 namespace ssvvm
 {
-	namespace Internal
+	namespace Impl
 	{
 		template<std::size_t TRegistrySize, bool TDebug> class VMImpl
 		{
@@ -499,7 +499,7 @@ namespace ssvvm
 		};
 	}
 
-	class VirtualMachine : public Internal::VMImpl<6, true> { };
+	class VirtualMachine : public Impl::VMImpl<6, true> { };
 }
 
 #endif

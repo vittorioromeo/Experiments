@@ -16,12 +16,12 @@ namespace ssvces
 			EntityRecycler entityRecycler;
 			ComponentRecycler componentRecycler;
 
-			Internal::IdPool entityIdPool;
-			std::vector<Internal::SystemBase*> systems;
+			Impl::IdPool entityIdPool;
+			std::vector<Impl::SystemBase*> systems;
 			std::vector<EntityRecyclerPtr> entities;
 			std::array<std::vector<Entity*>, maxGroups> grouped;
 
-			inline auto& create(Manager& mManager, Internal::IdPool& mIdPool)
+			inline auto& create(Manager& mManager, Impl::IdPool& mIdPool)
 			{
 				return entityRecycler.getCreateEmplace(entities, mManager, mIdPool.getAvailable());
 			}
@@ -49,7 +49,7 @@ namespace ssvces
 					if(e.mustDestroy) continue;
 					if(e.mustRematch)
 					{
-						for(auto& s : systems) if(Internal::matchesSystem(e.typeIds, *s)) s->registerEntity(e);
+						for(auto& s : systems) if(Impl::matchesSystem(e.typeIds, *s)) s->registerEntity(e);
 						e.mustRematch = false;
 					}
 
@@ -61,7 +61,7 @@ namespace ssvces
 			inline EntityHandle createEntity() { return {create(*this, entityIdPool)}; }
 			template<typename T> inline void registerSystem(T& mSystem)
 			{
-				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Internal::SystemBase, T>(), "`T` must derive from `SystemBase`");
+				SSVU_ASSERT_STATIC(ssvu::isBaseOf<Impl::SystemBase, T>(), "`T` must derive from `SystemBase`");
 				systems.emplace_back(&mSystem);
 			}
 
@@ -84,7 +84,7 @@ namespace ssvces
 			inline std::size_t getComponentCount() const noexcept			{ std::size_t result{0}; for(auto& e : getEntities()) result += e->componentCount; return result; }
 	};
 
-	namespace Internal
+	namespace Impl
 	{
 		inline bool matchesSystem(const TypeIdxBitset& mTypeIds, const SystemBase& mSystem) noexcept
 		{

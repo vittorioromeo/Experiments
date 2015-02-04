@@ -7,7 +7,7 @@
 
 namespace ssvces
 {
-	namespace Internal
+	namespace Impl
 	{
 		class SystemBase
 		{

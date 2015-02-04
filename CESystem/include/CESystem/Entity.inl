@@ -12,8 +12,8 @@ namespace ssvces
 		SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "`T` must derive from `Component`");
 		SSVU_ASSERT(!hasComponent<T>() && componentCount <= maxComponents);
 
-		components[Internal::getTypeIdx<T>()] = manager.componentRecycler.create<T>(SSVU_FWD(mArgs)...);
-		typeIds[Internal::getTypeIdx<T>()] = true;
+		components[Impl::getTypeIdx<T>()] = manager.componentRecycler.create<T>(SSVU_FWD(mArgs)...);
+		typeIds[Impl::getTypeIdx<T>()] = true;
 		++componentCount;
 
 		mustRematch = true;
@@ -23,8 +23,8 @@ namespace ssvces
 		SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "`T` must derive from `Component`");
 		SSVU_ASSERT(hasComponent<T>() && componentCount > 0);
 
-		components[Internal::getTypeIdx<T>()].reset();
-		typeIds[Internal::getTypeIdx<T>()] = false;
+		components[Impl::getTypeIdx<T>()].reset();
+		typeIds[Impl::getTypeIdx<T>()] = false;
 		--componentCount;
 
 		mustRematch = true;

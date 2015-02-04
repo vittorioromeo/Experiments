@@ -7,7 +7,7 @@
 
 namespace ssvut
 {
-	namespace Internal
+	namespace Impl
 	{
 		template<typename TGraph> class GraphLink : public TGraph::StorageLinkBase
 		{
@@ -68,11 +68,11 @@ namespace ssvut
 		};
 	}
 
-	template<typename TNode, typename TLink, template<typename> class TStorage = Internal::GraphStorageFreeStore> class Graph
+	template<typename TNode, typename TLink, template<typename> class TStorage = Impl::GraphStorageFreeStore> class Graph
 	{
 		public:
-			using Node = Internal::GraphNode<Graph>;
-			using Link = Internal::GraphLink<Graph>;
+			using Node = Impl::GraphNode<Graph>;
+			using Link = Impl::GraphLink<Graph>;
 			using NodeDerived = TNode;
 			using LinkDerived = TLink;
 			using Storage = TStorage<Graph>;

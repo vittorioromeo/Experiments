@@ -7,7 +7,7 @@
 
 namespace ssvvm
 {
-	namespace Internal
+	namespace Impl
 	{
 		template<std::size_t TIdx, typename TArg, typename T> inline static void makeParamsTuple(T& mTpl, const Params& mParams) { std::get<TIdx>(mTpl) = mParams[TIdx].template get<TArg>(); }
 		template<std::size_t TIdx, typename TArg1, typename TArg2, typename... TArgs, typename T> inline static void makeParamsTuple(T& mTpl, const Params& mParams)
@@ -63,13 +63,13 @@ namespace ssvvm
 		private:
 			VMVal returnType;
 			std::array<VMVal, Params::valueCount> paramTypes;
-			ssvu::UPtr<Internal::CFunctionBase> cFunction;
+			ssvu::UPtr<Impl::CFunctionBase> cFunction;
 
 		public:
 			template<typename TReturn, typename... TArgs> inline BoundFunction(TReturn(*mFnPtr)(TArgs...))
-				: returnType{getVMVal<TReturn>()}, cFunction{ssvu::UPtr<Internal::CFunctionBase>(new Internal::CFunction<TReturn(TArgs...)>(mFnPtr))}
+				: returnType{getVMVal<TReturn>()}, cFunction{ssvu::UPtr<Impl::CFunctionBase>(new Impl::CFunction<TReturn(TArgs...)>(mFnPtr))}
 			{
-				Internal::bfArrayFillHelper<0, TArgs...>(paramTypes);
+				Impl::bfArrayFillHelper<0, TArgs...>(paramTypes);
 			}
 
 			inline Value call(const Params& mParams) { return cFunction->call(mParams); }
