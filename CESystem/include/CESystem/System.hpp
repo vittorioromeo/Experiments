@@ -7,42 +7,42 @@
 
 namespace ssvces
 {
-	namespace Internal
+	namespace Impl
 	{
 		template<typename... TArgs> struct Filter
 		{
-			static constexpr const TypeIdxBitset& getTypeIds() noexcept { return Internal::getTypeIdxBitset<TArgs...>(); }
+			static constexpr const TypeIdxBitset& getTypeIds() noexcept { return Impl::getTypeIdxBitset<TArgs...>(); }
 		};
 
 		template<typename TPReq, typename TPArgs> struct ExpHelper;
 		template<template<typename...> class TPReq, typename... TP1, template<typename...> class TPArgs, typename... TP2> struct ExpHelper<TPReq<TP1...>, TPArgs<TP2...>>
 		{
 			template<typename TS> inline static void processImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)	{ mSystem.process(*mArgs1..., SSVU_FWD(mArgs2)...); }
-			template<typename TS> inline static void addedImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)		{ Internal::callAdded(mSystem, *mArgs1..., SSVU_FWD(mArgs2)...); }
-			template<typename TS> inline static void removedImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)	{ Internal::callRemoved(mSystem, *mArgs1..., SSVU_FWD(mArgs2)...); }
+			template<typename TS> inline static void addedImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)		{ Impl::callAdded(mSystem, *mArgs1..., SSVU_FWD(mArgs2)...); }
+			template<typename TS> inline static void removedImpl(TS& mSystem, TP1... mArgs1, TP2&&... mArgs2)	{ Impl::callRemoved(mSystem, *mArgs1..., SSVU_FWD(mArgs2)...); }
 		};
 	}
 
-	template<typename... TArgs> struct Req : public Internal::Filter<TArgs...>
+	template<typename... TArgs> struct Req : public Impl::Filter<TArgs...>
 	{
 		using TplType = std::tuple<Entity*, TArgs*...>;
 		inline static TplType createTuple(Entity& mEntity) { return std::tuple_cat(std::make_tuple(&mEntity), buildComponentsTpl<TArgs...>(mEntity)); }
 		template<typename TS, typename TT1, typename TT2> inline static void onProcess(TS& mSystem, TT1 mTpl1, TT2 mTpl2)
 		{
-			ssvu::explode(&Internal::ExpHelper<TT1, TT2>::template processImpl<TS>, std::tuple_cat(std::tuple<TS&>(mSystem), mTpl1, mTpl2));
+			ssvu::explode(&Impl::ExpHelper<TT1, TT2>::template processImpl<TS>, std::tuple_cat(std::tuple<TS&>(mSystem), mTpl1, mTpl2));
 		}
 		template<typename TS, typename TT> inline static void onAdded(TS& mSystem, TT mTpl)
 		{
-			ssvu::explode(&Internal::ExpHelper<TT, std::tuple<>>::template addedImpl<TS>, std::tuple_cat(std::tuple<TS&>(mSystem), mTpl));
+			ssvu::explode(&Impl::ExpHelper<TT, std::tuple<>>::template addedImpl<TS>, std::tuple_cat(std::tuple<TS&>(mSystem), mTpl));
 		}
 		template<typename TS, typename TT> inline static void onRemoved(TS& mSystem, TT mTpl)
 		{
-			ssvu::explode(&Internal::ExpHelper<TT, std::tuple<>>::template removedImpl<TS>, std::tuple_cat(std::tuple<TS&>(mSystem), mTpl));
+			ssvu::explode(&Impl::ExpHelper<TT, std::tuple<>>::template removedImpl<TS>, std::tuple_cat(std::tuple<TS&>(mSystem), mTpl));
 		}
 	};
-	template<typename... TArgs> struct Not : public Internal::Filter<TArgs...> { };
+	template<typename... TArgs> struct Not : public Impl::Filter<TArgs...> { };
 
-	template<typename TDerived, typename TReq, typename TNot = Not<>> class System : public Internal::SystemBase
+	template<typename TDerived, typename TReq, typename TNot = Not<>> class System : public Impl::SystemBase
 	{
 		private:
 			using Tpl = typename TReq::TplType;

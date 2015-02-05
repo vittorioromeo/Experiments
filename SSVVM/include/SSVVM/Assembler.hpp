@@ -7,7 +7,7 @@
 
 namespace ssvvm
 {
-	namespace Internal
+	namespace Impl
 	{
 		struct InstructionTemplate
 		{
@@ -177,13 +177,13 @@ namespace ssvvm
 		{
 			ssvu::lo(instructionIdx++) << i.identifier << " " << i.args << "\n";
 
-			if(!Internal::hasInstructionTemplate(i.identifier))
+			if(!Impl::hasInstructionTemplate(i.identifier))
 			{
 				ssvu::lo("ASSEMBLER ERROR") << "No OpCode with name '" << i.identifier << "'\n";
 				throw;
 			}
 
-			auto& it(Internal::getInstructionTemplate(i.identifier));
+			auto& it(Impl::getInstructionTemplate(i.identifier));
 
 			if(it.requiredArgs != i.args.size())
 			{

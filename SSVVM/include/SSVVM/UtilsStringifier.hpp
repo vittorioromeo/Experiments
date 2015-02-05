@@ -13,20 +13,20 @@ namespace ssvu
 		{
 			if(mValue.getType() == ssvvm::VMVal::Void)
 			{
-				Internal::printBold<TFmt>(mStream, "VOID[");
+				Impl::printBold<TFmt>(mStream, "VOID[");
 			}
 			else if(mValue.getType() == ssvvm::VMVal::Int)
 			{
-				Internal::printBold<TFmt>(mStream, "INT[");
-				Internal::callStringifyImpl<TFmt>(mStream, mValue.get<int>());
+				Impl::printBold<TFmt>(mStream, "INT[");
+				Impl::callStringifyImpl<TFmt>(mStream, mValue.get<int>());
 			}
 			else if(mValue.getType() == ssvvm::VMVal::Float)
 			{
-				Internal::printBold<TFmt>(mStream, "FLOAT[");
-				Internal::callStringifyImpl<TFmt>(mStream, mValue.get<float>());
+				Impl::printBold<TFmt>(mStream, "FLOAT[");
+				Impl::callStringifyImpl<TFmt>(mStream, mValue.get<float>());
 			}
 
-			Internal::printBold<TFmt>(mStream, "]");
+			Impl::printBold<TFmt>(mStream, "]");
 		}
 	};
 }

@@ -9,12 +9,12 @@ namespace Eng
 {
 	using NodeTID = std::size_t;
 
-	namespace Internal
+	namespace Impl
 	{
 		inline NodeTID getNextNodeTID() noexcept { static NodeTID lastId{0}; return lastId++; }
 	}
 
-	template<typename T> inline const NodeTID& getNodeTID() noexcept { static NodeTID id{Internal::getNextNodeTID()}; return id; }
+	template<typename T> inline const NodeTID& getNodeTID() noexcept { static NodeTID id{Impl::getNextNodeTID()}; return id; }
 
 	template<typename TTokenType, typename TTokenData> struct LangSpec
 	{
