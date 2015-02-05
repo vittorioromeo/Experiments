@@ -37,7 +37,7 @@ namespace ssvvm
 			inline CFunction(Ptr mPtr) noexcept : ptr{mPtr} { }
 			inline Value call(const Params& mParams) override
 			{
-				std::tuple<TArgs...> paramsTuple;
+				ssvu::Tpl<TArgs...> paramsTuple;
 				makeParamsTuple<0, TArgs...>(paramsTuple, mParams);
 				return ssvu::explode(*ptr, paramsTuple);
 			}
@@ -50,7 +50,7 @@ namespace ssvvm
 			inline CFunction(Ptr mPtr) noexcept : ptr{mPtr} { }
 			inline Value call(const Params& mParams) override
 			{
-				std::tuple<TArgs...> paramsTuple;
+				ssvu::Tpl<TArgs...> paramsTuple;
 				makeParamsTuple<0, TArgs...>(paramsTuple, mParams);
 				ssvu::explode(*ptr, paramsTuple);
 				return {};

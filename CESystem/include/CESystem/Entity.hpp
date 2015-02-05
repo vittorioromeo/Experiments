@@ -61,10 +61,10 @@ namespace ssvces
 			inline const GroupBitset& getGroups() const noexcept				{ return groups; }
 	};
 
-	template<typename T> inline constexpr std::tuple<T*> buildComponentsTpl(Entity& mEntity) { return std::tuple<T*>{&mEntity.getComponent<T>()}; }
-	template<typename T1, typename T2, typename... TArgs> inline constexpr std::tuple<T1*, T2*, TArgs*...> buildComponentsTpl(Entity& mEntity)
+	template<typename T> inline constexpr Tpl<T*> buildComponentsTpl(Entity& mEntity) { return Tpl<T*>{&mEntity.getComponent<T>()}; }
+	template<typename T1, typename T2, typename... TArgs> inline constexpr Tpl<T1*, T2*, TArgs*...> buildComponentsTpl(Entity& mEntity)
 	{
-		return std::tuple_cat(buildComponentsTpl<T1>(mEntity), buildComponentsTpl<T2, TArgs...>(mEntity));
+		return ssvu::tplCat(buildComponentsTpl<T1>(mEntity), buildComponentsTpl<T2, TArgs...>(mEntity));
 	}
 }
 

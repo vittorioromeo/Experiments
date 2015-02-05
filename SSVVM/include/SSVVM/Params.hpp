@@ -12,7 +12,7 @@ namespace ssvvm
 		template<std::size_t TIdx, typename TArg, typename T> inline void arrayFillHelper(T& mArray, const TArg& mArg) { mArray[TIdx] = Value::create<TArg>(mArg); }
 		template<std::size_t TIdx, typename TArg, typename... TArgs, typename T> inline void arrayFillHelper(T& mArray, const TArg& mArg, const TArgs&... mArgs)
 		{
-			arrayFillHelper<TIdx>(mArray, mArg); arrayFillHelper<TIdx + 1>(mArray, SSVU_FWD(mArgs)...);
+			arrayFillHelper<TIdx>(mArray, mArg); arrayFillHelper<TIdx + 1>(mArray, FWD(mArgs)...);
 		}
 	}
 

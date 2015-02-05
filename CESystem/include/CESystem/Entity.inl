@@ -12,7 +12,7 @@ namespace ssvces
 		SSVU_ASSERT_STATIC(ssvu::isBaseOf<Component, T>(), "`T` must derive from `Component`");
 		SSVU_ASSERT(!hasComponent<T>() && componentCount <= maxComponents);
 
-		components[Impl::getTypeIdx<T>()] = manager.componentRecycler.create<T>(SSVU_FWD(mArgs)...);
+		components[Impl::getTypeIdx<T>()] = manager.componentRecycler.create<T>(FWD(mArgs)...);
 		typeIds[Impl::getTypeIdx<T>()] = true;
 		++componentCount;
 

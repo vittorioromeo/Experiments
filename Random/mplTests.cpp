@@ -84,7 +84,7 @@ namespace ssvu
 			{
 				using Type = List<Ts1..., Ts2...>;
 			};
-			
+
 			template<typename, typename> struct PrependHlpr;
 			template<typename... Ts1, typename... Ts2> struct PrependHlpr<List<Ts1...>, List<Ts2...>>
 			{
@@ -124,10 +124,10 @@ namespace ssvu
 			// TODO: insert
 		};
 
-		
+
 		namespace Impl
 		{
-		
+
 			/*
 			template<typename... Ts> struct UniqueHlpr
 			{
@@ -145,8 +145,8 @@ namespace ssvu
 				using UniqueList = List<T>;
 			};
 			*/
-		}	
-		
+		}
+
 	}
 }
 
@@ -217,7 +217,7 @@ int main()
 	SSVU_ASSERT_STATIC_NM(isSame<List<int, float>::Prepend<List<>>, List<int, float>>());
 	SSVU_ASSERT_STATIC_NM(isSame<List<>::Prepend<List<int, float>>, List<int, float>>());
 
-	SSVUT_RUN();	
+	SSVUT_RUN();
 	return 0;
 
 }

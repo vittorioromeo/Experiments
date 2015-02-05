@@ -29,12 +29,12 @@ namespace ssvut
 			public:
 				template<typename... TArgs> inline void linkToSelf(TArgs&&... mArgs)
 				{
-					TGraph::StorageNodeBase::emplaceLink(TGraph::StorageNodeBase::getNodePtr(this), SSVU_FWD(mArgs)...);
+					TGraph::StorageNodeBase::emplaceLink(TGraph::StorageNodeBase::getNodePtr(this), FWD(mArgs)...);
 				}
 				template<typename... TArgs> inline void linkTo(const NodePtr& mNode, TArgs&&... mArgs)
 				{
 					SSVU_ASSERT(TGraph::isNodeValid(mNode));
-					TGraph::StorageNodeBase::emplaceLink(mNode, SSVU_FWD(mArgs)...);
+					TGraph::StorageNodeBase::emplaceLink(mNode, FWD(mArgs)...);
 				}
 
 				inline const decltype(TGraph::StorageNodeBase::links)& getLinks() const	{ return TGraph::StorageNodeBase::links; }
@@ -50,7 +50,7 @@ namespace ssvut
 			struct NodeBase
 			{
 				std::vector<LinkDerived> links;
-				template<typename... TArgs> inline void emplaceLink(TArgs&&... mArgs) { links.emplace_back(SSVU_FWD(mArgs)...); }
+				template<typename... TArgs> inline void emplaceLink(TArgs&&... mArgs) { links.emplace_back(FWD(mArgs)...); }
 				inline static NodePtr getNodePtr(GraphNode<TGraph>* mNode) noexcept { return ssvu::castUp<NodeDerived>(mNode); }
 			};
 			struct LinkBase { };
@@ -63,7 +63,7 @@ namespace ssvut
 			template<typename... TArgs> inline NodePtr createNode(TArgs&&... mArgs)
 			{
 				SSVU_ASSERT_STATIC(ssvu::isBaseOf<GraphNode<TGraph>, NodeDerived>(), "TNode must be derived from Graph::Node");
-				return &ssvu::getEmplaceUPtr<NodeDerived>(nodes, SSVU_FWD(mArgs)...);
+				return &ssvu::getEmplaceUPtr<NodeDerived>(nodes, FWD(mArgs)...);
 			}
 		};
 	}
@@ -90,7 +90,7 @@ namespace ssvut
 		protected:
 			template<typename... TArgs> inline NodePtr createNode(TArgs&&... mArgs)
 			{
-				auto result(storage.createNode(SSVU_FWD(mArgs)...));
+				auto result(storage.createNode(FWD(mArgs)...));
 				nodes.emplace_back(result); return result;
 			}
 

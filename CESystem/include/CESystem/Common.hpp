@@ -5,6 +5,9 @@
 #ifndef CESYSTEM_COMMON
 #define CESYSTEM_COMMON
 
+#include <SSVUtils/SSVUtils.hpp>
+#include <SSVStart/SSVStart.hpp>
+
 namespace ssvces
 {
 	// Component class declaration and definition
@@ -39,6 +42,9 @@ namespace ssvces
 	using EntityRecyclerPtr = EntityRecycler::PtrType;
 	using ComponentRecycler = ssvu::PolyFixedRecycler<Component, maxComponents>;
 	using ComponentRecyclerPtr = ComponentRecycler::PtrType;
+
+	// Aliases
+	template<typename... Ts> using Tpl = ssvu::Tpl<Ts...>;
 
 	namespace Impl
 	{
