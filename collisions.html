@@ -1,0 +1,199 @@
+<body></body>
+<script>
+var canvas = document.createElement("canvas");
+var ctx = canvas.getContext("2d");
+
+canvas.width = 640;
+canvas.height = 400;
+canvas.style.border = "thin solid black";
+canvas.style.background = "#263248";
+
+var boxes = [];
+var player = createAABB(250, 175, 8, 12);
+
+boxes.push(player);
+
+var level = "xxxxxxxxxxxxx     xxxxxxxxxxxxx  xxxxxxx" +
+            "xxxxxxxxx          xxxxxxxxx     xxxxxxx" +
+            "xxxxx        xx    xxxxxxx         xxxxx" +
+            "xxx          xxx    xxxxxxx         xxxx" +
+            "xx     xxx          xxxxxxxxxx      xxxx" +
+            "xx   xxxxxx         xxxxxxx      x  xxxx" +
+            "xxx                xxxxxxx           xxx" +
+            "xxxxxxxxxxxxx     xxxxxxxxx  xx       xx" +
+            "xxxxxxxxxxxxxx    xxxxxxxxxx         xxx" +
+            "xxxxxxx          xxxxxxxxxxxx   x     xx" +
+            "xxxxx              xxxxxxxxxx         xx" +
+            "xx            xx    xxxxxxxx     xx   xx" +
+            "x       xxxx            xxx           xx" +
+            "xx    x            xx                xxx" +
+            "xxxx      xxx     xxxx         xxxx   xx" +
+            "xxxxx           x xxxx       xxxxx    xx" +
+            "xxxxxx xx          xxxx   x    xx     xx" +
+            "xxxxxx      xx     xxxxxx            xxx" +
+            "xxxxxxxx       x  xxxxxxxxx           xx" +
+            "xxxxxxxxxxx       xxxxxxxxxxxx        xx" +
+            "xxxxxxxxxxxx     xxxxxxxxxxxxxxx      xx" +
+            "xxxxxxxxxxxx    x xxxxxxxxxxxxx       xx" +
+            "xxxxxxxxxxxxx      xxxxx         x    xx" +
+            "xxxxxxxxxxxxxx                      xxxx" +
+            "xxxxxxxxxxxxx     xxxxxxxxxxxxx  xxxxxxx";
+
+for (var i = 0; i < level.length; i++) {
+  if (level[i] == "x")
+    boxes.push(createAABB(8 + (i % 40) * 16, 8 + ~~(i / 40) * 16, 16, 16));
+}
+
+function createAABB(x, y, width, height) {
+  return {x: x, y: y, width: width, height: height, halfWidth: width / 2, halfHeight: height / 2};
+}
+
+function resolveCollisionX(a, b, dX, dY) {
+  var sum = createAABB(b.x, b.y, b.width + a.width, b.height + a.height);
+  
+  var time = 1;
+  
+  if (dX > 0) {
+    if (a.x + dX > sum.x - sum.halfWidth) {
+      time = ((sum.x - sum.halfWidth) - a.x) / dX;
+      
+      if (a.y + dY * time > sum.y - sum.halfHeight && a.y + dY * time < sum.y + sum.halfHeight && time >= 0) {
+        return time;
+      }
+    }
+  } else if (dX < 0) {
+    if (a.x + dX < sum.x + sum.halfWidth) {
+      time = ((sum.x + sum.halfWidth) - a.x) / dX;
+      
+      if (a.y + dY * time > sum.y - sum.halfHeight && a.y + dY * time < sum.y + sum.halfHeight && time >= 0) {
+        return time;
+      }
+    }
+  }
+  
+  return 1;
+}
+
+function resolveCollisionY(a, b, dX, dY) {
+  var sum = createAABB(b.x, b.y, b.width + a.width, b.height + a.height);
+  
+  var time = 1;
+  
+  if (dY > 0) {
+    if (a.y + dY > sum.y - sum.halfHeight) {
+      time = ((sum.y - sum.halfHeight) - a.y) / dY;
+      
+      if (a.x + dX * time > sum.x - sum.halfWidth && a.x + dX * time < sum.x + sum.halfWidth && time >= 0) {
+        return time;
+      }
+    }
+  } else if (dY < 0) {
+    if (a.y + dY < sum.y + sum.halfHeight) {
+      time = ((sum.y + sum.halfHeight) - a.y) / dY;
+      
+      if (a.x + dX * time > sum.x - sum.halfWidth && a.x + dX * time < sum.x + sum.halfWidth && time >= 0) {
+        return time;
+      }
+    }
+  }
+  
+  return 1;
+}
+
+var mouseX = 0, mouseY = 0;
+
+var keys = [];
+      
+document.addEventListener("keydown", function (event) {
+  keys[event.keyCode] = true;
+});
+
+document.addEventListener("keyup", function (event) {
+  keys[event.keyCode] = false;
+});
+
+var vX = 0, vY = 0, g = false;
+
+function loop() {  
+  ctx.clearRect(0, 0, 640, 400);
+  
+  vY += Math.sin(Date.now() / 1000) * 0.35;
+  vX += Math.cos(Date.now() / 1000) * 1.35;
+  
+  vX *= 0.25
+  
+  if (keys[37]) { // Left arrow key
+    vX = -2.0;
+  }
+  
+  if (keys[32] && g) { // Space key
+    vY = -5;
+  }
+  
+  if (keys[39]) { // Right arrow key
+    vX = 2.0;
+  }
+  
+  var dX = vX, dY = vY;
+  
+  var xResolution = 1, yResolution = 1;
+
+  for (var i = 1; i < boxes.length; i++) {
+    var newXResolution = resolveCollisionX(player, boxes[i], dX, dY);
+    var newYResolution = resolveCollisionY(player, boxes[i], dX, dY);
+
+    xResolution = Math.min(xResolution, newXResolution);
+    yResolution = Math.min(yResolution, newYResolution);
+  }
+
+  var xResolution2 = 1, yResolution2 = 1;
+
+  for (var i = 1; i < boxes.length; i++) {
+    var newXResolution = resolveCollisionX(player, boxes[i], dX, dY * yResolution);
+    var newYResolution = resolveCollisionY(player, boxes[i], dX * xResolution, dY);
+
+    xResolution2 = Math.min(xResolution2, newXResolution);
+    yResolution2 = Math.min(yResolution2, newYResolution);
+  }
+
+  if (xResolution > yResolution) {
+    xResolution = Math.max(xResolution, xResolution2);
+  } else {
+    yResolution = Math.max(yResolution, yResolution2);
+  }
+
+  player.x += dX * xResolution;
+  player.y += dY * yResolution;
+  
+  if (dY >= 0 && yResolution < 1) {
+    g = true;
+  } else {
+    g = false;
+  }
+  
+  if (yResolution < 1) {
+    vY *= 0.5;
+  }
+  
+  if (xResolution < 1) {
+    vX = 0;
+  }
+  
+  if (player.y > 400) {
+    while (player.y > 0) {
+      player.y -= 400;
+    } 
+  }
+  
+  for (var i = 0; i < boxes.length; i++) {
+    ctx.fillStyle = i == 0 ? "#FF9800" : "#FFFFFF";
+    ctx.fillRect(boxes[i].x - boxes[i].halfWidth, boxes[i].y - boxes[i].halfHeight, boxes[i].width, boxes[i].height);
+  }
+  
+  ctx.fillStyle = "red";
+}
+
+setInterval(loop, 15);
+
+document.body.appendChild(canvas);
+</script>
