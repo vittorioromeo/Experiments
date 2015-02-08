@@ -9,7 +9,7 @@ namespace ssvu
 {
 	template<typename T> struct FnTraits : public FnTraits<decltype(&T::operator())> { };
 
-	namespace Internal
+	namespace Impl
 	{
 		template<typename C, typename R, typename... A> struct MemFnType
 		{
@@ -38,7 +38,7 @@ namespace ssvu
 		using FuncType = TR(TArgs...);
 
 		/// @brief Function type as if this function were a member function of the `TOwner` class.
-		template<typename TOwner> using MemFnType = typename Internal::MemFnType<RemovePtr<RemoveRef<TOwner>>, TR, TArgs...>::Type;
+		template<typename TOwner> using MemFnType = typename Impl::MemFnType<RemovePtr<RemoveRef<TOwner>>, TR, TArgs...>::Type;
 
 		/// @brief Arity of the function.
 		static constexpr SizeT arity{sizeof...(TArgs)};
@@ -96,10 +96,10 @@ int test(int, float) { }
 
 int main()
 {
-	auto l = [](int x){ };
+	auto l = [](auto x){ };
 	auto lv = [](auto&... xx){ };
 
-	std::cout << FnTraits<decltype(l)>::arity << std::endl;
+	std::cout << FnTraits<decltype(&decltype(l)::operator()<int>)>::arity << std::endl;
 
 	std::cout << FnTraits<decltype(std::mem_fn(&pd::k))>::arity << std::endl;
 	//std::cout << FnTraits<decltype(lv)>::arity << std::endl;
