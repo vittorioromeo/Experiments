@@ -5,16 +5,7 @@ namespace ssvu
 	template<char...> struct CharList;
 
 	namespace Impl
-	{
-		template<char...> struct CLHeadHlpr;
-		template<char T, char... Ts> struct CLHeadHlpr<T, Ts...>	{ static constexpr char value{T}; };
-		template<> struct CLHeadHlpr<>								{ static constexpr char value{'\0'}; };
-
-		template<char...> struct CLTailHlpr;
-		template<char T, char... Ts> struct CLTailHlpr<T, Ts...>	{ static constexpr char value{CLTailHlpr<Ts...>::value}; };
-		template<char T> struct CLTailHlpr<T>						{ static constexpr char value{T}; };
-		template<> struct CLTailHlpr<>								{ static constexpr char value{'\0'}; };
-	
+	{	
 		template<typename> struct CLPopFrontHlpr;
 		template<char TL, char... TLAs> struct CLPopFrontHlpr<CharList<TL, TLAs...>>	{ using Type = CharList<TLAs...>; };
 		template<> struct CLPopFrontHlpr<CharList<>>									{ using Type = CharList<>; };
@@ -35,10 +26,7 @@ namespace ssvu
 		template<> struct CLPopBackHlpr<CharList<>> { using Type = CharList<>; };
 
 		template<char T, char... Ts> struct CLContainsHlpr : TrueT { };
-
-		template<char T, char THead, char... Ts> struct CLContainsHlpr<T, THead, Ts...>
-			: Conditional<T == THead, TrueT, CLContainsHlpr<T, Ts...>> { };
-
+		template<char T, char THead, char... Ts> struct CLContainsHlpr<T, THead, Ts...> : Conditional<T == THead, TrueT, CLContainsHlpr<T, Ts...>> { };
 		template<char T> struct CLContainsHlpr<T> : FalseT { };
 
 		template<typename, typename> struct CLTrimExtraZeros;
@@ -61,35 +49,33 @@ namespace ssvu
 		};
 
 		template<SizeT, SizeT, char...> struct CLNth;
-		template<SizeT TI, SizeT TTrg> struct CLNth<TI, TTrg>
-		{
-			static constexpr char value{'\0'};
-		};
-		template<SizeT TI, SizeT TTrg, char TC, char... TCs> struct CLNth<TI, TTrg, TC, TCs...>
-		{
-			static constexpr char value{TI == TTrg ? TC : CLNth<TI + 1, TTrg, TCs...>::value};
-		};
+		template<SizeT TI, SizeT TTrg> struct CLNth<TI, TTrg> : IntegralConstant<char, '\0'> { };
+		template<SizeT TI, SizeT TTrg, char TC, char... TCs> struct CLNth<TI, TTrg, TC, TCs...> : IntegralConstant<char, TI == TTrg ? TC : CLNth<TI + 1, TTrg, TCs...>{}()> { };
 	}
 
-	template<char... TChars> struct CharList : public IntSeq<char, TChars...>
+	template<char... TChars> struct CharList 
 	{ 
 		using Type = CharList<TChars...>;
 
-		static constexpr char head{Impl::CLHeadHlpr<TChars...>::value};
-		static constexpr char tail{Impl::CLTailHlpr<TChars...>::value};
+		// TODO: variable templates not supported in gcc 4.9.2, only in 5
+
+		static constexpr SizeT size{sizeof...(TChars)};
 		template<SizeT TI> static constexpr char at{Impl::CLNth<0, TI, TChars...>::value};
+		static constexpr char head{size > 0 ? at<0> : '\0'};
+		static constexpr char tail{size > 0 ? at<size - 1> : '\0'};
+		template<char TC> static constexpr bool has{Impl::CLContainsHlpr<TC, TChars...>()};
+		// TODO: template<char TC> static constexpr bool countOf{Impl::CLContainsHlpr<TC, TChars...>()};
 
 		template<char TC> using PushFront = CharList<TC, TChars...>;
 		template<char TC> using PushBack = CharList<TChars..., TC>;
 		using PopFront = typename Impl::CLPopFrontHlpr<Type>::Type;
 		using PopBack = typename Impl::CLPopBackHlpr<Type>::Type;
-		template<char TC> inline static constexpr bool has() noexcept { return Impl::CLContainsHlpr<TC, TChars...>(); }
 		using TrimExtraZeros = typename Impl::CLTrimExtraZeros<Type, CharList<>>::Type;
 
-		//template<typename TL> inline static constexpr bool has() noexcept { return Impl::CLContainsLHlpr<Type, TL>(); }
+		// TODO: template<typename TL> inline static constexpr bool has() noexcept { return Impl::CLContainsLHlpr<Type, TL>(); }
 
 
-		static constexpr char cstr[]{TChars...};
+		static constexpr const char cstr[]{TChars...};
 		inline static std::string toStr() { return std::string{TChars...}; }
 
 	};
@@ -188,6 +174,11 @@ int main()
 	SSVU_ASSERT_STATIC_NM(SSVU_CTSTR("hey")::at<0> == 'h');
 	SSVU_ASSERT_STATIC_NM(SSVU_CTSTR("hey")::at<1> == 'e');
 	SSVU_ASSERT_STATIC_NM(SSVU_CTSTR("hey")::at<2> == 'y');
+
+	SSVU_ASSERT_STATIC_NM(SSVU_CTSTR("hey")::has<'h'>);
+	SSVU_ASSERT_STATIC_NM(SSVU_CTSTR("hey")::has<'e'>);
+	SSVU_ASSERT_STATIC_NM(!SSVU_CTSTR("hey")::has<'z'>);
+	SSVU_ASSERT_STATIC_NM(SSVU_CTSTR("hey")::has<'\0'>);
 
 	using namespace ssvu::CTLiteral;
 	SSVU_ASSERT_STATIC_NM(decltype("hey"_cts)::at<0> == 'h');
