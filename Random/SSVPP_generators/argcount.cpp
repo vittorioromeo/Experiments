@@ -147,7 +147,7 @@ void genForeach()
 
 int main()
 {
-	output << 	"// Copyright (c) 2013-2014 Vittorio Romeo\n"
+	output << 	"// Copyright (c) 2013-2015 Vittorio Romeo\n"
 				"// License: Academic Free License (\"AFL\") v. 3.0\n"
 				"// AFL License page: http://opensource.org/licenses/AFL-3.0\n"
 				"// (auto-generated file)\n\n"
