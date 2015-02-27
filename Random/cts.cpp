@@ -175,56 +175,7 @@ namespace ssvu
 	}
 }
 
-#define SSVPP_IMPL_REPEAT_DEC_0(mAction, mData) 
-#define SSVPP_IMPL_REPEAT_DEC_1(mAction, mData) mAction(0, mData) SSVPP_IMPL_REPEAT_DEC_0(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_2(mAction, mData) mAction(1, mData) SSVPP_IMPL_REPEAT_DEC_1(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_3(mAction, mData) mAction(2, mData) SSVPP_IMPL_REPEAT_DEC_2(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_4(mAction, mData) mAction(3, mData) SSVPP_IMPL_REPEAT_DEC_3(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_5(mAction, mData) mAction(4, mData) SSVPP_IMPL_REPEAT_DEC_4(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_6(mAction, mData) mAction(5, mData) SSVPP_IMPL_REPEAT_DEC_5(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_7(mAction, mData) mAction(6, mData) SSVPP_IMPL_REPEAT_DEC_6(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_8(mAction, mData) mAction(7, mData) SSVPP_IMPL_REPEAT_DEC_7(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_9(mAction, mData) mAction(8, mData) SSVPP_IMPL_REPEAT_DEC_8(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_10(mAction, mData) mAction(9, mData) SSVPP_IMPL_REPEAT_DEC_9(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_11(mAction, mData) mAction(10, mData) SSVPP_IMPL_REPEAT_DEC_10(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_12(mAction, mData) mAction(11, mData) SSVPP_IMPL_REPEAT_DEC_11(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_13(mAction, mData) mAction(12, mData) SSVPP_IMPL_REPEAT_DEC_12(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_14(mAction, mData) mAction(13, mData) SSVPP_IMPL_REPEAT_DEC_13(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_15(mAction, mData) mAction(14, mData) SSVPP_IMPL_REPEAT_DEC_14(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_16(mAction, mData) mAction(15, mData) SSVPP_IMPL_REPEAT_DEC_15(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_17(mAction, mData) mAction(16, mData) SSVPP_IMPL_REPEAT_DEC_16(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_18(mAction, mData) mAction(17, mData) SSVPP_IMPL_REPEAT_DEC_17(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_19(mAction, mData) mAction(18, mData) SSVPP_IMPL_REPEAT_DEC_18(mAction, mData)
-#define SSVPP_IMPL_REPEAT_DEC_20(mAction, mData) mAction(19, mData) SSVPP_IMPL_REPEAT_DEC_19(mAction, mData)
 
-#define SSVPP_IMPL_REPEAT_DEC(mTimes, mAction, mData) SSVPP_TKNCAT_2(SSVPP_IMPL_REPEAT_DEC_, mTimes) (mAction, mData)
-#define SSVPP_REPEAT_DEC(...) SSVPP_IMPL_REPEAT_DEC(__VA_ARGS__)
-
-
-#define SSVPP_IMPL_REPEAT_INC_0(mAction, mData, mLast) 
-#define SSVPP_IMPL_REPEAT_INC_1(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_0(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_2(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_1(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_3(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_2(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_4(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_3(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_5(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_4(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_6(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_5(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_7(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_6(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_8(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_7(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_9(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_8(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_10(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_9(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_11(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_10(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_12(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_11(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_13(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_12(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_14(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_13(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_15(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_14(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_16(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_15(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_17(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_16(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_18(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_17(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_19(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_18(mAction, mData, SSVPP_INCREMENT(mLast))
-#define SSVPP_IMPL_REPEAT_INC_20(mAction, mData, mLast) mAction(mLast, mData) SSVPP_IMPL_REPEAT_INC_19(mAction, mData, SSVPP_INCREMENT(mLast))
-
-#define SSVPP_IMPL_REPEAT_INC(mTimes, mAction, mData) SSVPP_TKNCAT_2(SSVPP_IMPL_REPEAT_INC_, mTimes) (mAction, mData, 0)
-#define SSVPP_REPEAT_INC(...) SSVPP_IMPL_REPEAT_INC(__VA_ARGS__)
 
 
 
