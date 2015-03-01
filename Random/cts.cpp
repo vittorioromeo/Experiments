@@ -29,7 +29,15 @@ namespace ssvu
 	{
 		template<typename T, T... TChars> inline constexpr TrimExtraZeros<ListChar<TChars...>> operator""_cts() { return {}; }
 	}
+/*
+	template<typename TL> struct ToCharArray;
+	template<char... TChars> struct ToCharArray<ListChar<TChars...>>
+	{
+		inline static constexpr char* get() noexcept { return std::array<char, sizeof...(TChars)>{{ TChars... }}.data(); }
+	};
 
+	template<typename TL, int TN> inline constexpr char nthChar() noexcept { return ToCharArray<TL>::get()[TN]; }
+*/
 
 }
 
@@ -50,15 +58,19 @@ namespace ssvu
 #define SSVCTS_ADD(mStr) Append<SSVCTS(mStr)>
 #define SSVCTS_HAS(mStr) hasSeq<SSVCTS(mStr)>()
 #define SSVCTS_SUBSTR(mStart, mEnd) Slice<mStart, mEnd>
+#define SSVCTS_IDXOFSEQ(mSrc) IdxsOfSeq<SSVCTS(mSrc)>
 #define SSVCTS_REPLACE_ALL(mSrc, mNew) ReplaceAllOfSeq<SSVCTS(mSrc), SSVCTS(mNew)>
 
 int main()
 {
 	using namespace ssvu;
+	using namespace ssvu::MPL;
 	using namespace ssvu::CTLiteral;
 	SSVU_ASSERT_STATIC_NM(isSame<ListChar<'h', 'e', 'y'>::PushBack<CTChar<'u'>>, ListChar<'h', 'e', 'y', 'u'>>());
 	SSVU_ASSERT_STATIC_NM(isSame<SSVCTS("hey"), SSVCTS("hey")>());
 	SSVU_ASSERT_STATIC_NM(isSame<SSVCTS("hey"), ListChar<'h', 'e', 'y'>>());
+
+	//SSVU_ASSERT_STATIC_NM(nthChar<SSVCTS("hey"), 1>() == 'e');
 
 	SSVU_ASSERT_STATIC_NM(isSame<ListChar<'h', 'e', 'y'>::Append<ListChar<'b', 'r', 'o'>>, ListChar<'h', 'e', 'y', 'b', 'r', 'o'>>());
 	SSVU_ASSERT_STATIC_NM(isSame<SSVCTS("hey")::SSVCTS_ADD("bro"), SSVCTS("heybro")>());
@@ -72,8 +84,14 @@ int main()
 
 	SSVU_ASSERT_STATIC_NM(isSame<SSVCTS("hey")::SSVCTS_SUBSTR(0, 2), SSVCTS("he")>());
 
+	SSVU_ASSERT_STATIC_NM(isSame<SSVCTS("hey banana")::SSVCTS_IDXOFSEQ("banana"), ListInt<4>>());
+
+	// Too slow
+	SSVU_ASSERT_STATIC_NM(isSame<SSVCTS("hey bana bana")::SSVCTS_IDXOFSEQ("bana"), ListInt<4, 9>>());
+
 	// If the string is any longer, it kills the compiler. Problem is in MPL ReplaceAllOfSeq
-	SSVU_ASSERT_STATIC_NM(isSame<SSVCTS("hey banana")::SSVCTS_REPLACE_ALL("banana", "apple"), SSVCTS("hey apple")>());
+	//SSVU_ASSERT_STATIC_NM(isSame<SSVCTS("hey banana")::SSVCTS_REPLACE_ALL("banana", "apple"), SSVCTS("hey apple")>());
+	//SSVU_ASSERT_STATIC_NM(isSame<SSVCTS("hey banana hey banana")::SSVCTS_REPLACE_ALL("banana", "apple"), SSVCTS("hey apple hey apple")>());
 
 	/*SSVU_ASSERT_STATIC_NM(ssvu::isSame<ssvu::ListChar<'h', 'e', 'e', 'y', '\0', '\0', '\0'>::TrimExtraZeros, ssvu::ListChar<'h', 'e', 'e', 'y', '\0'>>());
 
