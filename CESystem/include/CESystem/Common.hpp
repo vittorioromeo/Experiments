@@ -10,6 +10,10 @@
 
 namespace ssvces
 {
+	using ssvu::SizeT;
+	using ssvu::Tpl;
+	using ssvu::FT;
+
 	// Component class declaration and definition
 	struct Component { inline virtual ~Component() noexcept { } };
 
@@ -20,9 +24,9 @@ namespace ssvces
 	template<typename, typename, typename> class System;
 
 	// Constants
-	static constexpr std::size_t maxEntities{1'000'000};
-	static constexpr std::size_t maxComponents{32};
-	static constexpr std::size_t maxGroups{32};
+	static constexpr SizeT maxEntities{1'000'000};
+	static constexpr SizeT maxComponents{32};
+	static constexpr SizeT maxGroups{32};
 
 	// Entity typedefs
 	using EntityId = int;
@@ -30,11 +34,11 @@ namespace ssvces
 	struct EntityStat { EntityId id; EntityIdCtr ctr; };
 
 	// Type index typedefs
-	using TypeIdx = std::size_t;
+	using TypeIdx = SizeT;
 	using TypeIdxBitset = std::bitset<maxComponents>;
 
 	// Group typedefs
-	using Group = std::size_t;
+	using Group = SizeT;
 	using GroupBitset = std::bitset<maxGroups>;
 
 	// Recycler typedefs
@@ -42,9 +46,6 @@ namespace ssvces
 	using EntityRecyclerPtr = EntityRecycler::PtrType;
 	using ComponentRecycler = ssvu::PolyFixedRecycler<Component, maxComponents>;
 	using ComponentRecyclerPtr = ComponentRecycler::PtrType;
-
-	// Aliases
-	template<typename... Ts> using Tpl = ssvu::Tpl<Ts...>;
 
 	namespace Impl
 	{

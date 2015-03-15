@@ -4,7 +4,6 @@
 #include "CESystem/CES.hpp"
 
 using namespace ssvces;
-using FT = ssvu::FT;
 
 struct CPosition : Component		{ float x, y; CPosition(float mX, float mY) : x{mX}, y{mY} { } };
 struct CVelocity : Component		{ float x, y; CVelocity(float mX, float mY) : x{mX}, y{mY} { } };
@@ -125,7 +124,7 @@ int main()
 			for(int i = 0; i < 20000; ++i)
 			{
 				auto e = manager.createEntity();
-				e.createComponent<CPosition>(ssvu::getRnd(512 - 100, 512 + 100), ssvu::getRnd(384 - 100, 384 + 100));
+				e.createComponent<CPosition>(ssvu::getRndI(512 - 100, 512 + 100), ssvu::getRndI(384 - 100, 384 + 100));
 				e.createComponent<CVelocity>(ssvu::getRndR(-1.f, 1.f), ssvu::getRndR(-1.f, 1.f));
 				e.createComponent<CAcceleration>(ssvu::getRndR(-1.f, 1.f), ssvu::getRndR(-1.f, 1.f));
 				e.createComponent<CLife>(1);
@@ -149,7 +148,7 @@ int main()
 			for(int i = 0; i < 20000; ++i)
 			{
 				auto e = manager.createEntity();
-				e.createComponent<CPosition>(ssvu::getRnd(512 - 100, 512 + 100), ssvu::getRnd(384 - 100, 384 + 100));
+				e.createComponent<CPosition>(ssvu::getRndI(512 - 100, 512 + 100), ssvu::getRndI(384 - 100, 384 + 100));
 				e.createComponent<CVelocity>(ssvu::getRndR(-1.f, 1.f), ssvu::getRndR(-1.f, 1.f));
 				e.createComponent<CAcceleration>(ssvu::getRndR(-1.f, 1.f), ssvu::getRndR(-1.f, 1.f));
 				e.createComponent<CLife>(25);
@@ -181,12 +180,12 @@ int main()
 			for(int i = 0; i < 20000; ++i)
 			{
 				auto e = manager.createEntity();
-				e.createComponent<CPosition>(ssvu::getRnd(512 - 100, 512 + 100), ssvu::getRnd(384 - 100, 384 + 100));
+				e.createComponent<CPosition>(ssvu::getRndI(512 - 100, 512 + 100), ssvu::getRndI(384 - 100, 384 + 100));
 				e.createComponent<CVelocity>(ssvu::getRndR(-1.f, 1.f), ssvu::getRndR(-1.f, 1.f));
 				e.createComponent<CAcceleration>(ssvu::getRndR(-0.5f, 0.5f), ssvu::getRndR(-0.5f, 0.5f));
 				e.createComponent<CSprite>();
-				e.createComponent<CLife>(ssvu::getRnd(50, 100));
-				e.createComponent<CColorInhibitor>(ssvu::getRnd(5, 85));
+				e.createComponent<CLife>(ssvu::getRndI(50, 100));
+				e.createComponent<CColorInhibitor>(ssvu::getRndI(5, 85));
 				e.addGroups(0);
 			}
 		}

@@ -7,24 +7,22 @@
 
 namespace Lang
 {
-	enum class Tkn
+	enum class Tkn : int
 	{
-		Number,
-		POpen,
-		PClose,
-		OpAdd,
-		OpSub,
-		OpMul,
-		OpDiv,
-		OpMod
+		Number = 0,
+		POpen = 1,
+		PClose = 2,
+		OpAdd = 3,
+		OpSub = 4,
+		OpMul = 5,
+		OpDiv = 6,
+		OpMod = 7
 	};
 
 	inline std::string tknToStr(Tkn mTkn)
 	{
-		auto idx(static_cast<int>(mTkn));
-
-		static std::string array[]
-		{
+		static auto array(ssvu::mkArray
+		(
 			"Number",
 			"POpen",
 			"PClose",
@@ -33,9 +31,9 @@ namespace Lang
 			"OpMul",
 			"OpDiv",
 			"OpMod"
-		};
+		));
 
-		return array[idx];
+		return array[ssvu::castEnum(mTkn)];
 	}
 
 	struct TknData { };

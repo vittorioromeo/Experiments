@@ -77,11 +77,11 @@ namespace ssvces
 			}
 
 			inline bool hasEntity(Group mGroup) const noexcept				{ return !getEntities(mGroup).empty(); }
-			inline std::size_t getEntityCount() const noexcept				{ return entities.size(); }
-			inline std::size_t getEntityCount(Group mGroup) const noexcept	{ return getEntities(mGroup).size(); }
+			inline SizeT getEntityCount() const noexcept				{ return entities.size(); }
+			inline SizeT getEntityCount(Group mGroup) const noexcept	{ return getEntities(mGroup).size(); }
 
 			// Have a manager.componentCount too?
-			inline std::size_t getComponentCount() const noexcept			{ std::size_t result{0}; for(auto& e : getEntities()) result += e->componentCount; return result; }
+			inline SizeT getComponentCount() const noexcept			{ SizeT result{0}; for(auto& e : getEntities()) result += e->componentCount; return result; }
 	};
 
 	namespace Impl

@@ -21,8 +21,8 @@ namespace ssvces
 				inline IdPool() : available(maxEntities)
 				{
 					// Fill the available ids vector from 0 to maxEntities
-					std::iota(std::begin(available), std::end(available), 0);
-					std::fill(std::begin(counters), std::end(counters), 0);
+					ssvu::iota(available, 0);
+					ssvu::fill(counters, 0);
 				}
 
 				// Returns the first available IdCtrPair

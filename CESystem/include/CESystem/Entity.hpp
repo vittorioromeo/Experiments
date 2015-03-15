@@ -21,7 +21,7 @@ namespace ssvces
 			bool mustDestroy{false}, mustRematch{true};
 			GroupBitset groups;
 			EntityStat stat;
-			std::size_t componentCount{0};
+			SizeT componentCount{0};
 
 		public:
 			inline Entity(Manager& mManager, const EntityStat& mStat) noexcept : manager(mManager), stat(mStat) { }
