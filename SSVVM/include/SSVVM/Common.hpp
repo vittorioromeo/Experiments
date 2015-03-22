@@ -22,8 +22,8 @@ namespace ssvvm
 	template<> inline constexpr VMVal getVMVal<int>() noexcept			{ return VMVal::Int; }
 	template<> inline constexpr VMVal getVMVal<float>() noexcept		{ return VMVal::Float; }
 
-	template<typename T> inline int getTokenAsInt(T& mTokens, std::size_t mIdx)						{ return std::stoi(mTokens[mIdx].contents.c_str()); }
-	template<typename T> inline float getTokenAsFloat(T& mTokens, std::size_t mIdx)					{ return std::stof(mTokens[mIdx].contents.substr(0, mTokens[mIdx].contents.size() - 2).c_str()); }
+	template<typename T> inline int getTokenAsInt(T& mTokens, std::size_t mIdx)						{ return ssvu::sToInt(mTokens[mIdx].contents.c_str()); }
+	template<typename T> inline float getTokenAsFloat(T& mTokens, std::size_t mIdx)					{ return ssvu::sToFloat(mTokens[mIdx].contents.substr(0, mTokens[mIdx].contents.size() - 2).c_str()); }
 	template<typename T> inline const std::string& getTokenContents(T& mTokens, std::size_t mIdx)	{ return mTokens[mIdx].contents; }
 }
 
