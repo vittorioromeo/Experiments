@@ -90,6 +90,8 @@ struct SColorInhibitor : System<SColorInhibitor, Req<CSprite, CColorInhibitor>>
 	}
 };
 
+constexpr int spawnCount{20000};
+
 int main()
 {
 	using namespace std;
@@ -121,7 +123,7 @@ int main()
 	{
 		for(int k = 0; k < 5; ++k)
 		{
-			for(int i = 0; i < 20000; ++i)
+			for(int i = 0; i < spawnCount; ++i)
 			{
 				auto e = manager.createEntity();
 				e.createComponent<CPosition>(ssvu::getRndI(512 - 100, 512 + 100), ssvu::getRndI(384 - 100, 384 + 100));
@@ -145,7 +147,7 @@ int main()
 
 		for(int k = 0; k < 5; ++k)
 		{
-			for(int i = 0; i < 20000; ++i)
+			for(int i = 0; i < spawnCount; ++i)
 			{
 				auto e = manager.createEntity();
 				e.createComponent<CPosition>(ssvu::getRndI(512 - 100, 512 + 100), ssvu::getRndI(384 - 100, 384 + 100));
@@ -177,7 +179,7 @@ int main()
 		if(counter > 100.f)
 		{
 			counter = 0;
-			for(int i = 0; i < 20000; ++i)
+			for(int i = 0; i < spawnCount; ++i)
 			{
 				auto e = manager.createEntity();
 				e.createComponent<CPosition>(ssvu::getRndI(512 - 100, 512 + 100), ssvu::getRndI(384 - 100, 384 + 100));

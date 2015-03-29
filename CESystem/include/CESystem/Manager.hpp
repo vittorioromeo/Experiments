@@ -76,7 +76,7 @@ namespace ssvces
 				return result;
 			}
 
-			inline bool hasEntity(Group mGroup) const noexcept				{ return !getEntities(mGroup).empty(); }
+			inline bool hasEntity(Group mGroup) const noexcept			{ return !getEntities(mGroup).empty(); }
 			inline SizeT getEntityCount() const noexcept				{ return entities.size(); }
 			inline SizeT getEntityCount(Group mGroup) const noexcept	{ return getEntities(mGroup).size(); }
 
