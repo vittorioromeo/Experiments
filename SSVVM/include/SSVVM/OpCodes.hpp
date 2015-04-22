@@ -9,7 +9,7 @@ namespace ssvvm
 {
 	SSVU_FATENUM_MGR(ReflectedEnum);
 
-	#define SSVVM_CREATE_MFPTR(mIdx, mData, mArg) & SSVPP_EXPAND(T) :: SSVPP_EXPAND(mArg) SSVPP_COMMA_IF(mIdx)
+	#define SSVVM_CREATE_MFPTR(mIdx, mData, mArg) & SSVPP_DEFER(T) :: SSVPP_DEFER(mArg) SSVPP_COMMA_IF(mIdx)
 
 	#define SSVVM_CREATE_OPCODE_DATABASE(...)	\
 		SSVU_FATENUM_DEFS(ReflectedEnum, OpCode, std::size_t, __VA_ARGS__) \
