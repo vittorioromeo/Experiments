@@ -74,7 +74,7 @@ namespace ssvvm
 		compareIntSVIntCVToR
 	)
 
-	inline const std::string& getOpCodeStr(OpCode mOpCode) noexcept { return ReflectedEnum<OpCode>::getAsString(mOpCode); }
+	inline const std::string& getOpCodeStr(OpCode mOpCode) noexcept { return ReflectedEnum<OpCode>::getAsStr(mOpCode); }
 }
 
 #endif

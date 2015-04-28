@@ -1,75 +1,87 @@
 #include <SSVUtils/Core/Core.hpp>
 
-template<typename TF> 
-inline auto forArgs2(TF&& mFn)
+namespace ssvu
 {
-	return FWD(mFn);
-}
-
-template<typename TF, typename T1, typename T2, typename... TArgs> 
-inline auto forArgs2(TF&& mFn, T1&& mA1, T2&& mA2, TArgs&&... mArgs)
-{
-	FWD(mFn)(mA1, mA2);
-	return forArgs2(FWD(mFn), FWD(mArgs)...);
-}
-
-template<bool TDone, ssvu::SizeT TC, ssvu::SizeT TItr, typename TF, typename... TArgs>
-struct ForNArgsHlpr;
-
-template<ssvu::SizeT TC, ssvu::SizeT TItr, typename TF, typename... TArgs>
-struct ForNArgsHlpr<false, TC, TItr, TF, TArgs...>
-{
-	template<ssvu::SizeT... TIdxs> inline static auto impl(TF&& mFn, ssvu::Tpl<TArgs...>& mTpl, ssvu::IdxSeq<TIdxs...>)
+	namespace Impl
 	{
-		FWD(mFn)(std::get<TItr + TIdxs>(mTpl)...);
-		return ForNArgsHlpr<(TItr + TC) == sizeof...(TArgs), TC, TItr + TC, TF, TArgs...>::template impl(FWD(mFn), mTpl, ssvu::MkIdxSeq<TC>{}); 
-	}
-};
+		template<typename, typename> struct ForNArgsHlpr;
 
-template<ssvu::SizeT TC, ssvu::SizeT TItr, typename TF, typename... TArgs>
-struct ForNArgsHlpr<true, TC, TItr, TF, TArgs...>
-{
-	template<ssvu::SizeT... TIdxs> inline static auto impl(TF&& mFn, ssvu::Tpl<TArgs...>&, ssvu::IdxSeq<TIdxs...>)
+		template<SizeT... Bs, SizeT... Cs> struct ForNArgsHlpr<IdxSeq<Bs...>, IdxSeq<Cs...>>
+		{
+			using swallow = bool[];
+
+			#define IMPL_IMPL_FORNARGS_EXECN_BODY() \
+				FWD(mFn)(std::get<N + Cs>(FWD(mXs))...)
+
+		    template<SizeT N, typename TF, typename TTpl, typename... Ts>
+		    inline static constexpr void execN(TF&& mFn, TTpl&& mXs)
+		    	noexcept(noexcept(IMPL_IMPL_FORNARGS_EXECN_BODY()))
+		    {
+		        IMPL_IMPL_FORNARGS_EXECN_BODY();
+		    }
+
+		    #undef IMPL_IMPL_FORNARGS_EXECN_BODY
+
+		    #define IMPL_IMPL_FORNARGS_EXEC_BODY() \
+		    	(void) swallow{(execN<(Bs * sizeof...(Cs))>(FWD(mFn), FWD(mXs)), true)..., true}
+
+		    template<typename TF, typename TTpl, typename... Ts>
+		    inline static constexpr void exec(TF&& mFn, TTpl&& mXs)
+		    	noexcept(noexcept(IMPL_IMPL_FORNARGS_EXEC_BODY()))
+		    {		       
+		        IMPL_IMPL_FORNARGS_EXEC_BODY();
+		    }
+
+		    #undef IMPL_IMPL_FORNARGS_EXEC_BODY
+		};
+	}
+
+	#define IMPL_FORNARGS_BODY() \
+		Impl::ForNArgsHlpr<MkIdxSeq<sizeof...(Ts) / N>, MkIdxSeq<N>>::exec(FWD(mFn), fwdAsTpl(FWD(mXs)...))
+
+	template<std::size_t N, typename TF, typename... Ts>
+	inline constexpr void forNArgs(TF&& mFn, Ts&&... mXs)
+		noexcept(noexcept(IMPL_FORNARGS_BODY()))
 	{
-		return FWD(mFn);
+	    SSVU_ASSERT_STATIC(sizeof...(Ts) % N == 0, "Unallowed arity: not divisible by number of arguments");	    
+	    IMPL_FORNARGS_BODY();
 	}
-};
 
-/*
-template<ssvu::SizeT TC, ssvu::SizeT TItr, typename TF, typename... TArgs, ssvu::SizeT... TIdxs>
-inline auto forNArgsImpl(TF&& mFn, ssvu::Tpl<TArgs...>&)
-{
-	return FWD(mFn);
-}
-
-template<ssvu::SizeT TC, ssvu::SizeT TStart, typename TF, typename... TArgs, ssvu::SizeT... TIdxs>
-inline auto forNArgsImpl(TF&& mFn, ssvu::Tpl<TArgs...>& mTpl)
-{
-	FWD(mFn)(std::get<TStart + TIdxs>(mTpl)...);
-	return forNArgsImpl<TC, TStart + TC, TArgs..., TIdxs...>(FWD(mFn), mTpl); 
-}*/
-
-template<ssvu::SizeT TC, typename TF, typename... TArgs>
-inline auto forNArgs(TF&& mFn, TArgs&&... mArgs)
-{
-	SSVU_ASSERT_STATIC((sizeof...(mArgs) % TC) == 0, "Number of arguments is not divisible by TC");
-	// TODO: check function arity
-	auto tpl(ssvu::mkTpl(FWD(mArgs)...));
-	return ForNArgsHlpr<false, TC, 0, TF, TArgs...>::template impl(FWD(mFn), tpl, ssvu::MkIdxSeq<TC>{});
+	#undef IMPL_FORNARGS_BODY
 }
 
 int main()
 {
+	using namespace ssvu;
+
 	int x = 0;
-	forNArgs<1>([&x](auto&& mA1, auto&& mA2)
+	forNArgs<1>([&x](auto&& mA1)
 	{
-		ssvu::lo("a1") << mA1 << "\n";
-		ssvu::lo("a2") << mA2 << "\n";
+		lo("a1") << mA1 << "\n";
+		
+
+		x += mA1;
+	}, 1, 1, 4, 6);
+
+	forNArgs<2>([&x](auto&& mA1, auto&& mA2)
+	{
+		lo("a1") << mA1 << "\n";
+		lo("a2") << mA2 << "\n";
 
 		x += mA1 * mA2;
 	}, 1, 1, 4, 6);
 
-	ssvu::lo() << x << std::endl;	
+	forNArgs<4>([&x](auto&& mA1, auto&& mA2, auto&& mA3, auto&& mA4)
+	{		
+		x += mA1 * mA2 + mA3 + mA4;
+	}, 1, 1, 4, 6);
+
+	forNArgs<4>([&x](auto&& mA1, auto&& mA2, auto&& mA3, auto&& mA4)
+	{		
+		x += mA1 * mA2 + mA3 + mA4;
+	});
+
+	lo() << x << std::endl;	
 
 
 	return 0;

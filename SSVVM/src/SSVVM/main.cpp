@@ -150,7 +150,7 @@ int main()
 {
 	SSVUT_RUN();
 
-	auto src(ssvvm::SourceVeeAsm::fromStringRaw(source));
+	auto src(ssvvm::SourceVeeAsm::fromStrRaw(source));
 	ssvvm::preprocessSourceRaw<true>(src);
 	auto program(ssvvm::getAssembledProgram<true>(src));
 

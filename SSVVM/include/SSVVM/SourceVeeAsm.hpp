@@ -14,14 +14,14 @@ namespace ssvvm
 			bool preprocessed{false};
 
 		public:
-			inline static SourceVeeAsm fromStringRaw(std::string mSourceRaw)
+			inline static SourceVeeAsm fromStrRaw(std::string mSourceRaw)
 			{
 				SourceVeeAsm result;
 				result.contents = std::move(mSourceRaw);
 				result.preprocessed = false;
 				return result;
 			}
-			inline static SourceVeeAsm fromStringPreprocessed(std::string mSourcePreprocessed)
+			inline static SourceVeeAsm fromStrPreprocessed(std::string mSourcePreprocessed)
 			{
 				SourceVeeAsm result;
 				result.contents = std::move(mSourcePreprocessed);
