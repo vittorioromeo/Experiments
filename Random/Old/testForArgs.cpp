@@ -1,5 +1,7 @@
 #include <SSVUtils/Core/Core.hpp>
 
+// http://stackoverflow.com/a/29901074/598696
+
 namespace ssvu
 {
 	namespace Impl
@@ -8,7 +10,7 @@ namespace ssvu
 
 		template<SizeT... Bs, SizeT... Cs> struct ForNArgsHlpr<IdxSeq<Bs...>, IdxSeq<Cs...>>
 		{
-			using swallow = bool[];
+			using Swallow = bool[];
 
 			#define IMPL_IMPL_FORNARGS_EXECN_BODY() \
 				FWD(mFn)(std::get<N + Cs>(FWD(mXs))...)
@@ -23,7 +25,7 @@ namespace ssvu
 		    #undef IMPL_IMPL_FORNARGS_EXECN_BODY
 
 		    #define IMPL_IMPL_FORNARGS_EXEC_BODY() \
-		    	(void) swallow{(execN<(Bs * sizeof...(Cs))>(FWD(mFn), FWD(mXs)), true)..., true}
+		    	(void) Swallow{(execN<(Bs * sizeof...(Cs))>(FWD(mFn), FWD(mXs)), true)..., true}
 
 		    template<typename TF, typename TTpl, typename... Ts>
 		    inline static constexpr void exec(TF&& mFn, TTpl&& mXs)
