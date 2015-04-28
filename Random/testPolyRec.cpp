@@ -33,7 +33,7 @@ void doBench()
 		~OHuge() override { ++state; }
 	};
 
-	constexpr std::size_t s(5000000);
+	constexpr std::size_t s(50000);
 	constexpr std::size_t nn(5);
 
 
@@ -47,25 +47,25 @@ void doBench()
 			for(int i = 0; i < m * 1; ++i)
 			{
 				int k = i % 3;
- 				if(k == 0) v.emplace_back(makeUPtr<OSmall>());
- 				else if(k == 1) v.emplace_back(makeUPtr<OBig>());
- 				else if(k == 2) v.emplace_back(makeUPtr<OHuge>());
+ 				if(k == 0) v.emplace_back(mkUPtr<OSmall>());
+ 				else if(k == 1) v.emplace_back(mkUPtr<OBig>());
+ 				else if(k == 2) v.emplace_back(mkUPtr<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 2; ++i)
 			{
 				int k = i % 3;
- 				if(k == 0) v.emplace_back(makeUPtr<OSmall>());
- 				else if(k == 1) v.emplace_back(makeUPtr<OBig>());
- 				else if(k == 2) v.emplace_back(makeUPtr<OHuge>());
+ 				if(k == 0) v.emplace_back(mkUPtr<OSmall>());
+ 				else if(k == 1) v.emplace_back(mkUPtr<OBig>());
+ 				else if(k == 2) v.emplace_back(mkUPtr<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 3; ++i)
 			{
 				int k = i % 3;
- 				if(k == 0) v.emplace_back(makeUPtr<OSmall>());
- 				else if(k == 1) v.emplace_back(makeUPtr<OBig>());
- 				else if(k == 2) v.emplace_back(makeUPtr<OHuge>());
+ 				if(k == 0) v.emplace_back(mkUPtr<OSmall>());
+ 				else if(k == 1) v.emplace_back(mkUPtr<OBig>());
+ 				else if(k == 2) v.emplace_back(mkUPtr<OHuge>());
 			}
 			v.clear();
 		}
@@ -156,6 +156,6 @@ int main()
 
 // TODO: STILL CRASHES!
 
-	doBench();
+	//doBench();
 	return 0;
 }
