@@ -44,7 +44,7 @@ namespace ssvces
 	// Recycler typedefs
 	using EntityRecycler = ssvu::MonoRecycler<Entity>;
 	using EntityRecyclerPtr = EntityRecycler::PtrType;
-	using ComponentRecycler = ssvu::PolyFixedRecycler<Component, maxComponents>;
+	using ComponentRecycler = ssvu::PolyRecycler<Component>;
 	using ComponentRecyclerPtr = ComponentRecycler::PtrType;
 
 	namespace Impl
