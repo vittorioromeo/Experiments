@@ -1,4 +1,7 @@
-#include <SSVUtils/SSVUtils.hpp>
+#include <SSVUtils/Core/Core.hpp>
+#include <SSVUtils/Benchmark/Benchmark.hpp>
+#include <SSVUtils/MemoryManager/MemoryManager.hpp>
+#include <SSVUtils/Tests/Tests.hpp>
 
 volatile int state{0};
 template<typename T> struct OV : public T { bool alive{true}; };
@@ -33,12 +36,12 @@ void doBench()
 		~OHuge() override { ++state; }
 	};
 
-	constexpr std::size_t s(50000);
-	constexpr std::size_t nn(5);
+	constexpr std::size_t s(200000);
+	constexpr std::size_t nn(4);
 
 
 	Benchmark::start("VecUPtr");
-	{
+	if(false){
 		VecUPtr<OBase> v;
 
 		for(int n = 0; n < nn; ++n)
@@ -46,26 +49,23 @@ void doBench()
 			int m = s / 3;
 			for(int i = 0; i < m * 1; ++i)
 			{
-				int k = i % 3;
- 				if(k == 0) v.emplace_back(mkUPtr<OSmall>());
- 				else if(k == 1) v.emplace_back(mkUPtr<OBig>());
- 				else if(k == 2) v.emplace_back(mkUPtr<OHuge>());
+				v.emplace_back(mkUPtr<OSmall>());
+ 			 	v.emplace_back(mkUPtr<OBig>());
+ 			 	v.emplace_back(mkUPtr<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 2; ++i)
 			{
-				int k = i % 3;
- 				if(k == 0) v.emplace_back(mkUPtr<OSmall>());
- 				else if(k == 1) v.emplace_back(mkUPtr<OBig>());
- 				else if(k == 2) v.emplace_back(mkUPtr<OHuge>());
+				v.emplace_back(mkUPtr<OSmall>());
+ 			 	v.emplace_back(mkUPtr<OBig>());
+ 			 	v.emplace_back(mkUPtr<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 3; ++i)
-			{
-				int k = i % 3;
- 				if(k == 0) v.emplace_back(mkUPtr<OSmall>());
- 				else if(k == 1) v.emplace_back(mkUPtr<OBig>());
- 				else if(k == 2) v.emplace_back(mkUPtr<OHuge>());
+			{				
+ 			 	v.emplace_back(mkUPtr<OSmall>());
+ 			 	v.emplace_back(mkUPtr<OBig>());
+ 			 	v.emplace_back(mkUPtr<OHuge>());
 			}
 			v.clear();
 		}
@@ -83,26 +83,23 @@ void doBench()
 			int m = s / 3;
 			for(int i = 0; i < m * 1; ++i)
 			{
-				int k = i % 3;
- 				if(k == 0) v.emplace_back(r.create<OSmall>());
- 				else if(k == 1) v.emplace_back(r.create<OBig>());
- 				else if(k == 2) v.emplace_back(r.create<OHuge>());
+				v.emplace_back(r.create<OSmall>());
+ 				v.emplace_back(r.create<OBig>());
+ 				v.emplace_back(r.create<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 2; ++i)
 			{
-				int k = i % 3;
- 				if(k == 0) v.emplace_back(r.create<OSmall>());
- 				else if(k == 1) v.emplace_back(r.create<OBig>());
- 				else if(k == 2) v.emplace_back(r.create<OHuge>());
+				v.emplace_back(r.create<OSmall>());
+ 				v.emplace_back(r.create<OBig>());
+ 				v.emplace_back(r.create<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 3; ++i)
 			{
-				int k = i % 3;
- 				if(k == 0) v.emplace_back(r.create<OSmall>());
- 				else if(k == 1) v.emplace_back(r.create<OBig>());
- 				else if(k == 2) v.emplace_back(r.create<OHuge>());
+				v.emplace_back(r.create<OSmall>());
+ 				v.emplace_back(r.create<OBig>());
+ 				v.emplace_back(r.create<OHuge>());
 			}
 			v.clear();
 		}
@@ -112,7 +109,7 @@ void doBench()
 
 	Benchmark::start("PolyFixedRec");
 	{
-		PolyFixedRecycler<OBase, 5> r;
+		PolyFixedRecycler<OBase, OSmall, OBig, OHuge> r;
 		std::vector<decltype(r)::PtrType> v;
 
 		for(int n = 0; n < nn; ++n)
@@ -120,26 +117,23 @@ void doBench()
 			int m = s / 3;
 			for(int i = 0; i < m * 1; ++i)
 			{
-				int k = i % 3;
- 				if(k == 0) v.emplace_back(r.create<OSmall>());
- 				else if(k == 1) v.emplace_back(r.create<OBig>());
- 				else if(k == 2) v.emplace_back(r.create<OHuge>());
+				v.emplace_back(r.create<OSmall>());
+ 				v.emplace_back(r.create<OBig>());
+ 				v.emplace_back(r.create<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 2; ++i)
 			{
-				int k = i % 3;
- 				if(k == 0) v.emplace_back(r.create<OSmall>());
- 				else if(k == 1) v.emplace_back(r.create<OBig>());
- 				else if(k == 2) v.emplace_back(r.create<OHuge>());
+				v.emplace_back(r.create<OSmall>());
+ 				v.emplace_back(r.create<OBig>());
+ 				v.emplace_back(r.create<OHuge>());
 			}
 			v.clear();
 			for(int i = 0; i < m * 3; ++i)
 			{
-				int k = i % 3;
- 				if(k == 0) v.emplace_back(r.create<OSmall>());
- 				else if(k == 1) v.emplace_back(r.create<OBig>());
- 				else if(k == 2) v.emplace_back(r.create<OHuge>());
+				v.emplace_back(r.create<OSmall>());
+ 				v.emplace_back(r.create<OBig>());
+ 				v.emplace_back(r.create<OHuge>());
 			}
 			v.clear();
 		}
@@ -151,11 +145,8 @@ void doBench()
 
 int main()
 {
-
 	SSVUT_RUN();
 
-// TODO: STILL CRASHES!
-
-	//doBench();
+	doBench();
 	return 0;
 }

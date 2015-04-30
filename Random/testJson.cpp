@@ -3,7 +3,7 @@
 #include <SSVUtils/Benchmark/Benchmark.hpp>
 #include <SSVUtils/Json/Json.hpp>
 #include <SSVUtils/Test/Test.hpp>
-#include <SSVUtils/Tests/TestsJson.hpp>
+// #include <SSVUtils/Tests/Tests.hpp>
 
 template<typename T> struct TestVec2
 {

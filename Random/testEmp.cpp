@@ -11,13 +11,13 @@ struct TypeA
 
 template<typename T, typename TC> inline T& tNew(TC& mContainer)
 {
-	mContainer.emplace_back(ssvu::makeUPtr<TypeA>());
+	mContainer.emplace_back(ssvu::mkUPtr<TypeA>());
 	return *mContainer[mContainer.size() - 1].get();
 }
 
 template<typename T, typename TC> inline T& tNew2(TC& mContainer)
 {
-	mContainer.emplace_back(ssvu::makeUPtr<TypeA>());
+	mContainer.emplace_back(ssvu::mkUPtr<TypeA>());
 	return *mContainer.back();
 }
 
