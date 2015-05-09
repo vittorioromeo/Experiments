@@ -53,7 +53,7 @@ namespace ssvces
 						e.mustRematch = false;
 					}
 
-					*result++ = std::move(*itr);
+					*result++ = ssvu::mv(*itr);
 				}
 				entities.erase(result, last);
 			}
