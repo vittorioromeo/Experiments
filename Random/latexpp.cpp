@@ -23,13 +23,23 @@ struct Parser
 	}
 
 	bool isDone() const noexcept { return idx >= source.size(); }
-	char get(SizeT mOffset = 0) const noexcept { return source[idx + mOffset]; }
+	char get(SizeT mOffset = 0) const noexcept 
+	{ 
+		SSVU_ASSERT(idx + mOffset < source.size());
+		return source[idx + mOffset]; 
+	}
 
 	void step(SizeT mX = 1) { idx += mX; }
 	void step(const std::string& mX) { idx += mX.size(); }
 	
 	void expect(const std::string& mX)
 	{
+		auto remaining(source.size() - idx);		
+		if(mX.size() >= remaining) 
+		{
+			throw std::runtime_error("Expected: " + mX);	
+		}
+
 		for(auto i(0u); i < mX.size(); ++i)
 			if(get(i) != mX[i])			
 				throw std::runtime_error("Expected: " + mX);		
@@ -37,8 +47,13 @@ struct Parser
 
 	void skipWhitespace()
 	{
-		while(get() == ' ' || get() == '\t')
+		while(idx < source.size())
+		{
+			auto c(get());
+
+			if(c != ' ' && c != '\t') break;
 			step();
+		}
 	}
 
 	void expectStep(const std::string& mX)
@@ -66,7 +81,8 @@ struct Parser
 
 	bool matchAhead(const std::string& mX)
 	{
-		if(idx + mX.size() >= source.size()) return false;
+		auto remaining(source.size() - idx);
+		if(mX.size() >= remaining) return false;
 
 		for(auto i(0u); i < mX.size(); ++i)
 			if(get(i) != mX[i]) return false;
@@ -117,7 +133,7 @@ struct LatexPP
 		if(!mX.exists<ssvufs::Type::File>())
 			throw std::runtime_error("Source file path is unexistant");
 
-		source = mX.getContentsAsString();
+		source = mX.getContentsAsStr();
 	}
 
 	void step0_findDirectives()
@@ -268,3 +284,5 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
+
+// TODO: stack for nested macros
