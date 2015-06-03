@@ -62,6 +62,9 @@ namespace Boilerplate
 
 	struct TestApp : public App
 	{
+		private:
+			ssvs::BitmapText txtInfo{ssvs::getDefaultAsset<ssvs::BitmapFont>()};
+
 		public:
 			ssvu::Delegate<void(ssvs::GameState&)> onInitInput;
 			ssvu::Delegate<void(ssvu::FT)> onUpdate;
@@ -88,6 +91,13 @@ namespace Boilerplate
 			{
 				onUpdate(mFT);
 				gameCamera.update<float>(mFT);				
+
+				txtInfo.setString
+				(
+					std::string{"FPS: "} + ssvu::toStr(ssvu::toInt(getGameWindow().getFPS())) + "\n" 
+					+ "U: " + ssvu::toStr(getGameWindow().getMsUpdate()) + "\n" 
+					+ "D: " + ssvu::toStr(getGameWindow().getMsDraw()) + "\n"
+				);
 			}
 
 			inline void draw()
@@ -95,12 +105,18 @@ namespace Boilerplate
 				gameCamera.apply();
 				onDraw();
 				gameCamera.unapply();
+
+				render(txtInfo);
 			}
 
 		public:
 			inline TestApp(ssvs::GameWindow& mGW) : App{mGW}
 			{
 				initInput();
+
+				txtInfo.setPosition(ssvs::Vec2f(5.f, 5.f));
+				txtInfo.setScale(ssvs::Vec2f(2.f, 2.f));
+				txtInfo.setTracking(-3);
 				
 				gameState.onUpdate += [this](ssvu::FT mFT){ update(mFT); };
 				gameState.onDraw += [this]{ draw(); };				
@@ -128,12 +144,11 @@ namespace Batch
 
 		struct TextureID 
 		{ 
+			const sf::Vector2f halfSize, nw, ne, sw, se;
 			const ssvu::SizeT id; 
-			const sf::Vector2f size;
-			const sf::Vector2f halfSize;
 
 			inline TextureID(ssvu::SizeT mID, float mSizeX, float mSizeY) noexcept
-				: id{mID}, size{mSizeX, mSizeY}, halfSize{size / 2.f}
+				: halfSize{mSizeX / 2.f, mSizeY / 2.f}, nw{0, 0}, ne{mSizeX, 0}, sw{0, mSizeY}, se{mSizeX, mSizeY}, id{mID}
 			{
 
 			}
@@ -153,9 +168,9 @@ namespace Batch
 
 		private:
 			Impl::TextureID textureID;
-			Impl::LayerID layerID;
+			Impl::LayerID layerID;		
 			sf::Vector2f position, origin, scale;
-			float radians;		
+			float radians, rSin, rCos;		
 
 		public:
 			template<typename T> inline void setTexture(T&& mX) noexcept 	{ textureID = FWD(mX); }
@@ -163,17 +178,21 @@ namespace Batch
 			template<typename T> inline void setPosition(T&& mX) noexcept 	{ position = FWD(mX); }
 			template<typename T> inline void setOrigin(T&& mX) noexcept 	{ origin = FWD(mX); }
 			template<typename T> inline void setScale(T&& mX) noexcept		{ scale = FWD(mX); }
-			inline void setRadians(float mX) noexcept						{ radians = mX; }
+			
+			inline void setRadians(float mX) noexcept						
+			{ 
+				radians = mX; 
+				rSin = std::sin(radians);
+				rCos = std::cos(radians);
+			}
 
 			inline const auto& getTexture() const noexcept 					{ return textureID; }
 			inline const auto& getLayer() const noexcept 					{ return layerID; }
 			inline const auto& getPosition() const noexcept 				{ return position; }
 			inline const auto& getOrigin() const noexcept 					{ return origin; }
 			inline const auto& getScale() const noexcept 					{ return scale; }
-			inline const auto& getRadians() const noexcept 					{ return radians; }
-
-			inline const auto& getTextureSize() const noexcept  	{ return textureID.size; }
-			inline const auto& getHalfTextureSize() const noexcept 	{ return textureID.halfSize; }
+			inline const auto& getRadians() const noexcept 					{ return radians; }			
+			inline const auto& getHalfTextureSize() const noexcept 			{ return textureID.halfSize; }
 
 			inline auto getCenter() const noexcept
 			{
@@ -188,14 +207,10 @@ namespace Batch
 		
 		private:
 			inline void emplaceVertices(Impl::VVQuads& mV) const
-			{		
-				const auto& sz(getTextureSize());
+			{						
 				const auto& hs(getHalfTextureSize());
 				const auto& center(getCenter());
 
-				auto as(std::sin(radians));
-				auto ac(std::cos(radians));
-				
 				auto l(center.x - hs.x);
 				auto r(center.x + hs.x);
 				auto t(center.y - hs.y);
@@ -205,16 +220,11 @@ namespace Batch
 				sf::Vector2f ne{r, t};
 				sf::Vector2f se{r, b};
 				sf::Vector2f sw{l, b};
-
-				auto p0(Impl::getRotateVecAroundVec(center, nw, as, ac, scale));
-				auto p1(Impl::getRotateVecAroundVec(center, ne, as, ac, scale));
-				auto p2(Impl::getRotateVecAroundVec(center, se, as, ac, scale));
-				auto p3(Impl::getRotateVecAroundVec(center, sw, as, ac, scale));
 				
-				mV.emplace_back(p0, sf::Vector2f{0, 0});
-				mV.emplace_back(p1, sf::Vector2f{sz.x, 0});
-				mV.emplace_back(p2, sf::Vector2f{sz.x, sz.y});
-				mV.emplace_back(p3, sf::Vector2f{0, sz.y});			
+				mV.emplace_back(Impl::getRotateVecAroundVec(center, nw, rSin, rCos, scale), textureID.nw);
+				mV.emplace_back(Impl::getRotateVecAroundVec(center, ne, rSin, rCos, scale), textureID.ne);
+				mV.emplace_back(Impl::getRotateVecAroundVec(center, se, rSin, rCos, scale), textureID.se);
+				mV.emplace_back(Impl::getRotateVecAroundVec(center, sw, rSin, rCos, scale), textureID.sw);
 			}		
 	};
 
@@ -279,6 +289,15 @@ namespace Batch
 				
 				mX.emplaceVertices(v);
 			}	
+
+			inline void directDraw(sf::RenderTarget& mRT, const BatchSprite& mX)
+			{
+				static Impl::VVQuads x;
+				x.clear();
+				mX.emplaceVertices(x);
+
+				mRT.draw(x, sf::RenderStates{boundTextures[mX.getTexture().id]});
+			}
 	};
 
 	inline void Impl::Layer::drawOn(Manager& mManager, sf::RenderTarget& mX) noexcept
@@ -307,7 +326,7 @@ struct MovingThing
 	inline void update(ssvu::FT mFT) noexcept
 	{
 		spr.setPosition(spr.getPosition() + velocity * mFT);
-		// spr.setRadians(spr.getRadians() + mFT * 0.01f);
+		spr.setRadians(spr.getRadians() + mFT * 0.01f);
 	}
 
 	inline void draw(Batch::Manager& mMgr)
@@ -329,6 +348,12 @@ int main()
 	auto& atxL1(am.get<sf::Texture>("l1"));
 	auto& atxL2(am.get<sf::Texture>("l2"));
 	auto& atxL3(am.get<sf::Texture>("l3"));
+
+	ssvu::lo("sizeof sf::Sprite") << sizeof(sf::Sprite) << "\n";
+	ssvu::lo("sizeof Batch::Sprite") << sizeof(Batch::BatchSprite) << "\n";
+	ssvu::lo("sizeof float") << sizeof(float) << "\n";
+	ssvu::lo("sizeof Vec2f") << sizeof(sf::Vector2f) << "\n";
+	ssvu::lo("sizeof SizeT") << sizeof(ssvu::SizeT) << "\n";
 
 	Batch::Manager bm;
 	auto btxL0(bm.bind(atxL0));
@@ -365,11 +390,10 @@ int main()
 
 	app.onDraw += [&]()
 	{
-		// vv.clear();
+		// for(auto& l : lasers) bm.directDraw(app.getGameWindow(), l.spr);
+
 		for(auto& l : lasers) l.draw(bm);	
-		bm.drawOn(app.getGameWindow());
-		// app.render(vv, sf::RenderStates{&txLaser});
-		// app.render(vv);
+		bm.drawOn(app.getGameWindow());		
 	};
 
 	appR.run();
