@@ -10,54 +10,52 @@ namespace Boilerplate
 			using IT = ssvs::Input::Type;
 			using IM = ssvs::Input::Mode;
 
-			ssvs::GameState gameState;
-			ssvs::Camera gameCamera;
-			ssvs::GameWindow& gameWindow;
+			ssvs::GameState gState;
+			ssvs::Camera gCamera;
+			ssvs::GameWindow& gWindow;
 
 		public:
-			inline App(ssvs::GameWindow& mGW) : gameCamera{mGW, 1.f}, gameWindow{mGW} { }
+			inline App(ssvs::GameWindow& mGW) : gCamera{mGW, 1.f}, gWindow{mGW} { }
 
-			inline void stop() noexcept	{ return gameWindow.stop(); }
+			inline void run() noexcept { gWindow.run(); }
+			inline void stop() noexcept	{ gWindow.stop(); }
 
 			template<typename... TArgs> inline void render(TArgs&&... mArgs)
 			{
-				gameWindow.draw(FWD(mArgs)...);
+				gWindow.draw(FWD(mArgs)...);
 			}
 
-			inline auto& getGameState() noexcept				{ return gameState; }
-			inline const auto& getGameState() const noexcept	{ return gameState; }
-			inline auto& getGameCamera() noexcept				{ return gameCamera; }
-			inline const auto& getGameCamera() const noexcept	{ return gameCamera; }
-			inline auto& getGameWindow() noexcept				{ return gameWindow; }
-			inline const auto& getGameWindow() const noexcept	{ return gameWindow; }
+			inline auto& getGState() noexcept				{ return gState; }
+			inline const auto& getGState() const noexcept	{ return gState; }
+			inline auto& getGCamera() noexcept				{ return gCamera; }
+			inline const auto& getGCamera() const noexcept	{ return gCamera; }
+			inline auto& getGWindow() noexcept				{ return gWindow; }
+			inline const auto& getGWindow() const noexcept	{ return gWindow; }
 	};
 
 	template<typename T> class AppRunner
 	{
 		private:
-			ssvs::GameWindow gameWindow;
-			ssvu::Maybe<T> app;
+			ssvs::GameWindow gWindow;
+			T app;
 
 		public:
-			inline AppRunner(const std::string& mTitle, ssvu::SizeT mWidth, ssvu::SizeT mHeight)
+			inline AppRunner(const std::string& mTitle, ssvu::SizeT mWidth, ssvu::SizeT mHeight) 
+				: app{gWindow}
 			{
-				gameWindow.setTitle(mTitle);
-				gameWindow.setTimer<ssvs::TimerStatic>(0.5f, 0.5f);
-				gameWindow.setSize(mWidth, mHeight);
-				gameWindow.setFullscreen(false);
-				gameWindow.setFPSLimited(true);
-				gameWindow.setMaxFPS(200);
-				gameWindow.setPixelMult(1);
+				gWindow.setTitle(mTitle);
+				gWindow.setTimer<ssvs::TimerStatic>(0.5f, 0.5f);
+				gWindow.setSize(mWidth, mHeight);
+				gWindow.setFullscreen(false);
+				gWindow.setFPSLimited(true);
+				gWindow.setMaxFPS(200);
+				gWindow.setPixelMult(1);
 
-				app.init(gameWindow);
-
-				gameWindow.setGameState(app->getGameState());				
+				gWindow.setGameState(app.getGState());
 			}
 
-			inline void run() { gameWindow.run(); }
-			inline auto& getApp() noexcept { return app.get(); }
-
-			inline ~AppRunner() { app.deinit(); }
+			inline void run() { gWindow.run(); }
+			inline auto& getApp() noexcept { return app; }
 	};
 
 	struct TestApp : public App
@@ -72,39 +70,39 @@ namespace Boilerplate
 
 		private:
 			inline void initInput()
-			{			
-				auto& gState(gameState);
-				
-				gState.addInput({{IK::Escape}}, [this](ssvu::FT){ stop(); });
+			{
+				auto& gs(gState);
 
-				gState.addInput({{IK::A}}, [this](ssvu::FT){ gameCamera.pan(-4, 0); });
-				gState.addInput({{IK::D}}, [this](ssvu::FT){ gameCamera.pan(4, 0); });
-				gState.addInput({{IK::W}}, [this](ssvu::FT){ gameCamera.pan(0, -4); });
-				gState.addInput({{IK::S}}, [this](ssvu::FT){ gameCamera.pan(0, 4); });
-				gState.addInput({{IK::Q}}, [this](ssvu::FT){ gameCamera.zoomOut(1.1f); });
-				gState.addInput({{IK::E}}, [this](ssvu::FT){ gameCamera.zoomIn(1.1f); });
+				gs.addInput({{IK::Escape}}, [this](ssvu::FT){ stop(); });
 
-				onInitInput(gState);		
+				gs.addInput({{IK::A}}, [this](ssvu::FT){ gCamera.pan(-4, 0); });
+				gs.addInput({{IK::D}}, [this](ssvu::FT){ gCamera.pan(4, 0); });
+				gs.addInput({{IK::W}}, [this](ssvu::FT){ gCamera.pan(0, -4); });
+				gs.addInput({{IK::S}}, [this](ssvu::FT){ gCamera.pan(0, 4); });
+				gs.addInput({{IK::Q}}, [this](ssvu::FT){ gCamera.zoomOut(1.1f); });
+				gs.addInput({{IK::E}}, [this](ssvu::FT){ gCamera.zoomIn(1.1f); });
+
+				onInitInput(gs);
 			}
 
 			inline void update(ssvu::FT mFT)
 			{
 				onUpdate(mFT);
-				gameCamera.update<float>(mFT);				
+				gCamera.update<float>(mFT);
 
 				txtInfo.setString
 				(
-					std::string{"FPS: "} + ssvu::toStr(ssvu::toInt(getGameWindow().getFPS())) + "\n" 
-					+ "U: " + ssvu::toStr(getGameWindow().getMsUpdate()) + "\n" 
-					+ "D: " + ssvu::toStr(getGameWindow().getMsDraw()) + "\n"
+					std::string{"FPS: "} + ssvu::toStr(ssvu::toInt(getGWindow().getFPS())) + "\n"
+					+ "U: " + ssvu::toStr(getGWindow().getMsUpdate()) + "\n"
+					+ "D: " + ssvu::toStr(getGWindow().getMsDraw()) + "\n"
 				);
 			}
 
 			inline void draw()
 			{
-				gameCamera.apply();
+				gCamera.apply();
 				onDraw();
-				gameCamera.unapply();
+				gCamera.unapply();
 
 				render(txtInfo);
 			}
@@ -117,10 +115,10 @@ namespace Boilerplate
 				txtInfo.setPosition(ssvs::Vec2f(5.f, 5.f));
 				txtInfo.setScale(ssvs::Vec2f(2.f, 2.f));
 				txtInfo.setTracking(-3);
-				
-				gameState.onUpdate += [this](ssvu::FT mFT){ update(mFT); };
-				gameState.onDraw += [this]{ draw(); };				
-			}			
+
+				gState.onUpdate += [this](ssvu::FT mFT){ update(mFT); };
+				gState.onDraw += [this]{ draw(); };
+			}
 	};
 
 	using TestAppRunner = AppRunner<TestApp>;
@@ -128,7 +126,7 @@ namespace Boilerplate
 
 static constexpr ssvu::SizeT tablePrecision{628};
 static constexpr float tableRatio{tablePrecision / ssvu::tau};
-inline constexpr auto getTableIdx(float mX) noexcept { return ssvu::toInt(mX * tableRatio) % tablePrecision; }
+inline constexpr auto getTableIdx(float mX) noexcept { return ssvu::toInt(mX * tableRatio); }
 
 struct SinTable
 {
@@ -161,19 +159,19 @@ inline const auto& getSinTable() noexcept 		{ static SinTable result; return res
 inline const auto& getCosTable() noexcept 		{ static CosTable result; return result.arr; }
 inline const auto& getSinCosTable() noexcept	{ static SinCosTable result; return result.arr; }
 
-inline auto getSin(float mX) noexcept 		{ return getSinTable()[getTableIdx(mX)]; }
-inline auto getCos(float mX) noexcept 		{ return getCosTable()[getTableIdx(mX)]; }
-inline auto getSinCos(float mX) noexcept	{ return getSinCosTable()[getTableIdx(mX)]; }
+inline auto getSin(float mX) noexcept 		{ SSVU_ASSERT(mX >= 0.f && mX <= ssvu::tau); return getSinTable()[getTableIdx(mX)]; }
+inline auto getCos(float mX) noexcept 		{ SSVU_ASSERT(mX >= 0.f && mX <= ssvu::tau); return getCosTable()[getTableIdx(mX)]; }
+inline auto getSinCos(float mX) noexcept	{ SSVU_ASSERT(mX >= 0.f && mX <= ssvu::tau); return getSinCosTable()[getTableIdx(mX)]; }
 
 namespace Batch
-{	
+{
 	namespace Impl
 	{
 		using VVQuads = ssvs::VertexVector<sf::PrimitiveType::Quads>;
 
-		template<typename T1, typename T2, typename T3, typename T4, typename T5> 
+		template<typename T1, typename T2, typename T3, typename T4, typename T5>
 		inline auto getRotateVecAroundVec(const ssvs::Vec2<T1>& mCenter, const ssvs::Vec2<T2>& mPoint, const T3& mSin, const T4& mCos, const ssvs::Vec2<T5>& mScale) noexcept
-		{	
+		{
 			return ssvs::Vec2<ssvs::CT<T1, T2, T3, T4, T5>>
 			{
 				mCenter.x + ((mPoint.x - mCenter.x) * mCos - (mPoint.y - mCenter.y) * mSin) * mScale.x,
@@ -181,10 +179,10 @@ namespace Batch
 			};
 		}
 
-		struct TextureID 
-		{ 
+		struct TextureID
+		{
 			const sf::Vector2f halfSize, nw, ne, sw, se;
-			const ssvu::SizeT id; 
+			const ssvu::SizeT id;
 
 			inline TextureID(ssvu::SizeT mID, float mSizeX, float mSizeY) noexcept
 				: halfSize{mSizeX / 2.f, mSizeY / 2.f}, nw{0, 0}, ne{mSizeX, 0}, sw{0, mSizeY}, se{mSizeX, mSizeY}, id{mID}
@@ -192,10 +190,10 @@ namespace Batch
 
 			}
 		};
-		
-		struct LayerID  
-		{ 
-			const ssvu::SizeT id; 
+
+		struct LayerID
+		{
+			const ssvu::SizeT id;
 		};
 	}
 
@@ -207,9 +205,9 @@ namespace Batch
 
 		private:
 			Impl::TextureID textureID;
-			Impl::LayerID layerID;		
+			Impl::LayerID layerID;
 			sf::Vector2f position, origin, scale;
-			float radians, rSin, rCos;		
+			float radians, rSin, rCos;
 
 		public:
 			template<typename T> inline void setTexture(T&& mX) noexcept 	{ textureID = FWD(mX); }
@@ -217,12 +215,12 @@ namespace Batch
 			template<typename T> inline void setPosition(T&& mX) noexcept 	{ position = FWD(mX); }
 			template<typename T> inline void setOrigin(T&& mX) noexcept 	{ origin = FWD(mX); }
 			template<typename T> inline void setScale(T&& mX) noexcept		{ scale = FWD(mX); }
-			
-			inline void setRadians(float mX) noexcept						
-			{ 
-				radians = mX; 				
+
+			inline void setRadians(float mX) noexcept
+			{
+				radians = ssvu::getWrapRad(mX);				
 				std::tie(rSin, rCos) = getSinCos(radians);
-				
+
 				// rSin = getSin(radians);
 				// rCos = getCos(radians);
 			}
@@ -232,7 +230,7 @@ namespace Batch
 			inline const auto& getPosition() const noexcept 				{ return position; }
 			inline const auto& getOrigin() const noexcept 					{ return origin; }
 			inline const auto& getScale() const noexcept 					{ return scale; }
-			inline const auto& getRadians() const noexcept 					{ return radians; }			
+			inline const auto& getRadians() const noexcept 					{ return radians; }
 			inline const auto& getHalfTextureSize() const noexcept 			{ return textureID.halfSize; }
 
 			inline auto getCenter() const noexcept
@@ -240,39 +238,52 @@ namespace Batch
 				return ssvs::Vec2f{position.x + origin.x, position.y + origin.y};
 			}
 
-			inline BatchSprite(const Impl::TextureID& mTextureID, const Impl::LayerID& mLayerID) noexcept 
+			inline BatchSprite(const Impl::TextureID& mTextureID, const Impl::LayerID& mLayerID) noexcept
 				: textureID(mTextureID), layerID(mLayerID)
 			{
 
-			}	
-		
+			}
+
 		private:
 			inline void emplaceVertices(Impl::VVQuads& mV) const
-			{						
+			{
 				const auto& hs(getHalfTextureSize());
-				const auto& center(getCenter());
+				// const auto& center(getCenter());
 
-				auto l(center.x - hs.x);
-				auto r(center.x + hs.x);
-				auto t(center.y - hs.y);
-				auto b(center.y + hs.y);
+				// auto l(center.x - hs.x);
+				// auto r(center.x + hs.x);
+				// auto t(center.y - hs.y);
+				// auto b(center.y + hs.y);
 
-				sf::Vector2f nw{l, t};
-				sf::Vector2f ne{r, t};
-				sf::Vector2f se{r, b};
-				sf::Vector2f sw{l, b};
+				// sf::Vector2f nw{l, t};
+				// sf::Vector2f ne{r, t};
+				// sf::Vector2f se{r, b};
+				// sf::Vector2f sw{l, b};
+
+				// mV.emplace_back(Impl::getRotateVecAroundVec(center, nw, rSin, rCos, scale), textureID.nw);
+				// mV.emplace_back(Impl::getRotateVecAroundVec(center, ne, rSin, rCos, scale), textureID.ne);
+				// mV.emplace_back(Impl::getRotateVecAroundVec(center, se, rSin, rCos, scale), textureID.se);
+				// mV.emplace_back(Impl::getRotateVecAroundVec(center, sw, rSin, rCos, scale), textureID.sw);			
+
+				auto cs(rCos * scale.x);
+				auto cy(rSin * scale.y);
+
+				auto hxc(hs.x * cs);
+				auto hxs(hs.x * cy);
+				auto hyc(hs.y * cs);
+				auto hys(hs.y * cy);
 				
-				mV.emplace_back(Impl::getRotateVecAroundVec(center, nw, rSin, rCos, scale), textureID.nw);
-				mV.emplace_back(Impl::getRotateVecAroundVec(center, ne, rSin, rCos, scale), textureID.ne);
-				mV.emplace_back(Impl::getRotateVecAroundVec(center, se, rSin, rCos, scale), textureID.se);
-				mV.emplace_back(Impl::getRotateVecAroundVec(center, sw, rSin, rCos, scale), textureID.sw);
-			}		
+				mV.emplace_back(position + sf::Vector2f{-hxc - -hys, -hxs + -hyc}, textureID.nw);
+				mV.emplace_back(position + sf::Vector2f{ hxc - -hys,  hxs + -hyc}, textureID.ne);
+				mV.emplace_back(position + sf::Vector2f{ hxc -  hys,  hxs +  hyc}, textureID.se);
+				mV.emplace_back(position + sf::Vector2f{-hxc -  hys, -hxs +  hyc}, textureID.sw);
+			}
 	};
 
 	namespace Impl
 	{
 		class Layer
-		{	
+		{
 			friend class Batch::Manager;
 
 			private:
@@ -312,14 +323,14 @@ namespace Batch
 			{
 				Impl::Layer l{};
 				l.resize(boundTextures.size());
-				
+
 				layers.emplace_back(l);
 				return Impl::LayerID{layers.size() - 1};
 			}
 
 			inline void drawOn(sf::RenderTarget& mX) noexcept
 			{
-				for(auto& l : layers) l.drawOn(*this, mX); 
+				for(auto& l : layers) l.drawOn(*this, mX);
 				clearLayers();
 			}
 
@@ -327,9 +338,9 @@ namespace Batch
 			{
 				auto& l(layers[mX.layerID.id]);
 				auto& v(l.vVectors[mX.textureID.id]);
-				
+
 				mX.emplaceVertices(v);
-			}	
+			}
 
 			inline void directDraw(sf::RenderTarget& mRT, const BatchSprite& mX)
 			{
@@ -356,11 +367,11 @@ namespace Batch
 struct MovingThing
 {
 	Batch::BatchSprite spr;
-	sf::Vector2f velocity;		
-	
+	sf::Vector2f velocity;
+
 	inline MovingThing(const Batch::BatchSprite& mSpr) : spr{mSpr}
-	{			
-		const auto& hts(spr.getHalfTextureSize());	
+	{
+		const auto& hts(spr.getHalfTextureSize());
 		spr.setOrigin(ssvs::Vec2f{hts.x, hts.y});
 	}
 
@@ -371,7 +382,7 @@ struct MovingThing
 	}
 
 	inline void draw(Batch::Manager& mMgr)
-	{		
+	{
 		mMgr.enqueue(spr);
 	}
 };
@@ -405,15 +416,16 @@ int main()
 
 	auto btxs(ssvu::mkVector(btxL0, btxL1, btxL2, btxL3));
 
-	Boilerplate::TestAppRunner appR{"", 800, 600};
-	auto& app(appR.getApp());
-
+	Boilerplate::TestAppRunner ar{"", 800, 600};
+	auto& app(ar.getApp());
 	
+
+
 
 	std::vector<MovingThing> lasers;
 
 	for(auto i(0u); i < 150000; ++i)
-	{	
+	{
 		MovingThing l{Batch::BatchSprite{btxs[ssvu::getRndI(0, btxs.size())], btlForeground}};
 		l.spr.setPosition(sf::Vector2f{ssvu::getRndR(0.f, 800.f), ssvu::getRndR(0.f, 600.f)});
 		auto r(ssvu::getRndR(0.f, ssvu::tau));
@@ -421,7 +433,7 @@ int main()
 		l.spr.setRadians(r);
 		auto s(ssvu::getRndR(0.1f, 1.1f));
 		l.spr.setScale(sf::Vector2f{s, s});
-		lasers.emplace_back(l);	
+		lasers.emplace_back(l);
 	}
 
 	app.onUpdate += [&](ssvu::FT mFT)
@@ -431,13 +443,13 @@ int main()
 
 	app.onDraw += [&]()
 	{
-		// for(auto& l : lasers) bm.directDraw(app.getGameWindow(), l.spr);
+		// for(auto& l : lasers) bm.directDraw(app.getGWindow(), l.spr);
 
-		for(auto& l : lasers) l.draw(bm);	
-		bm.drawOn(app.getGameWindow());		
+		for(auto& l : lasers) l.draw(bm);
+		bm.drawOn(app.getGWindow());
 	};
 
-	appR.run();
+	app.run();
 	ssvu::lo() << "end\n";
 
 	return 0;
