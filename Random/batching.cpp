@@ -126,6 +126,45 @@ namespace Boilerplate
 	using TestAppRunner = AppRunner<TestApp>;
 }
 
+static constexpr ssvu::SizeT tablePrecision{628};
+static constexpr float tableRatio{tablePrecision / ssvu::tau};
+inline constexpr auto getTableIdx(float mX) noexcept { return ssvu::toInt(mX * tableRatio) % tablePrecision; }
+
+struct SinTable
+{
+	std::array<float, tablePrecision> arr;
+	inline SinTable() noexcept
+	{
+		for(auto i(0u); i < tablePrecision; ++i) arr[i] = std::sin(i / tableRatio);
+	}
+};
+
+struct CosTable
+{
+	std::array<float, tablePrecision> arr;
+	inline CosTable() noexcept
+	{
+		for(auto i(0u); i < tablePrecision; ++i) arr[i] = std::cos(i / tableRatio);
+	}
+};
+
+struct SinCosTable
+{
+	std::array<ssvu::Tpl<float, float>, tablePrecision> arr;
+	inline SinCosTable() noexcept
+	{
+		for(auto i(0u); i < tablePrecision; ++i) arr[i] = ssvu::mkTpl(std::sin(i / tableRatio), std::cos(i / tableRatio));
+	}
+};
+
+inline const auto& getSinTable() noexcept 		{ static SinTable result; return result.arr; }
+inline const auto& getCosTable() noexcept 		{ static CosTable result; return result.arr; }
+inline const auto& getSinCosTable() noexcept	{ static SinCosTable result; return result.arr; }
+
+inline auto getSin(float mX) noexcept 		{ return getSinTable()[getTableIdx(mX)]; }
+inline auto getCos(float mX) noexcept 		{ return getCosTable()[getTableIdx(mX)]; }
+inline auto getSinCos(float mX) noexcept	{ return getSinCosTable()[getTableIdx(mX)]; }
+
 namespace Batch
 {	
 	namespace Impl
@@ -181,9 +220,11 @@ namespace Batch
 			
 			inline void setRadians(float mX) noexcept						
 			{ 
-				radians = mX; 
-				rSin = std::sin(radians);
-				rCos = std::cos(radians);
+				radians = mX; 				
+				std::tie(rSin, rCos) = getSinCos(radians);
+				
+				// rSin = getSin(radians);
+				// rCos = getCos(radians);
 			}
 
 			inline const auto& getTexture() const noexcept 					{ return textureID; }
