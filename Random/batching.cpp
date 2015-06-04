@@ -54,7 +54,6 @@ namespace Boilerplate
 				gWindow.setGameState(app.getGState());
 			}
 
-			inline void run() { gWindow.run(); }
 			inline auto& getApp() noexcept { return app; }
 	};
 
@@ -64,7 +63,6 @@ namespace Boilerplate
 			ssvs::BitmapText txtInfo{ssvs::getDefaultAsset<ssvs::BitmapFont>()};
 
 		public:
-			ssvu::Delegate<void(ssvs::GameState&)> onInitInput;
 			ssvu::Delegate<void(ssvu::FT)> onUpdate;
 			ssvu::Delegate<void()> onDraw;
 
@@ -81,8 +79,6 @@ namespace Boilerplate
 				gs.addInput({{IK::S}}, [this](ssvu::FT){ gCamera.pan(0, 4); });
 				gs.addInput({{IK::Q}}, [this](ssvu::FT){ gCamera.zoomOut(1.1f); });
 				gs.addInput({{IK::E}}, [this](ssvu::FT){ gCamera.zoomIn(1.1f); });
-
-				onInitInput(gs);
 			}
 
 			inline void update(ssvu::FT mFT)
@@ -90,12 +86,15 @@ namespace Boilerplate
 				onUpdate(mFT);
 				gCamera.update<float>(mFT);
 
-				txtInfo.setString
-				(
-					std::string{"FPS: "} + ssvu::toStr(ssvu::toInt(getGWindow().getFPS())) + "\n"
-					+ "U: " + ssvu::toStr(getGWindow().getMsUpdate()) + "\n"
-					+ "D: " + ssvu::toStr(getGWindow().getMsDraw()) + "\n"
-				);
+				const auto& gw(getGWindow());
+
+				std::ostringstream osInfo;
+				osInfo 	<< "FPS: " << ssvu::toInt(gw.getFPS())
+						<< "\nU: " << gw.getMsUpdate() 
+						<< "\nD: " << gw.getMsDraw() 
+						<< "\n";
+
+				txtInfo.setString(osInfo.str());
 			}
 
 			inline void draw()
@@ -112,8 +111,8 @@ namespace Boilerplate
 			{
 				initInput();
 
-				txtInfo.setPosition(ssvs::Vec2f(5.f, 5.f));
-				txtInfo.setScale(ssvs::Vec2f(2.f, 2.f));
+				txtInfo.setPosition({5.f, 5.f});
+				txtInfo.setScale({2.f, 2.f});
 				txtInfo.setTracking(-3);
 
 				gState.onUpdate += [this](ssvu::FT mFT){ update(mFT); };
@@ -124,60 +123,47 @@ namespace Boilerplate
 	using TestAppRunner = AppRunner<TestApp>;
 }
 
+template<ssvu::SizeT TPrecision> struct TrigTable
+{
+	private:
+		static constexpr float ratio{TPrecision / ssvu::tau};
+		std::array<float, TPrecision> arr;
+
+	public:
+		template<typename TF> inline TrigTable(TF&& mFn) noexcept
+		{
+			for(auto i(0u); i < TPrecision; ++i) arr[i] = mFn(i / ratio);	
+		}
+
+		inline auto get(float mX) const noexcept 
+		{ 
+			SSVU_ASSERT(mX >= 0.f && mX <= ssvu::tau);
+			return arr[ssvu::toInt(mX * ratio)]; 
+		}
+}; 
+
 static constexpr ssvu::SizeT tablePrecision{628};
-static constexpr float tableRatio{tablePrecision / ssvu::tau};
-inline constexpr auto getTableIdx(float mX) noexcept { return ssvu::toInt(mX * tableRatio); }
 
-struct SinTable
-{
-	std::array<float, tablePrecision> arr;
-	inline SinTable() noexcept
-	{
-		for(auto i(0u); i < tablePrecision; ++i) arr[i] = std::sin(i / tableRatio);
-	}
-};
+inline const auto& getSinTable() noexcept 		
+{ 
+	static TrigTable<tablePrecision> result{[](auto mX){ return std::sin(mX); }}; 
+	return result; 
+}
+inline const auto& getCosTable() noexcept 		
+{ 
+	static TrigTable<tablePrecision> result{[](auto mX){ return std::cos(mX); }}; 
+	return result; 
+}
 
-struct CosTable
-{
-	std::array<float, tablePrecision> arr;
-	inline CosTable() noexcept
-	{
-		for(auto i(0u); i < tablePrecision; ++i) arr[i] = std::cos(i / tableRatio);
-	}
-};
+inline auto getSin(float mX) noexcept { return getSinTable().get(mX); }
+inline auto getCos(float mX) noexcept { return getCosTable().get(mX); }
 
-struct SinCosTable
-{
-	std::array<ssvu::Tpl<float, float>, tablePrecision> arr;
-	inline SinCosTable() noexcept
-	{
-		for(auto i(0u); i < tablePrecision; ++i) arr[i] = ssvu::mkTpl(std::sin(i / tableRatio), std::cos(i / tableRatio));
-	}
-};
-
-inline const auto& getSinTable() noexcept 		{ static SinTable result; return result.arr; }
-inline const auto& getCosTable() noexcept 		{ static CosTable result; return result.arr; }
-inline const auto& getSinCosTable() noexcept	{ static SinCosTable result; return result.arr; }
-
-inline auto getSin(float mX) noexcept 		{ SSVU_ASSERT(mX >= 0.f && mX <= ssvu::tau); return getSinTable()[getTableIdx(mX)]; }
-inline auto getCos(float mX) noexcept 		{ SSVU_ASSERT(mX >= 0.f && mX <= ssvu::tau); return getCosTable()[getTableIdx(mX)]; }
-inline auto getSinCos(float mX) noexcept	{ SSVU_ASSERT(mX >= 0.f && mX <= ssvu::tau); return getSinCosTable()[getTableIdx(mX)]; }
 
 namespace Batch
 {
 	namespace Impl
 	{
 		using VVQuads = ssvs::VertexVector<sf::PrimitiveType::Quads>;
-
-		template<typename T1, typename T2, typename T3, typename T4, typename T5>
-		inline auto getRotateVecAroundVec(const ssvs::Vec2<T1>& mCenter, const ssvs::Vec2<T2>& mPoint, const T3& mSin, const T4& mCos, const ssvs::Vec2<T5>& mScale) noexcept
-		{
-			return ssvs::Vec2<ssvs::CT<T1, T2, T3, T4, T5>>
-			{
-				mCenter.x + ((mPoint.x - mCenter.x) * mCos - (mPoint.y - mCenter.y) * mSin) * mScale.x,
-				mCenter.y + ((mPoint.x - mCenter.x) * mSin + (mPoint.y - mCenter.y) * mCos) * mScale.y
-			};
-		}
 
 		struct TextureID
 		{
@@ -218,11 +204,9 @@ namespace Batch
 
 			inline void setRadians(float mX) noexcept
 			{
-				radians = ssvu::getWrapRad(mX);				
-				std::tie(rSin, rCos) = getSinCos(radians);
-
-				// rSin = getSin(radians);
-				// rCos = getCos(radians);
+				radians = ssvu::getWrapRad(mX);			
+				rSin = getSin(radians);	
+				rCos = getCos(radians);
 			}
 
 			inline const auto& getTexture() const noexcept 					{ return textureID; }
@@ -233,11 +217,6 @@ namespace Batch
 			inline const auto& getRadians() const noexcept 					{ return radians; }
 			inline const auto& getHalfTextureSize() const noexcept 			{ return textureID.halfSize; }
 
-			inline auto getCenter() const noexcept
-			{
-				return ssvs::Vec2f{position.x + origin.x, position.y + origin.y};
-			}
-
 			inline BatchSprite(const Impl::TextureID& mTextureID, const Impl::LayerID& mLayerID) noexcept
 				: textureID(mTextureID), layerID(mLayerID)
 			{
@@ -245,38 +224,52 @@ namespace Batch
 			}
 
 		private:
+			// inline auto getTrueOrigin() const noexcept { return origin - getHalfTextureSize(); }
+
+			/*
+			inline auto getRotatedPoint(float mX, float mY, float mSSin, float mSCos) const noexcept
+			{
+				const auto& tOrigin(getTrueOrigin());
+
+				return sf::Vector2f
+				{
+					(tOrigin.x - mX) * mSCos - (tOrigin.y - mY) * mSSin + position.x, 
+					(tOrigin.y - mY) * mSCos + (tOrigin.x - mX) * mSSin + position.y					
+				};
+			}
+			*/
+
+			inline auto getRotatedPoint(float mX, float mY, float mSSin, float mSCos, const sf::Vector2f& mTOrigin) const noexcept
+			{				
+				return ssvs::Vec2f
+				{
+					(mTOrigin.x - mX) * mSCos - (mTOrigin.y - mY) * mSSin + position.x, 
+					(mTOrigin.y - mY) * mSCos + (mTOrigin.x - mX) * mSSin + position.y
+				};
+			}
+
+			inline void emplaceRotatedVertex(Impl::VVQuads& mV, float mX, float mY, float mSSin, float mSCos, const sf::Vector2f& mTOrigin, const sf::Vector2f& mTPos) const
+			{				
+				mV.emplace_back(getRotatedPoint(mX, mY, mSSin, mSCos, mTOrigin), mTPos);
+			}
+
 			inline void emplaceVertices(Impl::VVQuads& mV) const
 			{
 				const auto& hs(getHalfTextureSize());
-				// const auto& center(getCenter());
+				const auto& tOrigin(origin - getHalfTextureSize());
 
-				// auto l(center.x - hs.x);
-				// auto r(center.x + hs.x);
-				// auto t(center.y - hs.y);
-				// auto b(center.y + hs.y);
+				auto sSin(rSin * scale.y);
+				auto sCos(rCos * scale.x);
 
-				// sf::Vector2f nw{l, t};
-				// sf::Vector2f ne{r, t};
-				// sf::Vector2f se{r, b};
-				// sf::Vector2f sw{l, b};
+				auto erv([this, &mV, &tOrigin, &sSin, &sCos](auto mX, auto mY, const auto& mTp)
+				{
+					emplaceRotatedVertex(mV, mX, mY, sSin, sCos, tOrigin, mTp);
+				});
 
-				// mV.emplace_back(Impl::getRotateVecAroundVec(center, nw, rSin, rCos, scale), textureID.nw);
-				// mV.emplace_back(Impl::getRotateVecAroundVec(center, ne, rSin, rCos, scale), textureID.ne);
-				// mV.emplace_back(Impl::getRotateVecAroundVec(center, se, rSin, rCos, scale), textureID.se);
-				// mV.emplace_back(Impl::getRotateVecAroundVec(center, sw, rSin, rCos, scale), textureID.sw);			
-
-				auto cs(rCos * scale.x);
-				auto cy(rSin * scale.y);
-
-				auto hxc(hs.x * cs);
-				auto hxs(hs.x * cy);
-				auto hyc(hs.y * cs);
-				auto hys(hs.y * cy);
-				
-				mV.emplace_back(position + sf::Vector2f{-hxc - -hys, -hxs + -hyc}, textureID.nw);
-				mV.emplace_back(position + sf::Vector2f{ hxc - -hys,  hxs + -hyc}, textureID.ne);
-				mV.emplace_back(position + sf::Vector2f{ hxc -  hys,  hxs +  hyc}, textureID.se);
-				mV.emplace_back(position + sf::Vector2f{-hxc -  hys, -hxs +  hyc}, textureID.sw);
+				erv(-hs.x, -hs.y, textureID.nw);
+				erv(+hs.x, -hs.y, textureID.ne);
+				erv(+hs.x, +hs.y, textureID.se);
+				erv(-hs.x, +hs.y, textureID.sw);
 			}
 	};
 
@@ -349,6 +342,15 @@ namespace Batch
 				mX.emplaceVertices(x);
 
 				mRT.draw(x, sf::RenderStates{boundTextures[mX.getTexture().id]});
+
+				sf::Sprite s;
+				s.setTexture(*boundTextures[mX.getTexture().id]);
+				s.setPosition(mX.getPosition());
+				s.setRotation(180 + ssvu::toDeg(mX.getRadians()));
+				s.setOrigin(mX.getOrigin());
+				s.setScale(mX.getScale());
+
+				mRT.draw(s);
 			}
 	};
 
@@ -359,7 +361,7 @@ namespace Batch
 		for(auto i(0u); i < vVectors.size(); ++i)
 		{
 			auto& v(vVectors[i]);
-			mX.draw(&v[0], v.size(), sf::PrimitiveType::Quads, sf::RenderStates{mManager.boundTextures[i]});
+			mX.draw(v.data(), v.size(), sf::PrimitiveType::Quads, sf::RenderStates{mManager.boundTextures[i]});
 		}
 	}
 }
@@ -372,7 +374,8 @@ struct MovingThing
 	inline MovingThing(const Batch::BatchSprite& mSpr) : spr{mSpr}
 	{
 		const auto& hts(spr.getHalfTextureSize());
-		spr.setOrigin(ssvs::Vec2f{hts.x, hts.y});
+		 spr.setOrigin(ssvs::Vec2f{ssvu::getRndR(0, hts.x), ssvu::getRndR(0, hts.y)});
+		// spr.setOrigin(ssvs::Vec2f{0, 0});
 	}
 
 	inline void update(ssvu::FT mFT) noexcept
@@ -429,7 +432,8 @@ int main()
 		MovingThing l{Batch::BatchSprite{btxs[ssvu::getRndI(0, btxs.size())], btlForeground}};
 		l.spr.setPosition(sf::Vector2f{ssvu::getRndR(0.f, 800.f), ssvu::getRndR(0.f, 600.f)});
 		auto r(ssvu::getRndR(0.f, ssvu::tau));
-		l.velocity = ssvs::getVecFromRad(r, ssvu::getRndR(0.1f, 10.5f));
+		l.velocity = ssvs::getVecFromRad(ssvu::getRndR(0.f, ssvu::tau), ssvu::getRndR(0.1f, 20.5f));
+		// l.velocity = ssvs::zeroVec2f;
 		l.spr.setRadians(r);
 		auto s(ssvu::getRndR(0.1f, 1.1f));
 		l.spr.setScale(sf::Vector2f{s, s});
