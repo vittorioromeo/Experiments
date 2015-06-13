@@ -199,11 +199,15 @@ namespace Batch
 		struct LayerHandle
 		{
 			LayerID id;
+
+			template<typename... TArgs> auto mkSprite(TArgs&&... mArgs);
 		};
 
 		struct ZLayerHandle
 		{
 			LayerID id;
+
+			template<typename... TArgs> auto mkSprite(TArgs&&... mArgs);
 		};
 
 		class SpriteBase
@@ -539,6 +543,11 @@ namespace Batch
 
 		zvs.clear();
 	}
+
+	/*template<typename... TArgs> inline Impl::LayerHandle::mkSprite(TArgs&&... mArgs)
+	{
+		return Batch::LSprite(const Impl::TextureHandle &mTH, const Impl::LayerHandle &mLH)
+	}*/
 }
 
 struct MovingThing
