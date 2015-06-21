@@ -1,7 +1,6 @@
 #pragma once
 
-#include <SSVUtils/Core/Core.hpp>
-#include <SSVUtils/Benchmark/Benchmark.hpp>
+#include <iostream>
 
 inline auto getLastIdx() noexcept
 {
@@ -11,11 +10,6 @@ inline auto getLastIdx() noexcept
 
 template<typename T> struct TypeId { static std::size_t id; };
 template<typename T> std::size_t TypeId<T>::id{getLastIdx()};
-
-struct Type00 { };
-struct Type01 { };
-struct Type02 { };
-struct Type03 { };
 
 void print1();
 void print2();

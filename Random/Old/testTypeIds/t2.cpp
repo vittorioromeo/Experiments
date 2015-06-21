@@ -1,14 +1,19 @@
 #include "shared.hpp"
 
+struct Type04 { };
+struct Type05 { };
+struct Type06 { };
+struct Type07 { };
+
 void print2()
 {
-	ssvu::lo("03") << TypeId<Type03>::id << std::endl;
-	ssvu::lo("02") << TypeId<Type02>::id << std::endl;
-	ssvu::lo("01") << TypeId<Type01>::id << std::endl;
-	ssvu::lo("00") << TypeId<Type00>::id << std::endl;
+	std::cout << "04 -> " << TypeId<Type04>::id << std::endl;
+	std::cout << "05 -> " << TypeId<Type05>::id << std::endl;
+	std::cout << "06 -> " << TypeId<Type06>::id << std::endl;
+	std::cout << "07 -> " << TypeId<Type07>::id << std::endl;
 
-	ssvu::lo("03") << TypeId<Type03>::id << std::endl;
-	ssvu::lo("02") << TypeId<Type02>::id << std::endl;
-	ssvu::lo("01") << TypeId<Type01>::id << std::endl;
-	ssvu::lo("00") << TypeId<Type00>::id << std::endl;
+	std::cout << "07 -> " << TypeId<Type07>::id << std::endl;
+	std::cout << "06 -> " << TypeId<Type06>::id << std::endl;
+	std::cout << "05 -> " << TypeId<Type05>::id << std::endl;
+	std::cout << "04 -> " << TypeId<Type04>::id << std::endl;
 }
