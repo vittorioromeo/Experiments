@@ -17,7 +17,7 @@ namespace ssvvm
 		{ \
 			static VMFnPtr<T> fnPtrs[] \
 			{ \
-				SSVPP_FOREACH(SSVVM_CREATE_MFPTR, SSVPP_EMPTY(), __VA_ARGS__) \
+				SSVPP_FOREACH_REVERSE(SSVVM_CREATE_MFPTR, SSVPP_EMPTY(), __VA_ARGS__) \
 			}; \
 			return fnPtrs[std::size_t(mOpCode)]; \
 		}
