@@ -9,7 +9,7 @@ namespace ssvvm
 {
 	SSVU_FATENUM_MGR(ReflectedEnum);
 
-	#define SSVVM_CREATE_MFPTR(mIdx, mData, mArg) & SSVPP_DEFER(T) :: SSVPP_DEFER(mArg) SSVPP_COMMA_IF(mIdx)
+	#define SSVVM_CREATE_MFPTR(mIdx, mData, mArg) & VRM_PP_DEFER(T) :: VRM_PP_DEFER(mArg) VRM_PP_COMMA_IF(mIdx)
 
 	#define SSVVM_CREATE_OPCODE_DATABASE(...)	\
 		SSVU_FATENUM_DEFS(ReflectedEnum, OpCode, std::size_t, __VA_ARGS__) \
@@ -17,7 +17,7 @@ namespace ssvvm
 		{ \
 			static VMFnPtr<T> fnPtrs[] \
 			{ \
-				SSVPP_FOREACH_REVERSE(SSVVM_CREATE_MFPTR, SSVPP_EMPTY(), __VA_ARGS__) \
+				VRM_PP_FOREACH_REVERSE(SSVVM_CREATE_MFPTR, VRM_PP_EMPTY(), __VA_ARGS__) \
 			}; \
 			return fnPtrs[std::size_t(mOpCode)]; \
 		}
