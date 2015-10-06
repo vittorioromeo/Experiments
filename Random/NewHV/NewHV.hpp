@@ -28,8 +28,8 @@
 #include "../NewHV/Inc/Handle/HandleBase.inl"
 
 #if defined(SSVU_API_HEADERONLY)
-	#include "../NewHV/Src/Mark.cpp"
-	#include "../NewHV/Src/Stat.cpp"
+#include "../NewHV/Src/Mark.cpp"
+#include "../NewHV/Src/Stat.cpp"
 #endif
 
 #endif

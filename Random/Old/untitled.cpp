@@ -1,11 +1,10 @@
 int main()
 {
-	int k;
+    int k;
 
-	int* puntatoreAk = &k;
+    int* puntatoreAk = &k;
 
-	(*puntatoreAk) = 10;
+    (*puntatoreAk) = 10;
 
-	int** puntatoreAPuntatoreAk 
-			= &puntatoreAk;
+    int** puntatoreAPuntatoreAk = &puntatoreAk;
 }

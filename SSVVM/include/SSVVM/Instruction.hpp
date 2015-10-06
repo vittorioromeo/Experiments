@@ -7,13 +7,13 @@
 
 namespace ssvvm
 {
-	struct Instruction
-	{
-		using Idx = int;
+    struct Instruction
+    {
+        using Idx = int;
 
-		OpCode opCode;
-		Params params;
-	};
+        OpCode opCode;
+        Params params;
+    };
 }
 
 #endif

@@ -7,29 +7,34 @@
 
 namespace Eng
 {
-	template<typename TL> class Token
-	{
-		private:
-			TokenType<TL> type;
-			TokenData<TL> data;
+    template <typename TL>
+    class Token
+    {
+    private:
+        TokenType<TL> type;
+        TokenData<TL> data;
 
-		public:
-			inline Token(const TokenType<TL>& mType) noexcept : type{mType} { }
-			inline Token(const TokenType<TL>& mType, const TokenData<TL>& mData) : type{mType}, data{mData} { }
+    public:
+        inline Token(const TokenType<TL>& mType) noexcept : type{mType} {}
+        inline Token(const TokenType<TL>& mType, const TokenData<TL>& mData)
+            : type{mType}, data{mData}
+        {
+        }
 
-			inline const TokenType<TL>& getType() const noexcept { return type; }
-			inline const TokenData<TL>& getData() const noexcept { return data; }
-	};
+        inline const TokenType<TL>& getType() const noexcept { return type; }
+        inline const TokenData<TL>& getData() const noexcept { return data; }
+    };
 
-	template<typename TL> class ASTTokenNode : public Node<TL>
-	{
-		private:
-			Token<TL> token;
+    template <typename TL>
+    class ASTTokenNode : public Node<TL>
+    {
+    private:
+        Token<TL> token;
 
-		public:
-			inline ASTTokenNode(Token<TL> mToken) : token{std::move(mToken)} { }
-			inline decltype(token)& getToken() noexcept { return token; }
-	};
+    public:
+        inline ASTTokenNode(Token<TL> mToken) : token{std::move(mToken)} {}
+        inline decltype(token)& getToken() noexcept { return token; }
+    };
 }
 
 #endif

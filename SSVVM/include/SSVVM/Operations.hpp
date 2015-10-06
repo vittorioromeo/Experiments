@@ -7,19 +7,52 @@
 
 namespace ssvvm
 {
-	class VMOperations
-	{
-		private:
-			template<typename T> inline static bool isValid(const Value& mA, const Value& mB) noexcept { return mA.getType() == getVMVal<T>() && mB.getType() == getVMVal<T>(); }
+    class VMOperations
+    {
+    private:
+        template <typename T>
+        inline static bool isValid(const Value& mA, const Value& mB) noexcept
+        {
+            return mA.getType() == getVMVal<T>() &&
+                   mB.getType() == getVMVal<T>();
+        }
 
-		public:
-			template<typename T> inline static Value getAddition(const Value& mA, const Value& mB) noexcept			{ SSVU_ASSERT(isValid<T>(mA, mB)); return {mA.get<T>() + mB.get<T>()}; }
-			template<typename T> inline static Value getSubtraction(const Value& mA, const Value& mB) noexcept		{ SSVU_ASSERT(isValid<T>(mA, mB)); return {mA.get<T>() - mB.get<T>()}; }
-			template<typename T> inline static Value getMultiplication(const Value& mA, const Value& mB) noexcept	{ SSVU_ASSERT(isValid<T>(mA, mB)); return {mA.get<T>() * mB.get<T>()}; }
-			template<typename T> inline static Value getDivision(const Value& mA, const Value& mB) noexcept			{ SSVU_ASSERT(isValid<T>(mA, mB) && mB.get<T>() != T(0)); return {mA.get<T>() / mB.get<T>()}; }
+    public:
+        template <typename T>
+        inline static Value getAddition(
+            const Value& mA, const Value& mB) noexcept
+        {
+            SSVU_ASSERT(isValid<T>(mA, mB));
+            return {mA.get<T>() + mB.get<T>()};
+        }
+        template <typename T>
+        inline static Value getSubtraction(
+            const Value& mA, const Value& mB) noexcept
+        {
+            SSVU_ASSERT(isValid<T>(mA, mB));
+            return {mA.get<T>() - mB.get<T>()};
+        }
+        template <typename T>
+        inline static Value getMultiplication(
+            const Value& mA, const Value& mB) noexcept
+        {
+            SSVU_ASSERT(isValid<T>(mA, mB));
+            return {mA.get<T>() * mB.get<T>()};
+        }
+        template <typename T>
+        inline static Value getDivision(
+            const Value& mA, const Value& mB) noexcept
+        {
+            SSVU_ASSERT(isValid<T>(mA, mB) && mB.get<T>() != T(0));
+            return {mA.get<T>() / mB.get<T>()};
+        }
 
-			inline static Value getIntComparison(const Value& mA, const Value& mB) noexcept	{ return getSubtraction<int>(mA, mB); }
-	};
+        inline static Value getIntComparison(
+            const Value& mA, const Value& mB) noexcept
+        {
+            return getSubtraction<int>(mA, mB);
+        }
+    };
 }
 
 #endif

@@ -2,9 +2,9 @@
 
 struct S0
 {
-    auto get() &      { return 0; }
-    auto get() const& { return 1; }
-    auto get() &&     { return 2; }
+    auto get() & { return 0; }
+    auto get() const & { return 1; }
+    auto get() && { return 2; }
 };
 
 int main()

@@ -1,18 +1,18 @@
 #include <SSVUtils/Core/Core.hpp>
 
-struct A 
+struct A
 {
-	std::map<int, A> other;
-	
-	union Hold
-	{
-		char a[8];
-		float f;
-	} fh;
+    std::map<int, A> other;
+
+    union Hold
+    {
+        char a[8];
+        float f;
+    } fh;
 };
 
-int main() 
+int main()
 {
-	A k;
-	return 0;
+    A k;
+    return 0;
 }

@@ -7,36 +7,44 @@
 
 namespace ssvvm
 {
-	class SourceVeeAsm
-	{
-		private:
-			std::string contents;
-			bool preprocessed{false};
+    class SourceVeeAsm
+    {
+    private:
+        std::string contents;
+        bool preprocessed{false};
 
-		public:
-			inline static SourceVeeAsm fromStrRaw(std::string mSourceRaw)
-			{
-				SourceVeeAsm result;
-				result.contents = std::move(mSourceRaw);
-				result.preprocessed = false;
-				return result;
-			}
-			inline static SourceVeeAsm fromStrPreprocessed(std::string mSourcePreprocessed)
-			{
-				SourceVeeAsm result;
-				result.contents = std::move(mSourcePreprocessed);
-				result.preprocessed = true;
-				return result;
-			}
+    public:
+        inline static SourceVeeAsm fromStrRaw(std::string mSourceRaw)
+        {
+            SourceVeeAsm result;
+            result.contents = std::move(mSourceRaw);
+            result.preprocessed = false;
+            return result;
+        }
+        inline static SourceVeeAsm fromStrPreprocessed(
+            std::string mSourcePreprocessed)
+        {
+            SourceVeeAsm result;
+            result.contents = std::move(mSourcePreprocessed);
+            result.preprocessed = true;
+            return result;
+        }
 
-			inline bool isPreprocessed() const noexcept { return preprocessed; }
+        inline bool isPreprocessed() const noexcept { return preprocessed; }
 
-			inline const std::string& getSourceString() const noexcept { return contents; }
-			inline void setSourceString(std::string mSource) noexcept { contents = std::move(mSource); }
-			inline void setPreprocessed(bool mValue) noexcept { preprocessed = mValue; }
-	};
-
-
+        inline const std::string& getSourceString() const noexcept
+        {
+            return contents;
+        }
+        inline void setSourceString(std::string mSource) noexcept
+        {
+            contents = std::move(mSource);
+        }
+        inline void setPreprocessed(bool mValue) noexcept
+        {
+            preprocessed = mValue;
+        }
+    };
 }
 
 #endif

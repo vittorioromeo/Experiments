@@ -3,7 +3,7 @@
 #include "SSVVM/SSVVM.hpp"
 
 std::string source{
-	R"(
+    R"(
 	//!ssvasm
 
 	$require_registers(4);
@@ -148,15 +148,15 @@ std::string source{
 
 int main()
 {
-	SSVUT_RUN();
+    SSVUT_RUN();
 
-	auto src(ssvvm::SourceVeeAsm::fromStrRaw(source));
-	ssvvm::preprocessSourceRaw<true>(src);
-	auto program(ssvvm::getAssembledProgram<true>(src));
+    auto src(ssvvm::SourceVeeAsm::fromStrRaw(source));
+    ssvvm::preprocessSourceRaw<true>(src);
+    auto program(ssvvm::getAssembledProgram<true>(src));
 
-	ssvvm::VirtualMachine vm;
-	vm.setProgram(program);
-	vm.run();
+    ssvvm::VirtualMachine vm;
+    vm.setProgram(program);
+    vm.run();
 
-	return 0;
+    return 0;
 }

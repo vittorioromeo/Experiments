@@ -4,8 +4,9 @@
 
 int main()
 {
-	auto i{0};
-	auto u{0u};
+    auto i{0};
+    auto u{0u};
 
-	std::cout << typeid(decltype(i)).name() << "\n" << typeid(decltype(u)).name() << std::endl;
+    std::cout << typeid(decltype(i)).name() << "\n"
+              << typeid(decltype(u)).name() << std::endl;
 }

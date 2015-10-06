@@ -7,28 +7,31 @@
 
 namespace ssvu
 {
-	template<> struct Stringifier<ssvvm::Value>
-	{
-		template<bool TFmt> inline static void impl(std::ostream& mStream, const ssvvm::Value& mValue)
-		{
-			if(mValue.getType() == ssvvm::VMVal::Void)
-			{
-				Impl::printBold<TFmt>(mStream, "VOID[");
-			}
-			else if(mValue.getType() == ssvvm::VMVal::Int)
-			{
-				Impl::printBold<TFmt>(mStream, "INT[");
-				Impl::callStringifyImpl<TFmt>(mStream, mValue.get<int>());
-			}
-			else if(mValue.getType() == ssvvm::VMVal::Float)
-			{
-				Impl::printBold<TFmt>(mStream, "FLOAT[");
-				Impl::callStringifyImpl<TFmt>(mStream, mValue.get<float>());
-			}
+    template <>
+    struct Stringifier<ssvvm::Value>
+    {
+        template <bool TFmt>
+        inline static void impl(
+            std::ostream& mStream, const ssvvm::Value& mValue)
+        {
+            if(mValue.getType() == ssvvm::VMVal::Void)
+            {
+                Impl::printBold<TFmt>(mStream, "VOID[");
+            }
+            else if(mValue.getType() == ssvvm::VMVal::Int)
+            {
+                Impl::printBold<TFmt>(mStream, "INT[");
+                Impl::callStringifyImpl<TFmt>(mStream, mValue.get<int>());
+            }
+            else if(mValue.getType() == ssvvm::VMVal::Float)
+            {
+                Impl::printBold<TFmt>(mStream, "FLOAT[");
+                Impl::callStringifyImpl<TFmt>(mStream, mValue.get<float>());
+            }
 
-			Impl::printBold<TFmt>(mStream, "]");
-		}
-	};
+            Impl::printBold<TFmt>(mStream, "]");
+        }
+    };
 }
 
 #endif

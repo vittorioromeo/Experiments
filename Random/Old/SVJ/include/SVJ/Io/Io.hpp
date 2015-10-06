@@ -7,20 +7,25 @@
 
 namespace ssvu
 {
-	namespace Json
-	{
-		class ReadException : public std::runtime_error
-		{
-			private:
-				std::string title, src;
+    namespace Json
+    {
+        class ReadException : public std::runtime_error
+        {
+        private:
+            std::string title, src;
 
-			public:
-				inline ReadException(std::string mTitle, std::string mWhat, std::string mSrc) : std::runtime_error{std::move(mWhat)}, title{std::move(mTitle)}, src{std::move(mSrc)} { }
+        public:
+            inline ReadException(
+                std::string mTitle, std::string mWhat, std::string mSrc)
+                : std::runtime_error{std::move(mWhat)},
+                  title{std::move(mTitle)}, src{std::move(mSrc)}
+            {
+            }
 
-				inline const auto& getTitle() const noexcept { return title; }
-				inline const auto& getSrc() const noexcept { return src; }
-		};
-	}
+            inline const auto& getTitle() const noexcept { return title; }
+            inline const auto& getSrc() const noexcept { return src; }
+        };
+    }
 }
 
 #include "../Io/Reader.hpp"
@@ -28,27 +33,28 @@ namespace ssvu
 
 namespace ssvu
 {
-	namespace Json
-	{
-		namespace Internal
-		{
-			inline bool tryParse(Value& mValue, Internal::Reader& mReader)
-			{
-				try
-				{
-					mValue = mReader.parseValue();
-				}
-				catch(ReadException& mEx)
-				{
-					lo("JSON") << "Error occured during read\n";
-					lo(mEx.getTitle()) << mEx.what() << " - at:\n" + mEx.getSrc() << std::endl;
-					return false;
-				}
+    namespace Json
+    {
+        namespace Internal
+        {
+            inline bool tryParse(Value& mValue, Internal::Reader& mReader)
+            {
+                try
+                {
+                    mValue = mReader.parseValue();
+                }
+                catch(ReadException& mEx)
+                {
+                    lo("JSON") << "Error occured during read\n";
+                    lo(mEx.getTitle())
+                        << mEx.what() << " - at:\n" + mEx.getSrc() << std::endl;
+                    return false;
+                }
 
-				return true;
-			}
-		}
-	}
+                return true;
+            }
+        }
+    }
 }
 
 #endif

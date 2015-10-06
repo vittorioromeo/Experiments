@@ -9,17 +9,17 @@
 
 namespace ssvu
 {
-	namespace Internal
-	{
-		/// @brief Data structure keeping track of the validity of an item.
-		struct HVMark
-		{
-			HIdx statIdx;
-			HCtr ctr;
+    namespace Internal
+    {
+        /// @brief Data structure keeping track of the validity of an item.
+        struct HVMark
+        {
+            HIdx statIdx;
+            HCtr ctr;
 
-			HVMark(HIdx mStatIdx) noexcept;
-		};
-	}
+            HVMark(HIdx mStatIdx) noexcept;
+        };
+    }
 }
 
 #endif

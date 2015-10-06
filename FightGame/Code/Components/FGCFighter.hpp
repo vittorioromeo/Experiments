@@ -2,198 +2,210 @@
 
 struct FighterClass
 {
-	int hp;
-	
-	int speedStanding;
-	int speedCrouching;
-	
-	int jumpStrength;
+    int hp;
 
-	int width;
+    int speedStanding;
+    int speedCrouching;
 
-	int heightStanding;
-	int heightCrouching;
+    int jumpStrength;
 
-	float delayAttack;
+    int width;
+
+    int heightStanding;
+    int heightCrouching;
+
+    float delayAttack;
 };
 
 inline auto getTestFC()
 {
-	FighterClass result;
+    FighterClass result;
 
-	result.hp = 100;
-	
-	result.speedStanding = 10;
-	result.speedCrouching = 6;
-	
-	result.jumpStrength = 25;
+    result.hp = 100;
 
-	result.width = 60;
+    result.speedStanding = 10;
+    result.speedCrouching = 6;
 
-	result.heightStanding = 150;
-	result.heightCrouching = 65;
+    result.jumpStrength = 25;
 
-	result.delayAttack = 15.f;
+    result.width = 60;
 
-	return result;
+    result.heightStanding = 150;
+    result.heightCrouching = 65;
+
+    result.delayAttack = 15.f;
+
+    return result;
 }
 
 class FGCFighter : public sses::Component
 {
-	public:	
-		enum class Action
-		{
-			Stand, Crouch, Jump, Fall
-		};
+public:
+    enum class Action
+    {
+        Stand,
+        Crouch,
+        Jump,
+        Fall
+    };
 
-		enum class MovStatus
-		{
-			Move, Stop
-		};	
+    enum class MovStatus
+    {
+        Move,
+        Stop
+    };
 
-		enum class AtkStatus
-		{
-			Attack, Idle
-		};
-		
-		enum class Dir{Left, Right};
+    enum class AtkStatus
+    {
+        Attack,
+        Idle
+    };
 
-	private:
-		FGGame& game;
-		FGCPhys* cPhys{nullptr};
-		Body* body{nullptr};
+    enum class Dir
+    {
+        Left,
+        Right
+    };
 
-		Action action{Action::Stand};
-		AtkStatus atkStatus{AtkStatus::Idle};
-		MovStatus movStatus{MovStatus::Stop};
+private:
+    FGGame& game;
+    FGCPhys* cPhys{nullptr};
+    Body* body{nullptr};
 
-		FighterClass fc;
-		int hp;
+    Action action{Action::Stand};
+    AtkStatus atkStatus{AtkStatus::Idle};
+    MovStatus movStatus{MovStatus::Stop};
 
-		Dir dir;
-		bool crouching{false};
+    FighterClass fc;
+    int hp;
 
-		float atkDelay{0.f};
+    Dir dir;
+    bool crouching{false};
 
-		inline auto getCrouchDiffVec()
-		{
-			return Vec2i{0, (toCr(fc.heightStanding) - toCr(fc.heightCrouching)) / 2};
-		}	
+    float atkDelay{0.f};
 
-		inline void moveImpl(int mDir)
-		{
-			auto speed(crouching ? fc.speedCrouching : fc.speedStanding);
-			auto crSpd(toCr(speed));
-			auto diff((crSpd * mDir) - body->getVelocity().x);
-			
-			ssvu::clamp(diff, -crSpd, crSpd);
-			body->applyAccel(Vec2f(diff, 0.f));
+    inline auto getCrouchDiffVec()
+    {
+        return Vec2i{
+            0, (toCr(fc.heightStanding) - toCr(fc.heightCrouching)) / 2};
+    }
 
-			dir = mDir > 0 ? Dir::Right : Dir::Left;
-		}
+    inline void moveImpl(int mDir)
+    {
+        auto speed(crouching ? fc.speedCrouching : fc.speedStanding);
+        auto crSpd(toCr(speed));
+        auto diff((crSpd * mDir) - body->getVelocity().x);
 
-	public:
-		inline FGCFighter(Entity& mE, FGGame& mGame) : Component{mE}, game(mGame) 
-		{
-			cPhys = &getEntity().getComponent<FGCPhys>();
-			body = &cPhys->getBody();
+        ssvu::clamp(diff, -crSpd, crSpd);
+        body->applyAccel(Vec2f(diff, 0.f));
 
-			fc = getTestFC();
-			hp = fc.hp;
+        dir = mDir > 0 ? Dir::Right : Dir::Left;
+    }
 
-			getEntity().addGroups(FGGroup::FGGSolid, FGGroup::FGGFighter);
-			body->addGroups(FGGroup::FGGSolid, FGGroup::FGGFighter);
-			body->addGroupsToCheck(FGGroup::FGGSolid, FGGroup::FGGFighter);
-			body->setRestitutionX(0.3f);
-			body->setRestitutionY(0.0f);
-			body->setMass(1.f);
-			body->setVelTransferMultX(0.6f);			
-			body->setWidth(toCr(fc.width));		
+public:
+    inline FGCFighter(Entity& mE, FGGame& mGame) : Component{mE}, game(mGame)
+    {
+        cPhys = &getEntity().getComponent<FGCPhys>();
+        body = &cPhys->getBody();
 
-			cPhys->getGroundSensor().getShape().setWidth(body->getWidth());
-		}
+        fc = getTestFC();
+        hp = fc.hp;
 
-		inline void update(FT mFT) override
-		{
-			if(isInAir())
-			{
-				action = (body->getVelocity().y > 0) ? Action::Fall : Action::Jump;
-			}
-			else
-			{
-				action = crouching ? Action::Crouch : Action::Stand;
-			}
+        getEntity().addGroups(FGGroup::FGGSolid, FGGroup::FGGFighter);
+        body->addGroups(FGGroup::FGGSolid, FGGroup::FGGFighter);
+        body->addGroupsToCheck(FGGroup::FGGSolid, FGGroup::FGGFighter);
+        body->setRestitutionX(0.3f);
+        body->setRestitutionY(0.0f);
+        body->setMass(1.f);
+        body->setVelTransferMultX(0.6f);
+        body->setWidth(toCr(fc.width));
 
-			movStatus = (std::abs(body->getVelocity().x) < 100) ? MovStatus::Stop : MovStatus::Move;
+        cPhys->getGroundSensor().getShape().setWidth(body->getWidth());
+    }
 
-			if(atkDelay > 0.f) 
-			{
-				atkStatus = AtkStatus::Attack;
-				atkDelay -= mFT;
-			}
-			else
-			{
-				atkStatus = AtkStatus::Idle;
-			}
-		}
+    inline void update(FT mFT) override
+    {
+        if(isInAir())
+        {
+            action = (body->getVelocity().y > 0) ? Action::Fall : Action::Jump;
+        }
+        else
+        {
+            action = crouching ? Action::Crouch : Action::Stand;
+        }
 
-		inline void draw() override { }	
+        movStatus = (std::abs(body->getVelocity().x) < 100) ? MovStatus::Stop
+                                                            : MovStatus::Move;
 
-		inline void moveLeft() { moveImpl(-1); }
-		inline void moveRight() { moveImpl(1); }		
+        if(atkDelay > 0.f)
+        {
+            atkStatus = AtkStatus::Attack;
+            atkDelay -= mFT;
+        }
+        else
+        {
+            atkStatus = AtkStatus::Idle;
+        }
+    }
 
-		inline void stop()
-		{
-			auto diff(0 - body->getVelocity().x);
-			body->applyAccel(Vec2f(diff * 0.9f, 0.f));
-		}
-		
-		inline void jump()
-		{
-			if(isInAir() || crouching) return;
-			body->applyAccel(Vec2f(0.f, -toCr(fc.jumpStrength)));
-		}
+    inline void draw() override {}
 
-		inline void unCrouch()
-		{
-			if(!crouching) return;
-			
-			cPhys->setPos(cPhys->getPosI() - getCrouchDiffVec());
-			cPhys->setHeight(toCr(fc.heightStanding));			
+    inline void moveLeft() { moveImpl(-1); }
+    inline void moveRight() { moveImpl(1); }
 
-			crouching = false;
-		}
+    inline void stop()
+    {
+        auto diff(0 - body->getVelocity().x);
+        body->applyAccel(Vec2f(diff * 0.9f, 0.f));
+    }
 
-		inline void crouch()
-		{
-			if(crouching || isInAir()) return;
+    inline void jump()
+    {
+        if(isInAir() || crouching) return;
+        body->applyAccel(Vec2f(0.f, -toCr(fc.jumpStrength)));
+    }
 
-			cPhys->setPos(cPhys->getPosI() + getCrouchDiffVec());
-			cPhys->setHeight(toCr(fc.heightCrouching));
-			
-			crouching = true;
-		}
+    inline void unCrouch()
+    {
+        if(!crouching) return;
 
-		inline void attack()
-		{
-			if(atkDelay > 0.f) return;
+        cPhys->setPos(cPhys->getPosI() - getCrouchDiffVec());
+        cPhys->setHeight(toCr(fc.heightStanding));
 
-			atkDelay = fc.delayAttack;
+        crouching = false;
+    }
 
-			auto offset(toCr(0.f, -60.f));
-			if(crouching) offset = toCr(0.f, -25.f);
+    inline void crouch()
+    {
+        if(crouching || isInAir()) return;
 
-			auto speed(Vec2f(toCr(40.f, 0.f)));
-			if(isFacingLeft()) speed.x *= -1.f;
+        cPhys->setPos(cPhys->getPosI() + getCrouchDiffVec());
+        cPhys->setHeight(toCr(fc.heightCrouching));
 
-			game.getFactory().createProjPunch(*body, cPhys->getPosI() + offset, toCr(20.f, 20.f), speed, 1.4f);
-		}
+        crouching = true;
+    }
 
-		void damage(FGCProj& mCProj);
+    inline void attack()
+    {
+        if(atkDelay > 0.f) return;
 
-		inline bool isInAir() const noexcept 		{ return cPhys->isInAir(); }
-		inline bool isFacingLeft() const noexcept 	{ return dir == Dir::Left; }
-		inline auto getAction() const noexcept		{ return action; }
-		inline auto getMovStatus() const noexcept	{ return movStatus; }
-		inline auto getAtkStatus() const noexcept	{ return atkStatus; }
+        atkDelay = fc.delayAttack;
+
+        auto offset(toCr(0.f, -60.f));
+        if(crouching) offset = toCr(0.f, -25.f);
+
+        auto speed(Vec2f(toCr(40.f, 0.f)));
+        if(isFacingLeft()) speed.x *= -1.f;
+
+        game.getFactory().createProjPunch(
+            *body, cPhys->getPosI() + offset, toCr(20.f, 20.f), speed, 1.4f);
+    }
+
+    void damage(FGCProj& mCProj);
+
+    inline bool isInAir() const noexcept { return cPhys->isInAir(); }
+    inline bool isFacingLeft() const noexcept { return dir == Dir::Left; }
+    inline auto getAction() const noexcept { return action; }
+    inline auto getMovStatus() const noexcept { return movStatus; }
+    inline auto getAtkStatus() const noexcept { return atkStatus; }
 };

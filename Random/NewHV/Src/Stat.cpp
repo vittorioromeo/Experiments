@@ -8,8 +8,10 @@
 
 namespace ssvu
 {
-	namespace Internal
-	{	
-		SSVU_INLINE HVStat::HVStat(HIdx mMarkIdx) noexcept : markIdx{mMarkIdx} { }	
-	}
+    namespace Internal
+    {
+        SSVU_INLINE HVStat::HVStat(HIdx mMarkIdx) noexcept : markIdx{mMarkIdx}
+        {
+        }
+    }
 }

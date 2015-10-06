@@ -7,7 +7,11 @@
 
 namespace ssvvm
 {
-	struct Register { using Idx = int; Value value; };
+    struct Register
+    {
+        using Idx = int;
+        Value value;
+    };
 }
 
 #endif

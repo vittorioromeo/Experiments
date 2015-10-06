@@ -9,17 +9,17 @@
 
 namespace ssvu
 {
-	namespace Internal
-	{
-		/// @brief Data structure keeping track of the status of an item.
-		struct HVStat
-		{
-			HIdx markIdx;
-			bool alive{false};
+    namespace Internal
+    {
+        /// @brief Data structure keeping track of the status of an item.
+        struct HVStat
+        {
+            HIdx markIdx;
+            bool alive{false};
 
-			HVStat(HIdx mMarkIdx) noexcept;
-		};
-	}
+            HVStat(HIdx mMarkIdx) noexcept;
+        };
+    }
 }
 
 #endif

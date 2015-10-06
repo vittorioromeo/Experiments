@@ -5,20 +5,20 @@
 
 struct XTBase
 {
-	inline virtual ~XTBase() { }
+    inline virtual ~XTBase() {}
 };
 struct XTDer : public XTBase
 {
-	int n{1};
-	inline int f(int mK) const { return mK + n; }
+    int n{1};
+    inline int f(int mK) const { return mK + n; }
 };
 
 int main()
-{	
-	using namespace ssvu;
+{
+    using namespace ssvu;
 
-	std::vector<UPtr<XTBase>> v;
-	v.emplace_back(mkUPtr<XTDer>());
+    std::vector<UPtr<XTBase>> v;
+    v.emplace_back(mkUPtr<XTDer>());
 
-	return 0;
+    return 0;
 }

@@ -3,10 +3,11 @@
 #define REPEAT(count, macro, ...) \
     SSVPP_IF(count, SSVPP_EXPAND, SSVPP_EAT) \
     ( \
-        SSVPP_OBSTRUCT(REPEAT_INDIRECT)()(SSVPP_DECREMENT(count), macro, __VA_ARGS__) \
+        SSVPP_OBSTRUCT(REPEAT_INDIRECT)()(SSVPP_DECREMENT(count), macro,
+__VA_ARGS__) \
         SSVPP_OBSTRUCT(macro)(SSVPP_DECREMENT(count), __VA_ARGS__) \
     )
-    
+
 #define REPEAT_INDIRECT() REPEAT
 
 //An example of using this macro
@@ -17,8 +18,8 @@ SSVPP_REPEAT_INC(8, M, ())
 */
 int main()
 {
-	int x = 5;
-	int y = 6;
-	SSVU_ASSERT_OP(x, ==, y);
-	SSVU_ASSERT_OP_MSG(x, ==, y, "x not equal to y");
+    int x = 5;
+    int y = 6;
+    SSVU_ASSERT_OP(x, ==, y);
+    SSVU_ASSERT_OP_MSG(x, ==, y, "x not equal to y");
 }

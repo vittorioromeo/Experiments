@@ -1,7 +1,7 @@
 #include "shared.hpp"
 
-int main() 
+int main()
 {
-	print1();
-	print2();
+    print1();
+    print2();
 }

@@ -7,7 +7,10 @@
 
 namespace ssvces
 {
-	inline bool EntityHandle::isAlive() const noexcept { return manager.entityIdPool.isAlive(stat); }
+    inline bool EntityHandle::isAlive() const noexcept
+    {
+        return manager.entityIdPool.isAlive(stat);
+    }
 }
 
 #endif

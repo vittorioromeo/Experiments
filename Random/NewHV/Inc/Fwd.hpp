@@ -6,14 +6,17 @@
 #define SSVU_NEWHV_FWD
 
 namespace ssvu
-{	
-	namespace Internal
-	{
-		template<typename, typename> class HVImpl;
-	}
+{
+    namespace Internal
+    {
+        template <typename, typename>
+        class HVImpl;
+    }
 
-	template<typename> class HVSingle;
-	template<typename...> class HVMulti;
+    template <typename>
+    class HVSingle;
+    template <typename...>
+    class HVMulti;
 }
 
 #endif

@@ -9,11 +9,11 @@
 
 namespace ssvu
 {
-	/// @brief Type used for handle indices.
-	using HIdx = SizeT;
+    /// @brief Type used for handle indices.
+    using HIdx = SizeT;
 
-	/// @brief Type used for handle control counters.
-	using HCtr = int;	
+    /// @brief Type used for handle control counters.
+    using HCtr = int;
 }
 
 #endif

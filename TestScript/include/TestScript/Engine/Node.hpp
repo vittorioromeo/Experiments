@@ -7,30 +7,36 @@
 
 namespace Eng
 {
-	template<typename TL> class Node
-	{
-		template<typename> friend class Parser;
+    template <typename TL>
+    class Node
+    {
+        template <typename>
+        friend class Parser;
 
-		private:
-			NodeTID typeId;
-			NodePtr<TL> parent{nullptr};
-			std::vector<NodePtr<TL>> children;
+    private:
+        NodeTID typeId;
+        NodePtr<TL> parent{nullptr};
+        std::vector<NodePtr<TL>> children;
 
-		public:
-			inline virtual ~Node() { }
-			inline NodeTID getTypeId() const noexcept { return typeId; }
+    public:
+        inline virtual ~Node() {}
+        inline NodeTID getTypeId() const noexcept { return typeId; }
 
-			inline void emplaceChild(NodePtr<TL> mNode)
-			{
-				mNode->parent = this;
-				children.emplace_back(mNode);
-			}
+        inline void emplaceChild(NodePtr<TL> mNode)
+        {
+            mNode->parent = this;
+            children.emplace_back(mNode);
+        }
 
-			inline NodePtr<TL> getParent() noexcept			{ return parent; }
-			inline decltype(children)& getChildren() noexcept	{ return children; }
+        inline NodePtr<TL> getParent() noexcept { return parent; }
+        inline decltype(children)& getChildren() noexcept { return children; }
 
-			template<typename T> T& getAs() noexcept			{ return ssvu::castUp<T>(*this); }
-	};
+        template <typename T>
+        T& getAs() noexcept
+        {
+            return ssvu::castUp<T>(*this);
+        }
+    };
 }
 
 #endif

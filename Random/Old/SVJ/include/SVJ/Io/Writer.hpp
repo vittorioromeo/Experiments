@@ -7,163 +7,220 @@
 
 namespace ssvu
 {
-	namespace Json
-	{
-		namespace Internal
-		{
-			template<WriterMode TWS = WriterMode::Pretty, bool TFmt = false> class Writer
-			{
-				private:
-					using FmtCC = Console::Color;
-					using FmtCS = Console::Style;
+    namespace Json
+    {
+        namespace Internal
+        {
+            template <WriterMode TWS = WriterMode::Pretty, bool TFmt = false>
+            class Writer
+            {
+            private:
+                using FmtCC = Console::Color;
+                using FmtCS = Console::Style;
 
-					std::string out;
-					std::size_t depth{0};
-					bool needIndent{false};
+                std::string out;
+                std::size_t depth{0};
+                bool needIndent{false};
 
-					inline auto isObjectOrArray(const Value& mValue)
-					{
-						return mValue.getType() == Value::Type::Object || mValue.getType() == Value::Type::Array;
-					}
+                inline auto isObjectOrArray(const Value& mValue)
+                {
+                    return mValue.getType() == Value::Type::Object ||
+                           mValue.getType() == Value::Type::Array;
+                }
 
-					inline void indent()
-					{
-						for(auto i(0u); i < depth; ++i) out += "    ";
-						needIndent = false;
-					}
+                inline void indent()
+                {
+                    for(auto i(0u); i < depth; ++i) out += "    ";
+                    needIndent = false;
+                }
 
-					inline void wFmt(FmtCC mColor, FmtCS mStyle = FmtCS::None)
-					{
-						if(!TFmt) return;
+                inline void wFmt(FmtCC mColor, FmtCS mStyle = FmtCS::None)
+                {
+                    if(!TFmt) return;
 
-						out += Console::resetFmt();
-						out += Console::setColorFG(mColor);
-						out += Console::setStyle(mStyle);
-					}
+                    out += Console::resetFmt();
+                    out += Console::setColorFG(mColor);
+                    out += Console::setStyle(mStyle);
+                }
 
-					inline void wNL() { if(TWS == WriterMode::Pretty) { out += "\n"; needIndent = true; } }
-					inline void wWS() { if(TWS == WriterMode::Pretty) { out += " "; } }
+                inline void wNL()
+                {
+                    if(TWS == WriterMode::Pretty)
+                    {
+                        out += "\n";
+                        needIndent = true;
+                    }
+                }
+                inline void wWS()
+                {
+                    if(TWS == WriterMode::Pretty)
+                    {
+                        out += " ";
+                    }
+                }
 
-					inline void wOut(const std::string& mStr)
-					{
-						if(TWS == WriterMode::Pretty)
-						{
-							if(needIndent) indent();
-						}
+                inline void wOut(const std::string& mStr)
+                {
+                    if(TWS == WriterMode::Pretty)
+                    {
+                        if(needIndent) indent();
+                    }
 
-						out += mStr;
-					}
+                    out += mStr;
+                }
 
-					template<typename TItr, typename TF1, typename TF2> inline void repeatWithSeparator(TItr mBegin, TItr mEnd, TF1 mF1, TF2 mF2)
-					{
-						if(mBegin == mEnd) return;
-						for(; mBegin != std::prev(mEnd); ++mBegin) { mF1(mBegin); mF2(); }
-						mF1(mBegin);
-					}
+                template <typename TItr, typename TF1, typename TF2>
+                inline void repeatWithSeparator(
+                    TItr mBegin, TItr mEnd, TF1 mF1, TF2 mF2)
+                {
+                    if(mBegin == mEnd) return;
+                    for(; mBegin != std::prev(mEnd); ++mBegin)
+                    {
+                        mF1(mBegin);
+                        mF2();
+                    }
+                    mF1(mBegin);
+                }
 
 
 
-					inline void write(const Object& mObject)
-					{
-						wFmt(FmtCC::LightGray, FmtCS::Bold);
-						wOut("{"); wNL();
+                inline void write(const Object& mObject)
+                {
+                    wFmt(FmtCC::LightGray, FmtCS::Bold);
+                    wOut("{");
+                    wNL();
 
-						++depth;
+                    ++depth;
 
-						repeatWithSeparator(std::begin(mObject), std::end(mObject), [this](auto mItr)
-						{
-							writeKey(mItr->first);
+                    repeatWithSeparator(std::begin(mObject), std::end(mObject),
+                        [this](auto mItr)
+                        {
+                            writeKey(mItr->first);
 
-							wFmt(FmtCC::LightGray, FmtCS::Bold);
-							wOut(":"); wWS();
+                            wFmt(FmtCC::LightGray, FmtCS::Bold);
+                            wOut(":");
+                            wWS();
 
-							if(isObjectOrArray(mItr->second)) wNL();
+                            if(isObjectOrArray(mItr->second)) wNL();
 
-							write(mItr->second);
-						}, [this]{ wOut(","); wWS(); wNL(); });
+                            write(mItr->second);
+                        },
+                        [this]
+                        {
+                            wOut(",");
+                            wWS();
+                            wNL();
+                        });
 
-						--depth;
+                    --depth;
 
-						wFmt(FmtCC::LightGray, FmtCS::Bold);
-						wNL(); wOut("}");
-					}
+                    wFmt(FmtCC::LightGray, FmtCS::Bold);
+                    wNL();
+                    wOut("}");
+                }
 
-					inline void write(const Array& mArray)
-					{
-						wFmt(FmtCC::LightGray, FmtCS::Bold);
-						wOut("["); wNL();
+                inline void write(const Array& mArray)
+                {
+                    wFmt(FmtCC::LightGray, FmtCS::Bold);
+                    wOut("[");
+                    wNL();
 
-						++depth;
+                    ++depth;
 
-						repeatWithSeparator(std::begin(mArray), std::end(mArray), [this](auto mItr)
-						{
-							write(*mItr);
-						}, [this]
-						{
-							wFmt(FmtCC::LightGray, FmtCS::Bold);
-							wOut(","); wWS(); wNL();
-						});
+                    repeatWithSeparator(std::begin(mArray), std::end(mArray),
+                        [this](auto mItr)
+                        {
+                            write(*mItr);
+                        },
+                        [this]
+                        {
+                            wFmt(FmtCC::LightGray, FmtCS::Bold);
+                            wOut(",");
+                            wWS();
+                            wNL();
+                        });
 
-						--depth;
+                    --depth;
 
-						wFmt(FmtCC::LightGray, FmtCS::Bold);
-						wNL(); wOut("]");
-					}
+                    wFmt(FmtCC::LightGray, FmtCS::Bold);
+                    wNL();
+                    wOut("]");
+                }
 
-					inline void writeKey(const Key& mKey)
-					{
-						wFmt(FmtCC::LightGray);
-						wOut("\"" + mKey + "\"");
-					}
+                inline void writeKey(const Key& mKey)
+                {
+                    wFmt(FmtCC::LightGray);
+                    wOut("\"" + mKey + "\"");
+                }
 
-					inline void write(const String& mStr)
-					{
-						wFmt(FmtCC::LightYellow);
-						wOut("\"" + mStr + "\"");
-					}
+                inline void write(const String& mStr)
+                {
+                    wFmt(FmtCC::LightYellow);
+                    wOut("\"" + mStr + "\"");
+                }
 
-					inline void write(const Number& mNumber)
-					{
-						wFmt(FmtCC::LightRed);
+                inline void write(const Number& mNumber)
+                {
+                    wFmt(FmtCC::LightRed);
 
-						switch(mNumber.getType())
-						{
-							case Number::Type::IntS:	wOut(toStr(mNumber.get<Number::IntS>())); break;
-							case Number::Type::IntU:	wOut(toStr(mNumber.get<Number::IntU>())); break;
-							case Number::Type::Real:	wOut(toStr(mNumber.get<Number::Real>())); break;
-						}
-					}
+                    switch(mNumber.getType())
+                    {
+                        case Number::Type::IntS:
+                            wOut(toStr(mNumber.get<Number::IntS>()));
+                            break;
+                        case Number::Type::IntU:
+                            wOut(toStr(mNumber.get<Number::IntU>()));
+                            break;
+                        case Number::Type::Real:
+                            wOut(toStr(mNumber.get<Number::Real>()));
+                            break;
+                    }
+                }
 
-					inline void write(Bool mBool)
-					{
-						wFmt(FmtCC::LightCyan);
-						wOut(mBool ? "true" : "false");
-					}
+                inline void write(Bool mBool)
+                {
+                    wFmt(FmtCC::LightCyan);
+                    wOut(mBool ? "true" : "false");
+                }
 
-					inline void write(Null)
-					{
-						wFmt(FmtCC::LightMagenta);
-						wOut("null");
-					}
+                inline void write(Null)
+                {
+                    wFmt(FmtCC::LightMagenta);
+                    wOut("null");
+                }
 
-					inline void write(const Value& mValue)
-					{
-						switch(mValue.getType())
-						{
-							case Value::Type::Object:	write(mValue.get<Object>()); break;
-							case Value::Type::Array:	write(mValue.get<Array>()); break;
-							case Value::Type::String:	write(mValue.get<String>()); break;
-							case Value::Type::Number:	write(mValue.get<Number>()); break;
-							case Value::Type::Bool:		write(mValue.get<Bool>()); break;
-							case Value::Type::Null:		write(Null{}); break;
-						}
-					}
+                inline void write(const Value& mValue)
+                {
+                    switch(mValue.getType())
+                    {
+                        case Value::Type::Object:
+                            write(mValue.get<Object>());
+                            break;
+                        case Value::Type::Array:
+                            write(mValue.get<Array>());
+                            break;
+                        case Value::Type::String:
+                            write(mValue.get<String>());
+                            break;
+                        case Value::Type::Number:
+                            write(mValue.get<Number>());
+                            break;
+                        case Value::Type::Bool:
+                            write(mValue.get<Bool>());
+                            break;
+                        case Value::Type::Null: write(Null{}); break;
+                    }
+                }
 
-				public:
-					inline void write(const Value& mValue, std::ostream& mStream) { write(mValue); mStream << out; }
-			};
-		}
-	}
+            public:
+                inline void write(const Value& mValue, std::ostream& mStream)
+                {
+                    write(mValue);
+                    mStream << out;
+                }
+            };
+        }
+    }
 }
 
 #endif

@@ -7,29 +7,43 @@
 
 namespace Eng
 {
-	template<typename TL> class Rule
-	{
-		template<typename> friend class Parser;
+    template <typename TL>
+    class Rule
+    {
+        template <typename>
+        friend class Parser;
 
-		private:
-			ssvu::Func<bool(Ctx<TL>&)> fnPredicate;
-			ssvu::Func<void(Ctx<TL>&)> fnAction;
-			ssvu::Func<void(Ctx<TL>&, LookAheadResults&)> fnLookAhead;
+    private:
+        ssvu::Func<bool(Ctx<TL>&)> fnPredicate;
+        ssvu::Func<void(Ctx<TL>&)> fnAction;
+        ssvu::Func<void(Ctx<TL>&, LookAheadResults&)> fnLookAhead;
 
-			inline bool matches(Ctx<TL>& mCtx) const { return fnPredicate(mCtx); }
-			inline void action(Ctx<TL>& mCtx) { fnAction(mCtx); }
-			inline LookAheadResults lookAhead(Ctx<TL>& mCtx)
-			{
-				LookAheadResults result;
-				if(fnLookAhead != nullptr) fnLookAhead(mCtx, result);
-				return result;
-			}
+        inline bool matches(Ctx<TL>& mCtx) const { return fnPredicate(mCtx); }
+        inline void action(Ctx<TL>& mCtx) { fnAction(mCtx); }
+        inline LookAheadResults lookAhead(Ctx<TL>& mCtx)
+        {
+            LookAheadResults result;
+            if(fnLookAhead != nullptr) fnLookAhead(mCtx, result);
+            return result;
+        }
 
-		public:
-			template<typename T> inline void setPredicate(const T& mFnPredicate) noexcept	{ fnPredicate = mFnPredicate; }
-			template<typename T> inline void setAction(const T& mFnAction) noexcept			{ fnAction = mFnAction; }
-			template<typename T> inline void setLookAhead(const T& mFnLookAhead) noexcept	{ fnLookAhead = mFnLookAhead; }
-	};
+    public:
+        template <typename T>
+        inline void setPredicate(const T& mFnPredicate) noexcept
+        {
+            fnPredicate = mFnPredicate;
+        }
+        template <typename T>
+        inline void setAction(const T& mFnAction) noexcept
+        {
+            fnAction = mFnAction;
+        }
+        template <typename T>
+        inline void setLookAhead(const T& mFnLookAhead) noexcept
+        {
+            fnLookAhead = mFnLookAhead;
+        }
+    };
 }
 
 #endif

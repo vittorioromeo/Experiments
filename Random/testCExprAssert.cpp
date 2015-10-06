@@ -2,14 +2,14 @@
 
 constexpr int test1(int k)
 {
-	static_assert(k < 100, "");
+    static_assert(k < 100, "");
 
-	return k;
+    return k;
 }
 
 int main()
 {
-	std::array<int, test1(50)> pppp;
+    std::array<int, test1(50)> pppp;
 
-	return 0;
+    return 0;
 }

@@ -7,14 +7,18 @@
 
 namespace ssvu
 {
-	template<> struct Stringifier<Json::Value>
-	{
-		template<bool TFmt> inline static void impl(std::ostream& mStream, const Json::Value& mValue)
-		{
-			Internal::printNonBold<TFmt>(mStream, "JSON Value:\n", Console::Color::Green);
-			mValue.writeToStream<Json::WriterMode::Pretty, true>(mStream);
-		}
-	};
+    template <>
+    struct Stringifier<Json::Value>
+    {
+        template <bool TFmt>
+        inline static void impl(
+            std::ostream& mStream, const Json::Value& mValue)
+        {
+            Internal::printNonBold<TFmt>(
+                mStream, "JSON Value:\n", Console::Color::Green);
+            mValue.writeToStream<Json::WriterMode::Pretty, true>(mStream);
+        }
+    };
 }
 
 #endif
