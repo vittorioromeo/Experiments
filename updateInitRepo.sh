@@ -1,13 +1,9 @@
-cp ./SSVUtils/init-repository.sh ./git-ws/
-cp ./SSVUtils/init-repository.sh ./LD27/
-cp ./SSVUtils/init-repository.sh ./SSVAutoUpdater/
-cp ./SSVUtils/init-repository.sh ./SSVBloodshed/
-cp ./SSVUtils/init-repository.sh ./SSVEntitySystem/
-cp ./SSVUtils/init-repository.sh ./SSVNewRogue/
-cp ./SSVUtils/init-repository.sh ./SSVOpenHexagon/
-cp ./SSVUtils/init-repository.sh ./SSVRPGSystem/
-cp ./SSVUtils/init-repository.sh ./SSVSCollision/
-cp ./SSVUtils/init-repository.sh ./SSVStart/
-cp ./SSVUtils/init-repository.sh ./SSVUtilsJson/
-cp ./SSVUtils/init-repository.sh ./TestUDPChat/
-cp ./SSVUtils/init-repository.sh ./WEBVittorioRomeo2/
+#!/bin/bash
+
+find $1 -maxdepth 2 -name "init-repository.sh" -print0 | while read -d $'\0' file
+do
+    echo "$file"
+    cp $1/Experiments/init-repository.sh $file
+done
+
+(cd $1 && git ws do -c "git commit -a -m 'update init-repository' ; git push")
