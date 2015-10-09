@@ -15,62 +15,139 @@ namespace sdl = vrm::sdl;
 
 int main(int argc, char** argv)
 {
-    std::cout << "Hello world!\n";
     auto c_handle(sdl::make_global_context(1000, 600));
     auto& c(*c_handle);
 
     auto toriel_image(c.make_image("files/toriel.png"));
-
-    {
-        auto test_utx(c.make_texture(*toriel_image));
-        std::vector<decltype(test_utx)> test_v_utx;
-        for(int i = 0; i < 10; ++i)
-            test_v_utx.emplace_back(c.make_texture(*toriel_image));
-    }
+    auto soul_image(c.make_image("files/soul.png"));
+    auto fireball_image(c.make_image("files/fireball.png"));
 
     auto toriel_texture(c.make_texture(*toriel_image));
-    auto toriel_sprite(c.make_sprite(*toriel_texture));
+    auto soul_texture(c.make_texture(*soul_image));
+    auto fireball_texture(c.make_texture(*fireball_image));
 
-    auto test_text_font(c.make_ttffont("files/pixel.ttf", 16));
-    auto test_text_texture(c.make_ttftext_texture(
-        *test_text_font, "xd", SDL_Color{255, 255, 255, 255}));
-
-    auto test_text_sprite(c.make_sprite());
-    toriel_sprite.set_origin_to_center();
-
-
-    std::cout << "origin: " << toriel_sprite.origin() << "\n";
-
-    // sdl::image toriel{"files/toriel.png"};
-
-    c.update_fn() = [&](auto)
+    struct entity
     {
-        test_text_texture = c.make_ttftext_texture(*test_text_font,
-            std::to_string(c.fps()), SDL_Color{255, 255, 255, 255});
+        sdl::vec2f _pos;
+        float _hitbox_radius;
+        sdl::sprite _sprite;
+        bool alive{true};
+        std::function<void(entity&, sdl::ft)> _update_fn;
+        std::function<void(entity&)> _draw_fn;
+    };
 
-        // std::cout << c.fps() << "\n";
+    constexpr sdl::sz_t max_entities{10000};
+    std::vector<entity> entities;
+    entities.reserve(max_entities);
 
-        test_text_sprite.texture(*test_text_texture);
-        test_text_sprite.set_origin_to_center();
+    auto make_soul = [&](auto pos)
+    {
+        entity e;
+        e._pos = pos;
+        e._hitbox_radius = 3.f;
+        e._sprite = c.make_sprite(*soul_texture);
+        e._sprite.set_origin_to_center();
 
-        test_text_sprite.scale() *= 1.01f;
+        e._update_fn = [&](auto& x, auto)
+        {
+            constexpr float speed{5.f};
+            sdl::vec2i input;
 
-        toriel_sprite.pos() = c.mouse_pos();
-        toriel_sprite.radians() += 0.04f;
-        toriel_sprite.scale() *= 1.01f;
-        test_text_sprite.pos() = toriel_sprite.pos() - sdl::make_vec2(0, 100.f);
+            if(c.key(sdl::kkey::left))
+                input.x() = -1;
+            else if(c.key(sdl::kkey::right))
+                input.x() = 1;
 
-        // std::cout << created_textures << " / " << destroyed_textures << "\n";
+            if(c.key(sdl::kkey::up))
+                input.y() = -1;
+            else if(c.key(sdl::kkey::down))
+                input.y() = 1;
+
+            x._pos += input * speed;
+        };
+
+        e._draw_fn = [&](auto& x)
+        {
+            x._sprite.pos() = x._pos;
+            c.draw(x._sprite);
+        };
+
+        return e;
+    };
+
+    auto make_fireball = [&](auto pos, auto vel, auto speed)
+    {
+        entity e;
+        e._pos = pos;
+        e._hitbox_radius = 3.f;
+        e._sprite = c.make_sprite(*fireball_texture);
+        e._sprite.set_origin_to_center();
+
+        e._update_fn = [&, vel, speed, life = 100.f ](auto& x, auto) mutable
+        {
+            x._pos += vel * speed;
+
+            if(life-- <= 0.f) x.alive = false;
+        };
+
+        e._draw_fn = [&](auto& x)
+        {
+            x._sprite.pos() = x._pos;
+            c.draw(x._sprite);
+        };
+
+        return e;
+    };
+
+    auto make_toriel = [&](auto pos)
+    {
+        entity e;
+        e._pos = pos;
+        e._hitbox_radius = 30.f;
+        e._sprite = c.make_sprite(*toriel_texture);
+        e._sprite.set_origin_to_center();
+
+        e._update_fn = [&](auto& x, auto)
+        {
+            if((rand() % 100) > 30)
+            {
+                for(int i = 0; i < 100; ++i)
+                    if(entities.size() < max_entities)
+                        entities.emplace_back(make_fireball(x._pos,
+                            sdl::make_vec2(-2.f + (rand() % 500) / 100.f, 2.f),
+                            1.f + (rand() % 100) / 80.f));
+            }
+        };
+
+        e._draw_fn = [&](auto& x)
+        {
+            x._sprite.pos() = x._pos;
+            c.draw(x._sprite);
+        };
+
+        return e;
+    };
+
+    entities.emplace_back(make_toriel(sdl::make_vec2(500.f, 100.f)));
+    entities.emplace_back(make_soul(sdl::make_vec2(500.f, 500.f)));
+
+    c.update_fn() = [&](auto ft)
+    {
+
+        for(auto& e : entities) e._update_fn(e, ft);
+        entities.erase(std::remove_if(std::begin(entities), std::end(entities),
+                           [](auto& e)
+                           {
+                               return !e.alive;
+                           }),
+            std::end(entities));
 
         if(c.key(sdl::kkey::escape)) sdl::stop_global_context();
     };
 
     c.draw_fn() = [&]
     {
-
-        // c.draw(toriel, sdl::make_vec2(0.f, 0.f));
-        c.draw(toriel_sprite);
-        c.draw(test_text_sprite);
+        for(auto& e : entities) e._draw_fn(e);
     };
 
     sdl::run_global_context();
