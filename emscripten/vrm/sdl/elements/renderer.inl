@@ -11,8 +11,7 @@ namespace vrm
     {
         renderer::renderer(window& w) noexcept
             : base_type{SDL_CreateRenderer(
-                  w, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE |
-                             SDL_RENDERER_PRESENTVSYNC)}
+                  w, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE)}
         {
         }
 

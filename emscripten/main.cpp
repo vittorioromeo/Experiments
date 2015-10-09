@@ -1,9 +1,21 @@
 #include <stdio.h>
 #include <iostream>
+
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
-#include <emscripten.h>
+#else
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
+#endif
+
+#include <memory>
+#include <bitset>
+#include <algorithm>
 #include <unordered_map>
 #include <string>
 #include <cassert>
@@ -111,7 +123,7 @@ int main(int argc, char** argv)
         {
             if((rand() % 100) > 30)
             {
-                for(int i = 0; i < 100; ++i)
+                for(int i = 0; i < 20; ++i)
                     if(entities.size() < max_entities)
                         entities.emplace_back(make_fireball(x._pos,
                             sdl::make_vec2(-2.f + (rand() % 500) / 100.f, 2.f),

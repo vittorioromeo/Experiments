@@ -21,9 +21,9 @@ namespace vrm
 
             texture(renderer&) noexcept {}
 
-            texture(renderer& r, sz_t width, sz_t height) noexcept
+            texture(renderer& r, sz_t width, sz_t height, SDL_TextureAccess access) noexcept
                 : base_type{SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888,
-                      SDL_TEXTUREACCESS_TARGET, width, height)},
+                      access, width, height)},
                   _size(width, height)
             {
             }

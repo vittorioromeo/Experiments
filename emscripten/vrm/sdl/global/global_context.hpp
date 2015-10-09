@@ -26,12 +26,23 @@ namespace vrm
 
         void run_global_context() noexcept
         {
+#ifdef __EMSCRIPTEN__
             emscripten_set_main_loop(impl::run_global_context_loop, 0, true);
+#else
+            while(true)
+            {
+                impl::run_global_context_loop();
+            }
+#endif
         }
 
         void stop_global_context() noexcept
         {
+#ifdef __EMSCRIPTEN__
             emscripten_cancel_main_loop();
+#else
+            std::terminate();
+#endif
         }
     }
 }

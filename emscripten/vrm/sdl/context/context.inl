@@ -67,7 +67,7 @@ namespace vrm
         context::context(std::size_t width, std::size_t height)
             : _width{width}, _height{height}, _window{width, height},
               _glcontext{*_window}, _renderer{*_window},
-              _texture{*_renderer, width, height}
+              _texture{*_renderer, width, height, SDL_TEXTUREACCESS_STREAMING}
         {
             if(TTF_Init() != 0)
             {
