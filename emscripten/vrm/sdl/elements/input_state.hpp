@@ -16,20 +16,26 @@ namespace vrm
                 friend class ::vrm::sdl::context;
 
             private:
-                std::unordered_map<key_code, bool> _keys;
-                std::unordered_map<mouse_btn, bool> _btns;
+                std::bitset<impl::kkey_count> _keys;
+                std::bitset<impl::mbtn_count> _btns;
                 mouse_coord _mouse_x{0};
                 mouse_coord _mouse_y{0};
 
-                auto& key(key_code c) { return _keys[c]; }
-                auto& btn(mouse_btn b) { return _btns[b]; }
+                void key(kkey k, bool x) noexcept { _keys[static_cast<sz_t>(k)] = x; }
+                void btn(mbtn b, bool x) noexcept { _btns[static_cast<sz_t>(b)] = x; }
 
                 void mouse_x(mouse_coord c) noexcept { _mouse_x = c; }
                 void mouse_y(mouse_coord c) noexcept { _mouse_y = c; }
 
             public:
-                auto key(key_code c) const { return _keys.at(c); }
-                auto btn(mouse_btn b) const { return _btns.at(b); }
+                auto key(kkey k) const noexcept
+                {
+                    return _keys[static_cast<sz_t>(k)];
+                }
+                auto btn(mbtn b) const noexcept
+                {
+                    return _btns[static_cast<sz_t>(b)];
+                }
 
                 auto mouse_x() const noexcept { return _mouse_x; }
                 auto mouse_y() const noexcept { return _mouse_y; }

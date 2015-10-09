@@ -9,12 +9,11 @@ namespace vrm
 {
     namespace sdl
     {
-        class renderer : public impl::unique_renderer
+        class renderer : public impl::sdl_element<SDL_Renderer>
         {
-        private:
-            using base_type = impl::unique_renderer;
-
         public:
+            using base_type =
+                impl::sdl_element<SDL_Renderer>;
             renderer(window& w) noexcept;
 
             void draw_color(int r, int g, int b, int a) noexcept;
@@ -34,8 +33,6 @@ namespace vrm
             void draw(texture& t) noexcept;
             void draw(texture& t, const vec2f& pos) noexcept;
             void draw(sprite& s) noexcept;
-
-            void load_texture(texture& t, const std::string& path);
         };
     }
 }

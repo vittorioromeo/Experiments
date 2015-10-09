@@ -29,17 +29,17 @@ namespace vrm
                 switch(_event.type)
                 {
                     case SDL_KEYDOWN:
-                        on_key_down()(_event.key.keysym.sym);
+                        on_key_down()(static_cast<kkey>(_event.key.keysym.scancode));
                         break;
 
-                    case SDL_KEYUP: on_key_up()(_event.key.keysym.sym); break;
+                    case SDL_KEYUP: on_key_up()(static_cast<kkey>(_event.key.keysym.scancode)); break;
 
                     case SDL_MOUSEBUTTONDOWN:
-                        on_btn_down()(_event.button.button);
+                        on_btn_down()(static_cast<mbtn>(_event.button.button));
                         break;
 
                     case SDL_MOUSEBUTTONUP:
-                        on_btn_up()(_event.button.button);
+                        on_btn_up()(static_cast<mbtn>(_event.button.button));
                         break;
 
                     case SDL_MOUSEMOTION:
@@ -53,52 +53,46 @@ namespace vrm
         void context::run_update() { update_fn()(1.f); }
         void context::run_draw()
         {
-            _renderer.clear();
-            _renderer.clear_texture(_texture, 0, 0, 0, 255);
+            _renderer->clear();
+            _renderer->clear_texture(*_texture, 0, 0, 0, 255);
 
-            _renderer.target(nullptr);
-            _renderer.draw(_texture);
+            _renderer->target(nullptr);
+            _renderer->draw(*_texture);
 
             draw_fn()();
 
-            _renderer.present();
+            _renderer->present();
         }
 
         context::context(std::size_t width, std::size_t height)
             : _width{width}, _height{height}, _window{width, height},
-              _glcontext{_window}, _renderer{_window},
-              _texture{_renderer, width, height}
+              _glcontext{*_window}, _renderer{*_window},
+              _texture{*_renderer, width, height}
         {
             if(TTF_Init() != 0)
             {
+                impl::log_sdl_error("ttf_init");
                 std::terminate();
             }
 
-            // SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
-
-            //            _screen = surface{SDL_SetVideoMode(_width,
-            //            _height,
-            //            32, SDL_SWSURFACE)};
-
-
             on_key_down() = [this](auto k)
             {
-                _input_state.key(k) = true;
+                _input_state.key(k, true);
             };
 
             on_key_up() = [this](auto k)
             {
-                _input_state.key(k) = false;
+                _input_state.key(k, false);
             };
 
             on_btn_down() = [this](auto b)
             {
-                _input_state.btn(b) = true;
+                _input_state.btn(b, true);
             };
 
             on_btn_up() = [this](auto b)
             {
-                _input_state.btn(b) = false;
+                _input_state.btn(b, false);
             };
         }
 
@@ -180,36 +174,54 @@ namespace vrm
             return _input_state.mouse_pos();
         }
 
-        auto context::key(key_code c) const { return _input_state.key(c); }
-        auto context::btn(mouse_btn b) const { return _input_state.btn(b); }
+        auto context::key(kkey k) const noexcept { return _input_state.key(k); }
+        auto context::btn(mbtn b) const noexcept { return _input_state.btn(b); }
 
-        auto context::make_texture() noexcept { return texture{}; }
-        auto context::make_texture(const std::string& path) noexcept
+        template <typename T, typename... Ts>
+        auto context::make_unique_res(Ts&&... xs)
         {
-            texture result;
-            _renderer.load_texture(result, path);
-            return result;
+            using base_type = typename T::base_type;
+            using element_type = typename base_type::element_type;
+            using unique_type =
+                typename impl::unique_sdl_element<element_type>::type;
+
+            return unique_type{FWD(xs)...};
         }
+
+        template <typename... Ts>
+        auto context::make_image(Ts&&... xs) noexcept
+        {
+            return make_unique_res<surface>(FWD(xs)...);
+        }
+
+        template <typename... Ts>
+        auto context::make_texture(Ts&&... xs) noexcept
+        {
+            return make_unique_res<texture>(*_renderer, FWD(xs)...);
+        }
+
 
         auto context::make_sprite() noexcept { return sprite{}; }
         auto context::make_sprite(texture& t) noexcept { return sprite{t}; }
 
         auto context::make_ttffont(const std::string& path, sz_t font_size)
         {
-            return ttffont{path, font_size};
+            return make_unique_res<ttffont>(path, font_size);
         }
 
         auto context::make_ttftext_texture(
             ttffont& f, const std::string& s, SDL_Color color)
         {
-            surface temp{TTF_RenderText_Blended(f, s.c_str(), color)};
-            return texture{_renderer, temp};
+            auto temp(make_unique_res<surface>(
+                TTF_RenderText_Blended(f, s.c_str(), color)));
+            auto result(make_texture(*temp));
+            return result;
         }
 
         void context::draw(texture& t, const vec2f& pos) noexcept
         {
-            _renderer.draw(t, pos);
+            _renderer->draw(t, pos);
         }
-        void context::draw(sprite& s) noexcept { _renderer.draw(s); }
+        void context::draw(sprite& s) noexcept { _renderer->draw(s); }
     }
 }

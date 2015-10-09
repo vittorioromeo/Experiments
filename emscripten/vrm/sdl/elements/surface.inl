@@ -9,9 +9,9 @@ namespace vrm
 {
     namespace sdl
     {
-        void surface::blit(const image& i, int x, int y)
+        void surface::blit(const surface& i, int x, int y)
         {
-            blit(i.surface(), i.rect(), SDL_Rect{x, y, i.width(), i.height()});
+            blit(i, i.rect(), SDL_Rect{x, y, i.width(), i.height()});
         }
     }
 }

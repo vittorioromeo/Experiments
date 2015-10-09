@@ -11,21 +11,27 @@ namespace vrm
     {
         namespace impl
         {
-            std::unique_ptr<context> global_context;
+            context* global_context;
             void run_global_context_loop() { global_context->run(); }
         }
 
         template <typename... Ts>
-        auto& make_global_context(Ts&&... xs)
+        auto make_global_context(Ts&&... xs)
         {
             assert(impl::global_context == nullptr);
-            impl::global_context = std::make_unique<context>(FWD(xs)...);
-            return *impl::global_context;
+            auto uptr(std::make_unique<context>(FWD(xs)...));
+            impl::global_context = uptr.get();
+            return uptr;
         }
 
-        void run_global_context()
+        void run_global_context() noexcept
         {
             emscripten_set_main_loop(impl::run_global_context_loop, 0, true);
+        }
+
+        void stop_global_context() noexcept
+        {
+            emscripten_cancel_main_loop();
         }
     }
 }

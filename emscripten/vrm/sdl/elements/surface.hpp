@@ -9,17 +9,31 @@ namespace vrm
 {
     namespace sdl
     {
-        class surface : public impl::unique_surface
+        class surface : public impl::sdl_element<SDL_Surface>
         {
         private:
-            using base_type = impl::unique_surface;
+            SDL_Rect _rect;
 
         public:
-            using base_type::base_type;
+            using base_type = impl::sdl_element<SDL_Surface>;
 
             auto width() const noexcept { return get().w; }
             auto height() const noexcept { return get().h; }
             auto size() const noexcept { return make_vec2(width(), height()); }
+            const auto& rect() const noexcept { return _rect; }
+
+            surface(const std::string& path) noexcept
+                : base_type{IMG_Load(path.c_str())}
+            {
+                _rect.x = 0;
+                _rect.y = 0;
+                _rect.w = width();
+                _rect.h = height();
+            }
+
+            surface(SDL_Surface* p) noexcept : base_type{p} {}
+
+
 
             auto format() const noexcept { return get().format; }
 
@@ -34,11 +48,6 @@ namespace vrm
                 SDL_FillRect(ptr(), &clear_rect, SDL_MapRGB(format(), r, g, b));
             }
 
-            void display()
-            {
-                // SDL_Flip(ptr());
-            }
-
             void blit(const surface& s, const SDL_Rect& src_rect,
                 const SDL_Rect& dest_rect)
             {
@@ -46,7 +55,7 @@ namespace vrm
                     &const_cast<SDL_Rect&>(dest_rect));
             }
 
-            void blit(const image& i, int x, int y);
+            void blit(const surface& i, int x, int y);
         };
     }
 }

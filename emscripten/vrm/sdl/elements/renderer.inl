@@ -40,12 +40,6 @@ namespace vrm
             SDL_SetRenderTarget(*this, nullptr);
         }
 
-        void renderer::load_texture(texture& t, const std::string& path)
-        {
-            image temp{path};
-            t = texture{*this, temp};
-        }
-
         void renderer::clear_texture(
             texture& t, int r, int g, int b, int a) noexcept
         {
@@ -80,13 +74,16 @@ namespace vrm
         {
             assert(s.valid_texture());
 
-            SDL_Rect dst;
-            dst.x = s.pos().x() - s.origin().x();
-            dst.y = s.pos().y() - s.origin().y();
-            dst.w = s.texture().size().x();
-            dst.h = s.texture().size().y();
+            auto scaled_origin(make_vec2(s.origin().x() * s.scale().x(),
+                s.origin().y() * s.scale().y()));
 
-            SDL_Point center{(int)s.origin().x(), (int)s.origin().y()};
+            SDL_Rect dst;
+            dst.x = s.pos().x() - scaled_origin.x();
+            dst.y = s.pos().y() - scaled_origin.y();
+            dst.w = s.texture().size().x() * s.scale().x();
+            dst.h = s.texture().size().y() * s.scale().y();
+
+            SDL_Point center{(int)scaled_origin.x(), (int)scaled_origin.y()};
 
             SDL_RenderCopyEx(*this, s.texture(), nullptr, &dst,
                 to_deg(s.radians()), &center, SDL_FLIP_NONE);

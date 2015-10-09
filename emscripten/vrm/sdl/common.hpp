@@ -9,5 +9,6 @@
 #include <vrm/sdl/common/typedefs.hpp>
 #include <vrm/sdl/common/error.hpp>
 #include <vrm/sdl/common/null_handlers.hpp>
+#include <vrm/sdl/common/key.hpp>
 
 #include <vrm/sdl/common/null_handlers.inl>

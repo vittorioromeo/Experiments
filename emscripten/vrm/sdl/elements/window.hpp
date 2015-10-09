@@ -9,12 +9,13 @@ namespace vrm
 {
     namespace sdl
     {
-        class window : public impl::unique_window
+        class window
+            : public impl::sdl_element<SDL_Window>
         {
-        private:
-            using base_type = impl::unique_window;
-
         public:
+            using base_type =
+                impl::sdl_element<SDL_Window>;
+
             window(sz_t width, sz_t height) noexcept
                 : base_type{SDL_CreateWindow("emscripten window", 0, 0, width,
                       height, SDL_WINDOW_OPENGL)}

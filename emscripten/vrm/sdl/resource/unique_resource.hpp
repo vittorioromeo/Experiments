@@ -15,62 +15,89 @@ namespace vrm
             class unique_resource
             {
             private:
-                T* _ptr{nullptr};
-                TDeleter deleter;
+                T _res;
+                TDeleter _deleter;
+                bool _must_delete;
 
-                void delete_if_necessary() noexcept
-                {
-                    if(_ptr != nullptr) deleter(_ptr);
-                }
 
             public:
-                unique_resource() = default;
-                unique_resource(T* p) noexcept { reinit(p); }
+                void reset() noexcept
+                {
+                    if(!_must_delete) return;
+
+                    _deleter(_res.ptr());
+                    _must_delete = false;
+                }
+
+                void reset(T&& r) noexcept
+                {
+                    reset();
+                    _res = std::move(r);
+                    _must_delete = true;
+                }
+
+                void release() { _must_delete = false; }
+
+                template <typename... Ts>
+                unique_resource(Ts&&... xs)
+                    : _res(FWD(xs)...), _must_delete{true}
+                {
+                    assert(_res.ptr() != nullptr);
+                }
 
                 unique_resource(const unique_resource&) = delete;
                 unique_resource& operator=(const unique_resource&) = delete;
 
-                unique_resource(unique_resource&& s) noexcept : _ptr{s._ptr}
+                unique_resource(unique_resource&& s) noexcept
+                    : _res{std::move(s._res)},
+                      _deleter{std::move(s._deleter)},
+                      _must_delete{s._must_delete}
                 {
-                    s._ptr = nullptr;
+                    // reset();
+                    s.release();
                 }
                 unique_resource& operator=(unique_resource&& s) noexcept
                 {
-                    _ptr = s._ptr;
-                    s._ptr = nullptr;
+                    reset();
+
+                    _res = std::move(s._res);
+                    _deleter = std::move(s._deleter);
+                    _must_delete = s._must_delete;
+
+                    s.release();
                     return *this;
                 }
 
-                ~unique_resource() noexcept { delete_if_necessary(); }
+                ~unique_resource() noexcept { reset(); }
 
-                void reinit(T* p) noexcept
-                {
-                    delete_if_necessary();
-                    _ptr = p;
+                auto operator-> () noexcept { return &_res; }
+                auto operator-> () const noexcept { return &_res; }
 
-                    if(_ptr == nullptr)
-                    {
-                        impl::log_sdl_error();
-                        std::terminate();
-                    }
-                }
-
-                auto ptr() noexcept
-                {
-                    assert(_ptr != nullptr);
-                    return _ptr;
-                }
-                const auto ptr() const noexcept
-                {
-                    assert(_ptr != nullptr);
-                    return _ptr;
-                }
-
-                auto& get() noexcept { return *ptr(); }
-                const auto& get() const noexcept { return *ptr(); }
-
-                operator T*() noexcept { return ptr(); }
+                auto& operator*() noexcept { return _res; }
+                const auto& operator*() const noexcept { return _res; }
             };
+            /*
+                        template <typename T, typename TDeleter>
+                        class shared_resource
+                        {
+                        private:
+                            std::shared_ptr<T> _ptr{nullptr, TDeleter{}};
+
+                        public:
+                            auto ptr() noexcept
+                            {
+                                assert(_ptr != nullptr);
+                                return _ptr.get();
+                            }
+                            auto ptr() const noexcept
+                            {
+                                assert(_ptr != nullptr);
+                                return _ptr.get();
+                            }
+
+                            auto& get() noexcept { return *ptr(); }
+                            const auto& get() const noexcept { return *ptr(); }
+                        };*/
         }
     }
 }

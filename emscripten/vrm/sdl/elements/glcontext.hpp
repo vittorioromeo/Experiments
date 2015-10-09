@@ -9,13 +9,15 @@ namespace vrm
 {
     namespace sdl
     {
-        class glcontext : public impl::unique_glcontext
+        class glcontext : public impl::sdl_element<SDL_GLContext>
         {
         private:
-            using base_type = impl::unique_glcontext;
             SDL_GLContext _glcontext;
 
         public:
+            using base_type =
+                impl::sdl_element<SDL_GLContext>;
+
             glcontext(window& w) noexcept : _glcontext{SDL_GL_CreateContext(w)},
                                             base_type{&_glcontext}
             {

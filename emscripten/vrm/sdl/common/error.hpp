@@ -13,8 +13,52 @@ namespace vrm
     {
         namespace impl
         {
-            void log_sdl_error()
+            template <typename T>
+            auto error_title_for() noexcept
             {
+                return "";
+            }
+
+            template <>
+            auto error_title_for<SDL_Renderer>() noexcept
+            {
+                return "renderer";
+            }
+
+            template <>
+            auto error_title_for<SDL_Window>() noexcept
+            {
+                return "window";
+            }
+
+            template <>
+            auto error_title_for<SDL_Texture>() noexcept
+            {
+                return "texture";
+            }
+
+            template <>
+            auto error_title_for<SDL_Surface>() noexcept
+            {
+                return "surface";
+            }
+
+
+            template <>
+            auto error_title_for<SDL_GLContext>() noexcept
+            {
+                return "glcontext";
+            }
+
+            template <>
+            auto error_title_for<TTF_Font>() noexcept
+            {
+                return "ttffont";
+            };
+
+            void log_sdl_error(const std::string& title = "")
+            {
+                if(!title.empty()) std::cout << "[" << title << "] ";
                 std::cout << "error: " << SDL_GetError() << std::endl;
             }
         }

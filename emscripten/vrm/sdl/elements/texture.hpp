@@ -9,14 +9,17 @@ namespace vrm
 {
     namespace sdl
     {
-        class texture : public impl::unique_texture
+        class texture : public impl::sdl_element<SDL_Texture>
         {
         private:
-            using base_type = impl::unique_texture;
             vec2f _size;
 
         public:
+            using base_type = impl::sdl_element<SDL_Texture>;
+
             texture() = default;
+
+            texture(renderer&) noexcept {}
 
             texture(renderer& r, sz_t width, sz_t height) noexcept
                 : base_type{SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888,
@@ -28,12 +31,6 @@ namespace vrm
             texture(renderer& r, surface& s) noexcept
                 : base_type{SDL_CreateTextureFromSurface(r, s)},
                   _size(s.width(), s.height())
-            {
-            }
-
-            texture(renderer& r, image& i) noexcept
-                : base_type{SDL_CreateTextureFromSurface(r, i.surface())},
-                  _size(i.width(), i.height())
             {
             }
 

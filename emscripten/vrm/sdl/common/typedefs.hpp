@@ -21,9 +21,6 @@ namespace vrm
         using hr_clock = std::chrono::high_resolution_clock;
         using hr_duration = typename hr_clock::duration;
 
-        using key_event_handler = std::function<void(key_code)>;
-        using btn_event_handler = std::function<void(mouse_btn)>;
-
         using ft = float;
 
         using update_fn = std::function<void(ft)>;
@@ -35,7 +32,6 @@ namespace vrm
         class texture;
         class surface;
         class ttffont;
-        class image;
         class sprite;
     }
 }

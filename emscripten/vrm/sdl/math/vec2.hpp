@@ -64,7 +64,7 @@ namespace vrm
             }
 
             template <typename TS>
-            vec2& operator*(TS s) noexcept
+            vec2& operator*=(TS s) noexcept
             {
                 _x *= s;
                 _y *= s;
@@ -72,7 +72,7 @@ namespace vrm
             }
 
             template <typename TS>
-            vec2& operator/(TS s) noexcept
+            vec2& operator/=(TS s) noexcept
             {
                 _x /= s;
                 _y /= s;

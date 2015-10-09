@@ -13,16 +13,71 @@ namespace vrm
 {
     namespace sdl
     {
+        namespace impl
+        {
+            using unique_window = unique_resource<window, window_deleter>;
+
+            using unique_texture = unique_resource<texture, texture_deleter>;
+
+            using unique_renderer = unique_resource<renderer, renderer_deleter>;
+
+            using unique_surface = unique_resource<surface, surface_deleter>;
+
+            using unique_glcontext =
+                unique_resource<glcontext, glcontext_deleter>;
+
+            using unique_ttffont = unique_resource<ttffont, ttffont_deleter>;
+
+            template <typename T>
+            struct unique_sdl_element;
+
+            template <>
+            struct unique_sdl_element<SDL_Window>
+            {
+                using type = unique_window;
+            };
+
+            template <>
+            struct unique_sdl_element<SDL_Texture>
+            {
+                using type = unique_texture;
+            };
+
+            template <>
+            struct unique_sdl_element<SDL_Renderer>
+            {
+                using type = unique_renderer;
+            };
+
+            template <>
+            struct unique_sdl_element<SDL_Surface>
+            {
+                using type = unique_surface;
+            };
+
+            template <>
+            struct unique_sdl_element<SDL_GLContext>
+            {
+                using type = unique_glcontext;
+            };
+
+            template <>
+            struct unique_sdl_element<TTF_Font>
+            {
+                using type = unique_ttffont;
+            };
+        }
+
         class context
         {
         private:
             const std::size_t _width;
             const std::size_t _height;
 
-            window _window;
-            glcontext _glcontext;
-            renderer _renderer;
-            texture _texture;
+            impl::unique_window _window;
+            impl::unique_glcontext _glcontext;
+            impl::unique_renderer _renderer;
+            impl::unique_texture _texture;
 
             SDL_Event _event;
 
@@ -55,6 +110,9 @@ namespace vrm
             void run_update();
             void run_draw();
 
+            template <typename T, typename... Ts>
+            auto make_unique_res(Ts&&... xs);
+
         public:
             context(std::size_t width, std::size_t height);
 
@@ -79,11 +137,14 @@ namespace vrm
             auto mouse_y() const noexcept;
             auto mouse_pos() const noexcept;
 
-            auto key(key_code c) const;
-            auto btn(mouse_btn b) const;
+            auto key(kkey k) const noexcept;
+            auto btn(mbtn b) const noexcept;
 
-            auto make_texture() noexcept;
-            auto make_texture(const std::string& path) noexcept;
+            template <typename... Ts>
+            auto make_image(Ts&&... xs) noexcept;
+
+            template <typename... Ts>
+            auto make_texture(Ts&&... xs) noexcept;
 
             auto make_sprite() noexcept;
             auto make_sprite(texture& t) noexcept;

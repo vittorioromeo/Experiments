@@ -25,6 +25,7 @@ namespace vrm
             sprite(sprite&& s) = default;
             sprite& operator=(sprite&& s) = default;
 
+            void texture(texture& t) noexcept { _texture = &t; }
             auto valid_texture() const noexcept { return _texture != nullptr; }
 
             auto& texture() noexcept { return *_texture; }
