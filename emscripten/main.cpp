@@ -2,14 +2,34 @@
 #include <iostream>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 #include <emscripten.h>
 #include <unordered_map>
 #include <string>
 #include <cassert>
 #include <type_traits>
 
+#define FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
+
 namespace sdl
 {
+    constexpr float pi{3.14159265f};
+    constexpr float pi_half{pi / 2.f};
+    constexpr float tau{pi * 2.f};
+    constexpr float rad_deg_ratio{pi / 180.f};
+
+    template <typename T>
+    constexpr auto to_rad(const T& x) noexcept
+    {
+        return x * rad_deg_ratio;
+    }
+
+    template <typename T>
+    constexpr auto to_deg(const T& x) noexcept
+    {
+        return x / rad_deg_ratio;
+    }
+
     template <typename T>
     class vec2
     {
@@ -19,6 +39,19 @@ namespace sdl
     public:
         vec2() noexcept : _x{T(0)}, _y{T(0)} {};
         vec2(T x, T y) noexcept : _x{x}, _y{y} {}
+
+        template <typename TS>
+        vec2(const vec2<TS>& v) noexcept : _x(v.x()), _y(v.y())
+        {
+        }
+
+        template <typename TS>
+        vec2& operator=(const vec2<TS>& v) noexcept
+        {
+            _x = v.x();
+            _y = v.y();
+            return *this;
+        }
 
         vec2(const vec2&) = default;
         vec2& operator=(const vec2&) = default;
@@ -65,6 +98,8 @@ namespace sdl
         }
     };
 
+
+
     using vec2i = vec2<int>;
     using vec2u = vec2<unsigned int>;
     using vec2f = vec2<float>;
@@ -72,12 +107,44 @@ namespace sdl
     template <typename T0, typename T1>
     auto make_vec2(T0 x, T1 y)
     {
-        return vec2<std::common_type_t<T0, T1>>{x, y};
+        return vec2<std::common_type_t<T0, T1>>(x, y);
+    }
+
+    template <typename TV0, typename TV1>
+    auto operator+(const TV0& v0, const TV1& v1)
+    {
+        return make_vec2(v0.x() + v1.x(), v0.y() + v1.y());
+    }
+
+    template <typename TV0, typename TV1>
+    auto operator-(const TV0& v0, const TV1& v1)
+    {
+        return make_vec2(v0.x() - v1.x(), v0.y() - v1.y());
+    }
+
+    template <typename TV, typename TS>
+    auto operator*(const TV& v, TS s)
+    {
+        return make_vec2(v.x() * s, v.y() * s);
+    }
+
+    template <typename TV, typename TS>
+    auto operator/(const TV& v, TS s)
+    {
+        return make_vec2(v.x() / s, v.y() / s);
+    }
+
+    template <typename T>
+    auto& operator<<(std::ostream& o, const vec2<T>& v)
+    {
+        o << "(" << v.x() << ", " << v.y() << ")";
+        return o;
     }
 
     using key_code = SDL_Keycode;
     using mouse_coord = Sint32;
     using mouse_btn = Uint8;
+    using sz_t = std::size_t;
 
     using key_event_handler = std::function<void(key_code)>;
     using btn_event_handler = std::function<void(mouse_btn)>;
@@ -92,11 +159,6 @@ namespace sdl
         void log_sdl_error()
         {
             std::cout << "error: " << SDL_GetError() << std::endl;
-        }
-
-        void log_img_error()
-        {
-            std::cout << "img error: " << IMG_GetError() << std::endl;
         }
 
         auto& null_key_event_handler()
@@ -138,36 +200,42 @@ namespace sdl
             T* _ptr{nullptr};
             TDeleter deleter;
 
+            void delete_if_necessary() noexcept
+            {
+                if(_ptr != nullptr) deleter(_ptr);
+            }
+
         public:
             unique_resource() = default;
-            unique_resource(T* p) : _ptr{p}
-            {
-                if(_ptr == nullptr)
-                {
-                    impl::log_sdl_error();
-                    std::terminate();
-                }
-            }
+            unique_resource(T* p) noexcept { reinit(p); }
 
             unique_resource(const unique_resource&) = delete;
             unique_resource& operator=(const unique_resource&) = delete;
 
-            unique_resource(unique_resource&& s) : _ptr{s._ptr}
+            unique_resource(unique_resource&& s) noexcept : _ptr{s._ptr}
             {
                 s._ptr = nullptr;
             }
-            unique_resource& operator=(unique_resource&& s)
+            unique_resource& operator=(unique_resource&& s) noexcept
             {
                 _ptr = s._ptr;
                 s._ptr = nullptr;
                 return *this;
             }
 
-            ~unique_resource()
-            {
-                if(_ptr != nullptr) deleter(_ptr);
-            }
+            ~unique_resource() noexcept { delete_if_necessary(); }
 
+            void reinit(T* p) noexcept
+            {
+                delete_if_necessary();
+                _ptr = p;
+
+                if(_ptr == nullptr)
+                {
+                    impl::log_sdl_error();
+                    std::terminate();
+                }
+            }
 
             auto ptr() noexcept
             {
@@ -198,25 +266,57 @@ namespace sdl
 
         struct unique_renderer_deleter
         {
-            void operator()(SDL_Renderer* p) { SDL_DestroyRenderer(p); }
+            void operator()(SDL_Renderer* p) noexcept
+            {
+                SDL_DestroyRenderer(p);
+            }
         };
 
         struct unique_surface_deleter
         {
-            void operator()(SDL_Surface* p) { SDL_FreeSurface(p); }
+            void operator()(SDL_Surface* p) noexcept { SDL_FreeSurface(p); }
+        };
+
+        struct unique_glcontext_deleter
+        {
+            void operator()(SDL_GLContext* p) noexcept
+            {
+                SDL_GL_DeleteContext(p);
+            }
+        };
+
+        struct unique_ttffont_deleter
+        {
+            void operator()(TTF_Font* p) noexcept { TTF_CloseFont(p); }
         };
 
         using unique_window =
             unique_resource<SDL_Window, unique_window_deleter>;
+
         using unique_texture =
             unique_resource<SDL_Texture, unique_texture_deleter>;
+
         using unique_renderer =
             unique_resource<SDL_Renderer, unique_renderer_deleter>;
+
         using unique_surface =
             unique_resource<SDL_Surface, unique_surface_deleter>;
+
+        using unique_glcontext =
+            unique_resource<SDL_GLContext, unique_glcontext_deleter>;
+
+        using unique_ttffont =
+            unique_resource<TTF_Font, unique_ttffont_deleter>;
     }
 
     class context;
+    class window;
+    class renderer;
+    class texture;
+    class surface;
+    class ttffont;
+    class image;
+    class sprite;
 
     class input_state
     {
@@ -246,8 +346,6 @@ namespace sdl
         }
     };
 
-    class image;
-    class sprite;
 
     class surface : public impl::unique_surface
     {
@@ -314,13 +412,32 @@ namespace sdl
         const auto& rect() const noexcept { return _rect; }
     };
 
-    class texture : public impl::unique_texture
+
+    class window : public impl::unique_window
     {
     private:
-        using base_type = impl::unique_texture;
+        using base_type = impl::unique_window;
 
     public:
-        using base_type::base_type;
+        window(sz_t width, sz_t height) noexcept
+            : base_type{SDL_CreateWindow(
+                  "emscripten window", 0, 0, width, height, SDL_WINDOW_OPENGL)}
+        {
+        }
+    };
+
+    class glcontext : public impl::unique_glcontext
+    {
+    private:
+        using base_type = impl::unique_glcontext;
+        SDL_GLContext _glcontext;
+
+    public:
+        glcontext(window& w) noexcept : _glcontext{SDL_GL_CreateContext(w)},
+                                        base_type{&_glcontext}
+        {
+            SDL_GL_SetSwapInterval(0);
+        }
     };
 
     class renderer : public impl::unique_renderer
@@ -329,26 +446,135 @@ namespace sdl
         using base_type = impl::unique_renderer;
 
     public:
-        using base_type::base_type;
+        renderer(window& w) noexcept
+            : base_type{SDL_CreateRenderer(
+                  w, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE |
+                             SDL_RENDERER_PRESENTVSYNC)}
+        {
+        }
+
+        void draw_color(int r, int g, int b, int a) noexcept
+        {
+            SDL_SetRenderDrawColor(*this, r, g, b, a);
+        }
+
+        void clear() noexcept { SDL_RenderClear(*this); }
+        void clear(int r, int g, int b, int a) noexcept
+        {
+            draw_color(r, g, b, a);
+            clear();
+        }
+
+        void blend_mode(SDL_BlendMode m) noexcept
+        {
+            SDL_SetRenderDrawBlendMode(*this, m);
+        }
+
+        void present() noexcept { SDL_RenderPresent(*this); }
+
+        void target(std::nullptr_t) noexcept
+        {
+            SDL_SetRenderTarget(*this, nullptr);
+        }
+        void target(texture& t) noexcept;
+
+        void clear_texture(texture& t, int r, int g, int b, int a) noexcept;
+        void draw(texture& t) noexcept;
+        void draw(texture& t, const vec2f& pos) noexcept;
+
+        void draw(sprite& s) noexcept;
+
+        void load_texture(texture& t, const std::string& path);
     };
 
-
-    class window : public impl::unique_window
+    class texture : public impl::unique_texture
     {
     private:
-        using base_type = impl::unique_window;
+        using base_type = impl::unique_texture;
+        vec2f _size;
 
     public:
-        using base_type::base_type;
+        texture() = default;
+
+        texture(renderer& r, sz_t width, sz_t height) noexcept
+            : base_type{SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888,
+                  SDL_TEXTUREACCESS_TARGET, width, height)},
+              _size(width, height)
+        {
+        }
+
+        texture(renderer& r, surface& s) noexcept
+            : base_type{SDL_CreateTextureFromSurface(r, s)},
+              _size(s.width(), s.height())
+        {
+        }
+
+        texture(renderer& r, image& i) noexcept
+            : base_type{SDL_CreateTextureFromSurface(r, i.surface())},
+              _size(i.width(), i.height())
+        {
+        }
+
+        const auto& size() const noexcept { return _size; }
     };
 
-
-
-    struct space_data
+    class ttffont : public impl::unique_ttffont
     {
-        vec2f _pos, _size, _origin;
+    private:
+        using base_type = impl::unique_ttffont;
+
+    public:
+        ttffont(const std::string& path, sz_t font_size) noexcept
+            : base_type{TTF_OpenFont(path.c_str(), font_size)}
+        {
+        }
+    };
+
+    void renderer::load_texture(texture& t, const std::string& path)
+    {
+        image temp{path};
+        t = texture{*this, temp};
+    }
+
+    void renderer::clear_texture(
+        texture& t, int r, int g, int b, int a) noexcept
+    {
+        target(t);
+        blend_mode(SDL_BLENDMODE_NONE);
+        draw_color(r, g, b, a);
+        SDL_RenderFillRect(*this, nullptr);
+    }
+
+    void renderer::draw(texture& t) noexcept
+    {
+        SDL_RenderCopy(*this, t, nullptr, nullptr);
+    }
+
+    void renderer::draw(texture& t, const vec2f& pos) noexcept
+    {
+        SDL_Rect dst;
+        dst.x = pos.x();
+        dst.y = pos.y();
+        dst.w = t.size().x();
+        dst.h = t.size().y();
+
+        SDL_RenderCopy(*this, t, nullptr, &dst);
+    }
+
+
+
+    void renderer::target(texture& t) noexcept
+    {
+        SDL_SetRenderTarget(*this, t);
+    }
+
+    class space_data
+    {
+    private:
+        vec2f _pos, _scale{1.f, 1.f}, _origin;
         float _radians{0.f};
 
+    public:
         space_data() = default;
 
         space_data(const space_data&) = default;
@@ -356,6 +582,18 @@ namespace sdl
 
         space_data(space_data&&) = default;
         space_data& operator=(space_data&&) = default;
+
+        auto& pos() noexcept { return _pos; }
+        const auto& pos() const noexcept { return _pos; }
+
+        auto& scale() noexcept { return _scale; }
+        const auto& scale() const noexcept { return _scale; }
+
+        auto& origin() noexcept { return _origin; }
+        const auto& origin() const noexcept { return _origin; }
+
+        auto& radians() noexcept { return _radians; }
+        const auto& radians() const noexcept { return _radians; }
     };
 
     void surface::blit(const image& i, int x, int y)
@@ -366,28 +604,64 @@ namespace sdl
     class sprite
     {
     private:
-        image* _image{nullptr};
+        texture* _texture{nullptr};
         space_data _sd;
 
     public:
         sprite() = default;
-        sprite(image& i) noexcept : _image{&i} {}
+        sprite(texture& t) noexcept : _texture{&t} {}
 
         sprite(const sprite& s) = default;
         sprite& operator=(const sprite& s) = default;
 
         sprite(sprite&& s) = default;
         sprite& operator=(sprite&& s) = default;
+
+        auto valid_texture() const noexcept { return _texture != nullptr; }
+
+        auto& texture() noexcept { return *_texture; }
+        const auto& texture() const noexcept { return *_texture; }
+
+        auto& pos() noexcept { return _sd.pos(); }
+        const auto& pos() const noexcept { return _sd.pos(); }
+
+        auto& scale() noexcept { return _sd.scale(); }
+        const auto& scale() const noexcept { return _sd.scale(); }
+
+        auto& origin() noexcept { return _sd.origin(); }
+        const auto& origin() const noexcept { return _sd.origin(); }
+
+        auto& radians() noexcept { return _sd.radians(); }
+        const auto& radians() const noexcept { return _sd.radians(); }
+
+        void set_origin_to_center() noexcept
+        {
+            origin() = texture().size() / 2.f;
+        }
     };
 
-    void fillTexture(SDL_Renderer* renderer, SDL_Texture* texture, int r, int g,
-        int b, int a)
+    void renderer::draw(sprite& s) noexcept
     {
-        SDL_SetRenderTarget(renderer, texture);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
-        SDL_SetRenderDrawColor(renderer, r, g, b, a);
-        SDL_RenderFillRect(renderer, nullptr);
+        assert(s.valid_texture());
+
+        SDL_Rect dst;
+        dst.x = s.pos().x() - s.origin().x();
+        dst.y = s.pos().y() - s.origin().y();
+        dst.w = s.texture().size().x();
+        dst.h = s.texture().size().y();
+
+        SDL_Point center{(int)s.origin().x(), (int)s.origin().y()};
+
+        SDL_RenderCopyEx(*this, s.texture(), nullptr, &dst, to_deg(s.radians()),
+            &center, SDL_FLIP_NONE);
+
+
+        // SDL_RenderCopy(*this, t, nullptr, &dst);
+
+        // draw(s.texture(), s.pos() - s.origin());
     }
+
+
 
     class context
     {
@@ -396,10 +670,10 @@ namespace sdl
         const std::size_t _height;
 
         window _window;
+        glcontext _glcontext;
         renderer _renderer;
         texture _texture;
 
-        // surface _screen;
         SDL_Event _event;
 
         key_event_handler _on_key_down{impl::null_key_event_handler()};
@@ -455,77 +729,33 @@ namespace sdl
         void run_update() { update_fn()(1.f); }
         void run_draw()
         {
-            // _screen.clear(0, 0, 0);
+            _renderer.clear();
+            _renderer.clear_texture(_texture, 0, 0, 0, 255);
+
+            _renderer.target(nullptr);
+            _renderer.draw(_texture);
+
             draw_fn()();
 
-
-            SDL_SetRenderTarget(_renderer, nullptr);
-            SDL_RenderClear(_renderer);
-            fillTexture(_renderer, _texture, 255, 0, 0, 255);
-            SDL_RenderCopy(_renderer, _texture, nullptr, nullptr);
-            SDL_RenderPresent(_renderer);
-
-            //_screen.display();
+            _renderer.present();
         }
 
     public:
         context(std::size_t width, std::size_t height)
-            : _width{width}, _height{height}
+            : _width{width}, _height{height}, _window{width, height},
+              _glcontext{_window}, _renderer{_window},
+              _texture{_renderer, width, height}
         {
-
-            /*
-            if(SDL_Init(SDL_INIT_VIDEO) != 0)
+            if(TTF_Init() != 0)
             {
-                impl::log_sdl_error();
-                std::terminate();
-            }
-            */
-
-            /*
-            constexpr int img_flags{IMG_INIT_PNG};
-            if(!(IMG_Init(img_flags) & img_flags))
-            {
-                impl::log_img_error();
-                std::terminate();
-            }
-            */
-
-
-            _window = SDL_CreateWindow(
-                "emscripten window", 0, 0, _width, _height, SDL_WINDOW_OPENGL);
-
-            if(_window == nullptr)
-            {
-                impl::log_img_error();
                 std::terminate();
             }
 
-            _renderer = SDL_CreateRenderer(_window, -1,
-                SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
-
-            if(_renderer == nullptr)
-            {
-                impl::log_img_error();
-                std::terminate();
-            }
-
-            _texture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888,
-                SDL_TEXTUREACCESS_TARGET, _width, _height);
-
-            if(_texture == nullptr)
-            {
-                impl::log_img_error();
-                std::terminate();
-            }
-
-            SDL_SetRenderTarget(_renderer, nullptr);
-            SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
-            SDL_SetRenderDrawColor(_renderer, 128, 128, 128, 255);
+            // SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
 
             //            _screen = surface{SDL_SetVideoMode(_width, _height,
             //            32, SDL_SWSURFACE)};
 
-            SDL_GL_SetSwapInterval(0);
 
             on_key_down() = [this](auto k)
             {
@@ -548,10 +778,12 @@ namespace sdl
             };
         }
 
-        ~context()
-        {
-            SDL_Quit();
-        }
+        context(const context&) = delete;
+        context& operator=(const context&) = delete;
+
+        context(context&&) = default;
+        context& operator=(context&&) = default;
+
 
         void run()
         {
@@ -569,11 +801,52 @@ namespace sdl
 
         auto key(key_code c) const { return _input_state.key(c); }
         auto btn(mouse_btn b) const { return _input_state.btn(b); }
+
+        auto make_texture() noexcept { return texture{}; }
+        auto make_texture(const std::string& path) noexcept
+        {
+            texture result;
+            _renderer.load_texture(result, path);
+            return result;
+        }
+
+        auto make_sprite() noexcept { return sprite{}; }
+        auto make_sprite(texture& t) noexcept { return sprite{t}; }
+
+        auto make_ttffont(const std::string& path, sz_t font_size)
+        {
+            return ttffont{path, font_size};
+        }
+
+        auto make_ttftext_texture(
+            ttffont& f, const std::string& s, SDL_Color color)
+        {
+            surface temp{TTF_RenderText_Blended(f, s.c_str(), color)};
+            return texture{_renderer, temp};
+        }
+
+        void draw(texture& t, const vec2f& pos) { _renderer.draw(t, pos); }
+        void draw(sprite& s) { _renderer.draw(s); }
     };
 
-    context* global_context;
-    void init_global_context(context& c) { global_context = &c; }
-    void run_global_context() { global_context->run(); }
+    namespace impl
+    {
+        std::unique_ptr<context> global_context;
+        void run_global_context_loop() { global_context->run(); }
+    }
+
+    template <typename... Ts>
+    auto& make_global_context(Ts&&... xs)
+    {
+        assert(impl::global_context == nullptr);
+        impl::global_context = std::make_unique<context>(FWD(xs)...);
+        return *impl::global_context;
+    }
+
+    void run_global_context()
+    {
+        emscripten_set_main_loop(impl::run_global_context_loop, 0, true);
+    }
 }
 
 
@@ -581,20 +854,38 @@ namespace sdl
 int main(int argc, char** argv)
 {
     std::cout << "Hello world!\n";
-    sdl::context c{1000, 480};
-    sdl::init_global_context(c);
+    auto& c(sdl::make_global_context(1000, 600));
 
-    /*sdl::image toriel{"files/toriel.png"};
+    auto toriel_texture(c.make_texture("files/toriel.png"));
+    auto toriel_sprite(c.make_sprite(toriel_texture));
 
-    c.draw_fn() = [&c, &toriel]
+    auto test_text_font(c.make_ttffont("files/pixel.ttf", 16));
+    auto test_text_texture(c.make_ttftext_texture(
+        test_text_font, "hello!", SDL_Color{255, 255, 255, 255}));
+    auto test_text_sprite(c.make_sprite(test_text_texture));
+
+    toriel_sprite.set_origin_to_center();
+    test_text_sprite.set_origin_to_center();
+
+    std::cout << "origin: " << toriel_sprite.origin() << "\n";
+
+    // sdl::image toriel{"files/toriel.png"};
+
+    c.update_fn() = [&](auto)
+    {
+        toriel_sprite.pos() = c.mouse_pos();
+        toriel_sprite.radians() += 0.05f;
+        test_text_sprite.pos() = toriel_sprite.pos() - sdl::make_vec2(0, 100.f);
+    };
+
+    c.draw_fn() = [&]
     {
 
-        c.screen().blit(toriel, c.mouse_x(), c.mouse_y());
-    };*/
+        // c.draw(toriel, sdl::make_vec2(0.f, 0.f));
+        c.draw(toriel_sprite);
+        c.draw(test_text_sprite);
+    };
 
-
-
-    emscripten_set_main_loop(sdl::run_global_context, 0, true);
-
+    sdl::run_global_context();
     return 0;
 }
