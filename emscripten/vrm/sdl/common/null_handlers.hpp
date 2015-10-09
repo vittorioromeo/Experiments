@@ -13,37 +13,10 @@ namespace vrm
     {
         namespace impl
         {
-            auto& null_key_event_handler() noexcept
-            {
-                static key_event_handler result([](auto)
-                    {
-                    });
-                return result;
-            }
-
-            auto& null_btn_event_handler() noexcept
-            {
-                static btn_event_handler result([](auto)
-                    {
-                    });
-                return result;
-            }
-
-            auto& null_update_fn() noexcept
-            {
-                static update_fn result([](auto)
-                    {
-                    });
-                return result;
-            }
-
-            auto& null_draw_fn() noexcept
-            {
-                static draw_fn result([]
-                    {
-                    });
-                return result;
-            }
+            auto& null_key_event_handler() noexcept;
+            auto& null_btn_event_handler() noexcept;
+            auto& null_update_fn() noexcept;
+            auto& null_draw_fn() noexcept;
         }
     }
 }

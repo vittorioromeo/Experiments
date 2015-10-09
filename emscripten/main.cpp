@@ -22,11 +22,11 @@ int main(int argc, char** argv)
 
     auto test_text_font(c.make_ttffont("files/pixel.ttf", 16));
     auto test_text_texture(c.make_ttftext_texture(
-        test_text_font, "hello!", SDL_Color{255, 255, 255, 255}));
-    auto test_text_sprite(c.make_sprite(test_text_texture));
+        test_text_font, "xd", SDL_Color{255, 255, 255, 255}));
 
+    auto test_text_sprite(c.make_sprite());
     toriel_sprite.set_origin_to_center();
-    test_text_sprite.set_origin_to_center();
+
 
     std::cout << "origin: " << toriel_sprite.origin() << "\n";
 
@@ -34,6 +34,14 @@ int main(int argc, char** argv)
 
     c.update_fn() = [&](auto)
     {
+        test_text_texture = c.make_ttftext_texture(
+            test_text_font, std::to_string(c.fps()), SDL_Color{255, 255, 255, 255});
+
+        // std::cout << c.fps() << "\n";
+
+        test_text_sprite = c.make_sprite(test_text_texture);
+        test_text_sprite.set_origin_to_center();
+
         toriel_sprite.pos() = c.mouse_pos();
         toriel_sprite.radians() += 0.05f;
         test_text_sprite.pos() = toriel_sprite.pos() - sdl::make_vec2(0, 100.f);

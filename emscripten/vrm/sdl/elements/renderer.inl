@@ -9,6 +9,37 @@ namespace vrm
 {
     namespace sdl
     {
+        renderer::renderer(window& w) noexcept
+            : base_type{SDL_CreateRenderer(
+                  w, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE |
+                             SDL_RENDERER_PRESENTVSYNC)}
+        {
+        }
+
+        void renderer::draw_color(int r, int g, int b, int a) noexcept
+        {
+            SDL_SetRenderDrawColor(*this, r, g, b, a);
+        }
+
+        void renderer::clear() noexcept { SDL_RenderClear(*this); }
+        void renderer::clear(int r, int g, int b, int a) noexcept
+        {
+            draw_color(r, g, b, a);
+            clear();
+        }
+
+        void renderer::blend_mode(SDL_BlendMode m) noexcept
+        {
+            SDL_SetRenderDrawBlendMode(*this, m);
+        }
+
+        void renderer::present() noexcept { SDL_RenderPresent(*this); }
+
+        void renderer::target(std::nullptr_t) noexcept
+        {
+            SDL_SetRenderTarget(*this, nullptr);
+        }
+
         void renderer::load_texture(texture& t, const std::string& path)
         {
             image temp{path};

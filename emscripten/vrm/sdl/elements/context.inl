@@ -1,0 +1,215 @@
+// Copyright (c) 2015-2016 Vittorio Romeo
+// License: Academic Free License ("AFL") v. 3.0
+// AFL License page: http://opensource.org/licenses/AFL-3.0
+// http://vittorioromeo.info | vittorio.romeo@outlook.com
+
+#pragma once
+
+#include <chrono>
+#include <vrm/sdl/math.hpp>
+#include <vrm/sdl/common.hpp>
+
+namespace vrm
+{
+    namespace sdl
+    {
+        auto& context::on_key_up() noexcept { return _on_key_up; }
+        auto& context::on_key_down() noexcept { return _on_key_down; }
+
+        auto& context::on_btn_up() noexcept { return _on_btn_up; }
+        auto& context::on_btn_down() noexcept { return _on_btn_down; }
+
+        auto& context::update_fn() noexcept { return _update_fn; }
+        auto& context::draw_fn() noexcept { return _draw_fn; }
+
+        void context::run_events()
+        {
+            while(SDL_PollEvent(&_event))
+            {
+                switch(_event.type)
+                {
+                    case SDL_KEYDOWN:
+                        on_key_down()(_event.key.keysym.sym);
+                        break;
+
+                    case SDL_KEYUP: on_key_up()(_event.key.keysym.sym); break;
+
+                    case SDL_MOUSEBUTTONDOWN:
+                        on_btn_down()(_event.button.button);
+                        break;
+
+                    case SDL_MOUSEBUTTONUP:
+                        on_btn_up()(_event.button.button);
+                        break;
+
+                    case SDL_MOUSEMOTION:
+                        _input_state.mouse_x(_event.motion.x);
+                        _input_state.mouse_y(_event.motion.y);
+                        break;
+                }
+            }
+        }
+
+        void context::run_update() { update_fn()(1.f); }
+        void context::run_draw()
+        {
+            _renderer.clear();
+            _renderer.clear_texture(_texture, 0, 0, 0, 255);
+
+            _renderer.target(nullptr);
+            _renderer.draw(_texture);
+
+            draw_fn()();
+
+            _renderer.present();
+        }
+
+        context::context(std::size_t width, std::size_t height)
+            : _width{width}, _height{height}, _window{width, height},
+              _glcontext{_window}, _renderer{_window},
+              _texture{_renderer, width, height}
+        {
+            if(TTF_Init() != 0)
+            {
+                std::terminate();
+            }
+
+            // SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
+
+            //            _screen = surface{SDL_SetVideoMode(_width,
+            //            _height,
+            //            32, SDL_SWSURFACE)};
+
+
+            on_key_down() = [this](auto k)
+            {
+                _input_state.key(k) = true;
+            };
+
+            on_key_up() = [this](auto k)
+            {
+                _input_state.key(k) = false;
+            };
+
+            on_btn_down() = [this](auto b)
+            {
+                _input_state.btn(b) = true;
+            };
+
+            on_btn_up() = [this](auto b)
+            {
+                _input_state.btn(b) = false;
+            };
+        }
+
+
+
+        void context::run()
+        {
+            auto time_dur([](auto&& f)
+                {
+                    auto ms_start(hr_clock::now());
+                    f();
+
+                    return hr_clock::now() - ms_start;
+                });
+
+            run_events();
+
+            _update_duration = time_dur([this]
+                {
+                    run_update();
+                });
+            _draw_duration = time_dur([this]
+                {
+                    run_draw();
+                });
+        }
+
+        // auto& screen() noexcept { return _screen; }
+        // const auto& screen() const noexcept { return _screen; }
+
+        const auto& context::update_duration() const noexcept
+        {
+            return _update_duration;
+        }
+        const auto& context::draw_duration() const noexcept
+        {
+            return _draw_duration;
+        }
+        auto context::total_duration() const noexcept
+        {
+            return update_duration() + draw_duration();
+        }
+
+        auto context::update_ms() const noexcept
+        {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(
+                       update_duration())
+                .count();
+        }
+        auto context::draw_ms() const noexcept
+        {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(
+                       draw_duration())
+                .count();
+        }
+        auto context::total_ms() const noexcept
+        {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(
+                       total_duration())
+                .count();
+        }
+
+        auto context::fps() const noexcept
+        {
+            constexpr float seconds_ft_ratio{60.f};
+            return seconds_ft_ratio / total_ms();
+        }
+
+        auto context::mouse_x() const noexcept
+        {
+            return _input_state.mouse_x();
+        }
+        auto context::mouse_y() const noexcept
+        {
+            return _input_state.mouse_y();
+        }
+        auto context::mouse_pos() const noexcept
+        {
+            return _input_state.mouse_pos();
+        }
+
+        auto context::key(key_code c) const { return _input_state.key(c); }
+        auto context::btn(mouse_btn b) const { return _input_state.btn(b); }
+
+        auto context::make_texture() noexcept { return texture{}; }
+        auto context::make_texture(const std::string& path) noexcept
+        {
+            texture result;
+            _renderer.load_texture(result, path);
+            return result;
+        }
+
+        auto context::make_sprite() noexcept { return sprite{}; }
+        auto context::make_sprite(texture& t) noexcept { return sprite{t}; }
+
+        auto context::make_ttffont(const std::string& path, sz_t font_size)
+        {
+            return ttffont{path, font_size};
+        }
+
+        auto context::make_ttftext_texture(
+            ttffont& f, const std::string& s, SDL_Color color)
+        {
+            surface temp{TTF_RenderText_Blended(f, s.c_str(), color)};
+            return texture{_renderer, temp};
+        }
+
+        void context::draw(texture& t, const vec2f& pos) noexcept
+        {
+            _renderer.draw(t, pos);
+        }
+        void context::draw(sprite& s) noexcept { _renderer.draw(s); }
+    }
+}

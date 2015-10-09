@@ -15,42 +15,24 @@ namespace vrm
             using base_type = impl::unique_renderer;
 
         public:
-            renderer(window& w) noexcept
-                : base_type{SDL_CreateRenderer(w, -1,
-                      SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE |
-                          SDL_RENDERER_PRESENTVSYNC)}
-            {
-            }
+            renderer(window& w) noexcept;
 
-            void draw_color(int r, int g, int b, int a) noexcept
-            {
-                SDL_SetRenderDrawColor(*this, r, g, b, a);
-            }
+            void draw_color(int r, int g, int b, int a) noexcept;
 
-            void clear() noexcept { SDL_RenderClear(*this); }
-            void clear(int r, int g, int b, int a) noexcept
-            {
-                draw_color(r, g, b, a);
-                clear();
-            }
+            void clear() noexcept;
+            void clear(int r, int g, int b, int a) noexcept;
 
-            void blend_mode(SDL_BlendMode m) noexcept
-            {
-                SDL_SetRenderDrawBlendMode(*this, m);
-            }
+            void blend_mode(SDL_BlendMode m) noexcept;
 
-            void present() noexcept { SDL_RenderPresent(*this); }
+            void present() noexcept;
 
-            void target(std::nullptr_t) noexcept
-            {
-                SDL_SetRenderTarget(*this, nullptr);
-            }
+            void target(std::nullptr_t) noexcept;
             void target(texture& t) noexcept;
 
             void clear_texture(texture& t, int r, int g, int b, int a) noexcept;
+
             void draw(texture& t) noexcept;
             void draw(texture& t, const vec2f& pos) noexcept;
-
             void draw(sprite& s) noexcept;
 
             void load_texture(texture& t, const std::string& path);

@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <chrono>
 
 namespace vrm
 {
@@ -16,6 +17,9 @@ namespace vrm
         using mouse_coord = Sint32;
         using mouse_btn = Uint8;
         using sz_t = std::size_t;
+
+        using hr_clock = std::chrono::high_resolution_clock;
+        using hr_duration = typename hr_clock::duration;
 
         using key_event_handler = std::function<void(key_code)>;
         using btn_event_handler = std::function<void(mouse_btn)>;

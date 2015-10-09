@@ -19,3 +19,4 @@
 
 #include <vrm/sdl/elements/surface.inl>
 #include <vrm/sdl/elements/renderer.inl>
+#include <vrm/sdl/elements/context.inl>
