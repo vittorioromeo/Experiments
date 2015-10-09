@@ -4,3 +4,6 @@
 // http://vittorioromeo.info | vittorio.romeo@outlook.com
 
 #pragma once
+
+#include <vrm/sdl/resource/unique_resource.hpp>
+#include <vrm/sdl/resource/unique_sdl_resources.hpp>

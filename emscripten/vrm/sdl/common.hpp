@@ -4,3 +4,8 @@
 // http://vittorioromeo.info | vittorio.romeo@outlook.com
 
 #pragma once
+
+#include <vrm/sdl/common/macros.hpp>
+#include <vrm/sdl/common/typedefs.hpp>
+#include <vrm/sdl/common/error.hpp>
+#include <vrm/sdl/common/null_handlers.hpp>

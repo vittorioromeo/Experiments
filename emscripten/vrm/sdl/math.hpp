@@ -4,3 +4,6 @@
 // http://vittorioromeo.info | vittorio.romeo@outlook.com
 
 #pragma once
+
+#include <vrm/sdl/math/angle.hpp>
+#include <vrm/sdl/math/vec2.hpp>

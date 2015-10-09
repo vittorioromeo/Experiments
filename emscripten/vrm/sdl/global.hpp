@@ -4,3 +4,5 @@
 // http://vittorioromeo.info | vittorio.romeo@outlook.com
 
 #pragma once
+
+#include <vrm/sdl/global/global_context.hpp>
