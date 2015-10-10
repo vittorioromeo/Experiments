@@ -24,17 +24,32 @@ const char* vShaderStr = R"(
 
     void main()
     {
+        // float angle = 45.0;
+
+        // mat4 test = mat4(cos(angle), -sin(angle), 0.0, 0.0,
+        //                  sin(angle), cos(angle), 0.0, 0.0,
+        //                  0.0, 0.0, 1.0, 0.0,
+        //                  0.0, 0.0, 0.0, 1.0);
+
         var_color = color;
+        
         gl_Position = vec4(position.xy, 0.0, 1.0); 
+        // gl_Position *= test;
     })";
 
 const char* fShaderStr = R"(
     precision mediump float;
 
+    uniform sampler2D uf_tex;
+    
+    varying vec2 var_tex_coords;
     varying vec4 var_color;
 
     void main()
     {        
+
+            
+
         gl_FragColor = var_color;
     })";
 
@@ -47,7 +62,10 @@ namespace vrm
     {
         enum class primitive
         {
+            points,
             lines,
+            line_strip,
+            line_loop,
             triangles,
             triangle_strip,
             triangle_fan
@@ -61,9 +79,27 @@ namespace vrm
             struct primitive_traits;
 
             template <>
+            struct primitive_traits<primitive::points>
+            {
+                static constexpr GLenum gl_value{GL_POINTS};
+            };
+
+            template <>
             struct primitive_traits<primitive::lines>
             {
                 static constexpr GLenum gl_value{GL_LINES};
+            };
+
+            template <>
+            struct primitive_traits<primitive::line_strip>
+            {
+                static constexpr GLenum gl_value{GL_LINE_STRIP};
+            };
+
+            template <>
+            struct primitive_traits<primitive::line_loop>
+            {
+                static constexpr GLenum gl_value{GL_LINE_LOOP};
             };
 
             template <>
@@ -192,8 +228,8 @@ namespace vrm
                                 use_vertex_attribute("position", GL_FLOAT, 2,
                                     vertex2_position_offset);
 
-                                // use_vertex_attribute("tex_coords", GL_FLOAT,
-                                // 2, vertex2_position_offset);
+                                // use_vertex_attribute("tex_coords", GL_FLOAT, 2,
+                                //     vertex2_position_offset);
 
                                 use_vertex_attribute("color", GL_UNSIGNED_BYTE,
                                     4, vertex2_color_offset);
@@ -233,6 +269,13 @@ namespace vrm
 
 int main(int argc, char** argv)
 {
+    glm::mat4 trans;
+    trans =
+        glm::rotate(trans, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    glm::vec4 result = trans * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    printf("%f, %f, %f\n", result.x, result.y, result.z);
+
     std::random_device rnd_device;
     std::default_random_engine rnd_gen{rnd_device()};
 
@@ -322,13 +365,13 @@ int main(int argc, char** argv)
     {
         for(auto& t : triangles._vertices)
         {
-            t._position.y() -= 0.1f;
+            t._position.y() -= 0.0001f;
         }
 
         if(c.key(sdl::kkey::space))
         {
 
-            for(auto i = 0; i < 1000; ++i) add_rnd_triangle(triangles);
+            for(auto i = 0; i < 10; ++i) add_rnd_triangle(triangles);
         }
 
         triangles.init(program);

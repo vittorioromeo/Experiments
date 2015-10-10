@@ -11,3 +11,15 @@
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL2/SDL_opengles2.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/epsilon.hpp>
+#include <glm/gtc/constants.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/random.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/matrix_interpolation.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/color_space.hpp>
+#include <glm/gtx/string_cast.hpp>
