@@ -199,9 +199,9 @@ namespace vrm
                 // pos.vertex_attrib_pointer(vertex_dimensions, GL_FLOAT, true, sizeof(vertex2), data + vertex2::position_offset);
 
                 // Enable color attribute
-                // auto col(p.get_attribute("color"));
-                // col.enable();
-                // col.vertex_attrib_pointer(vertex_dimensions, GL_FLOAT, true, sizeof(vertex2), (void*)vertex2::color_offset);
+                auto col(p.get_attribute("color"));
+                col.enable();
+                col.vertex_attrib_pointer(vertex_dimensions, GL_FLOAT, true, sizeof(vertex2), (void*)vertex2::color_offset);
 
                 // glDrawArrays(primitive_gl_value, 0, _vertices.size());
                 glDrawArrays(GL_TRIANGLES, 0, _vertices.size());
