@@ -61,7 +61,7 @@ namespace vrm
                 {
                     bind();
                     f();
-                    // unbind();
+                    unbind();
                 }
             };
 
@@ -111,9 +111,9 @@ namespace vrm
                 template<typename TF>
                 void with(GLenum target, TF&& f)
                 {
-                    bind(target);
+                    this->bind(target);
                     f();
-                    // unbind();
+                    unbind();
                 }
             };
 

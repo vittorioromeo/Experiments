@@ -244,5 +244,10 @@ namespace vrm
             _renderer->draw(t, pos);
         }
         void context::draw(sprite& s) noexcept { _renderer->draw(s); }
+
+        void context::title(const std::string& s) noexcept
+        {   
+            _window->title(s);
+        }
     }
 }

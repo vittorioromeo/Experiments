@@ -75,30 +75,30 @@ foreach(vertexarray draw call)
 */
 
 /*
-           //initialization
-           glGenVertexArrays
-           glBindVertexArray
+    //initialization
+    glGenVertexArrays
+    glBindVertexArray
 
-           glGenBuffers
-           glBindBuffer
-           glBufferData
+    glGenBuffers
+    glBindBuffer
+    glBufferData
 
-           glVertexAttribPointer
-           glEnableVertexAttribArray
+    glVertexAttribPointer
+    glEnableVertexAttribArray
 
-           glBindVertexArray(0)
+    glBindVertexArray(0)
 
-           glDeleteBuffers //you can already delete it after the VAO is
-           unbound, since the
-                           //VAO still references it, keeping it alive (see
-           comments below).
+    glDeleteBuffers //you can already delete it after the VAO is
+    unbound, since the
+                     //VAO still references it, keeping it alive (see
+    comments below).
 
-           ...
+    ...
 
-           //rendering
-           glBindVertexArray
-           glDrawWhatever
-           */
+    //rendering
+    glBindVertexArray
+    glDrawWhatever
+*/
 
 namespace vrm
 {
@@ -148,17 +148,16 @@ namespace vrm
             float r, g, b, a;
         };
 
+        // consider?:
+        // http://codereview.stackexchange.com/questions/52272/standard-layout-tuple-implementation
+
         struct vertex2
         {
-            static constexpr auto position_offset = 0;
-            static constexpr auto color_offset = sizeof(vec2f);
-
             vec2f _position;
             color _color;
             // vec2f tex_coords;
 
             vertex2(const vec2f& position) noexcept : _position{position} {}
-
 
             vertex2(const vec2f& position, const color& color) noexcept
                 : _position{position},
@@ -167,10 +166,16 @@ namespace vrm
             }
         };
 
+        static_assert(std::is_standard_layout<vertex2>{}, "");
+
+        constexpr auto vertex2_position_offset(offsetof(vertex2, _position));
+        constexpr auto vertex2_color_offset(offsetof(vertex2, _color));
+
         template <primitive TP>
         class primitive_vector
         {
-        private:
+            // TODO:
+        public:
             std::vector<vertex2> _vertices;
             sdl::impl::unique_vao _vao;
 
@@ -187,35 +192,33 @@ namespace vrm
 
             void init(program& p)
             {
-                auto data(_vertices.data());
+                auto use_vertex_float_attribute = [this, &p](
+                    const auto& name, auto n_values, auto offset)
+                {
+                    auto a(p.get_attribute(name));
+                    a.enable();
+                    a.vertex_attrib_pointer(n_values, GL_FLOAT, true,
+                        sizeof(vertex2), (void*)offset);
+                };
 
-                _vao->with([this, &p, data]
+                auto vbo = sdl::make_vbo(1);
+                vbo->with(GL_ARRAY_BUFFER, [&, this]
                     {
-                        auto vbo = sdl::make_vbo(1);
                         vbo->bind(GL_ARRAY_BUFFER);
-                        vbo->buffer_data(GL_ARRAY_BUFFER, GL_STATIC_DRAW, data,
-                            _vertices.size());
+                        vbo->buffer_data(GL_ARRAY_BUFFER, GL_STATIC_DRAW,
+                            _vertices.data(), _vertices.size());
 
-                        // Enable pos attribute
-                        auto pos(p.get_attribute("position"));
-                        pos.enable();
-                        pos.vertex_attrib_pointer(vertex_dimensions, GL_FLOAT,
-                            true, sizeof(vertex2),
-                            (void*)vertex2::position_offset);
-                        // pos.vertex_attrib_pointer(vertex_dimensions,
-                        // GL_FLOAT, true,
-                        // sizeof(vertex2), data + vertex2::position_offset);
+                        // vao has to be unbound before the vbo
+                        _vao->with([&, this]
+                            {
+                                // Enable pos attribute
+                                use_vertex_float_attribute(
+                                    "position", 2, vertex2_position_offset);
 
-                        // Enable color attribute
-                        auto col(p.get_attribute("color"));
-                        col.enable();
-                        col.vertex_attrib_pointer(4, GL_FLOAT, true,
-                            sizeof(vertex2), (void*)vertex2::color_offset);
+                                use_vertex_float_attribute(
+                                    "color", 4, vertex2_color_offset);
+                            });
                     });
-
-
-
-                // _vao->unbind();
             }
 
             template <typename... Ts>
@@ -239,9 +242,10 @@ namespace vrm
 
             void draw(program& p)
             {
-                _vao->bind();
-                glDrawArrays(primitive_gl_value, 0, _vertices.size());
-                // _vao->unbind();
+                _vao->with([this]
+                    {
+                        glDrawArrays(primitive_gl_value, 0, _vertices.size());
+                    });
             }
         };
     }
@@ -332,15 +336,32 @@ int main(int argc, char** argv)
     // glEnableVertexAttribArray(posAttrib);
     // glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
+    float timer{10};
+
     c.update_fn() = [&](auto)
     {
+        for(auto& t : triangles._vertices)
+        {
+            t._position.y() -= 0.1f;
+        }
+
         if(c.key(sdl::kkey::space))
         {
 
-            add_rnd_triangle(triangles);
-            triangles.init(program);
+            for(auto i = 0; i < 1000; ++i) add_rnd_triangle(triangles);
+        }
+
+        triangles.init(program);
+
+        if(timer-- <= 0)
+        {
+            c.title(std::to_string(c.fps()) + " (" +
+                    std::to_string(triangles._vertices.size()) + ")");
+
+            timer = 10;
         }
     };
+
 
     c.draw_fn() = [&]
     {
@@ -499,27 +520,27 @@ int main_old(int argc, char** argv)
 
     c.draw_fn() = [&]
     {
-        program.use();
-        GLfloat vVertices[] = {
-            0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
+        /* program.use();
+         GLfloat vVertices[] = {
+             0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
 
-        // Set the viewport
-        glViewport(0, 0, 1000, 600);
+         // Set the viewport
+         glViewport(0, 0, 1000, 600);
 
-        // Clear the color buffer
-        glClear(
-            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+         // Clear the color buffer
+         glClear(
+             GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 
-        // Use the program object
+         // Use the program object
 
-        // Load the vertex data
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-        glEnableVertexAttribArray(0);
+         // Load the vertex data
+         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+         glEnableVertexAttribArray(0);
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+         glDrawArrays(GL_TRIANGLES, 0, 3);*/
 
-        // for(auto& e : entities) e._draw_fn(e);
+        for(auto& e : entities) e._draw_fn(e);
 
     };
 

@@ -20,6 +20,11 @@ namespace vrm
                       height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN)}
             {
             }
+
+            void title(const std::string& s) noexcept
+            {
+                SDL_SetWindowTitle(*this, s.c_str());
+            }
         };
     }
 }

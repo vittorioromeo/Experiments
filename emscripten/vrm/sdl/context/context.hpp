@@ -216,6 +216,8 @@ namespace vrm
 
             void draw(texture& t, const vec2f& pos) noexcept;
             void draw(sprite& s) noexcept;
+
+            void title(const std::string& s) noexcept;
         };
     }
 }
