@@ -8,5 +8,10 @@
 #include <vrm/sdl/resource.hpp>
 #include <vrm/sdl/elements.hpp>
 
+#include <vrm/sdl/gl/macros.hpp>
+#include <vrm/sdl/gl/check.hpp>
 #include <vrm/sdl/gl/shader.hpp>
+#include <vrm/sdl/gl/vao.hpp>
+#include <vrm/sdl/gl/vbo.hpp>
+#include <vrm/sdl/gl/attribute.hpp>
 #include <vrm/sdl/gl/program.hpp>

@@ -8,34 +8,12 @@
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/context.hpp>
 #include <vrm/sdl/gl/shader.hpp>
+#include <vrm/sdl/gl/attribute.hpp>
 
 namespace vrm
 {
     namespace sdl
     {
-        class attribute
-        {
-        private:
-            GLuint _location;
-
-        public:
-            attribute(GLuint location) noexcept : _location{location} {}
-
-            void enable() { glEnableVertexAttribArray(_location); }
-
-            void disable() { glDisableVertexAttribArray(_location); }
-
-            void vertex_attrib_pointer(sz_t n_components, GLenum type,
-                bool normalized = true, sz_t stride = 0,
-                const GLvoid* first_element = nullptr)
-            {
-                assert(n_components > 0 && n_components < 5);
-
-                glVertexAttribPointer(_location, n_components, type, normalized,
-                    stride, first_element);
-            }
-        };
-
         class program
         {
         private:
@@ -54,16 +32,16 @@ namespace vrm
                 for_args(
                     [this](auto&& s)
                     {
-                        glAttachShader(*id, FWD(s));
+                        VRM_SDL_GLCHECK(glAttachShader(*id, FWD(s)));
                     },
                     FWD(mShaders)...);
 
-                glLinkProgram(*id);
+                VRM_SDL_GLCHECK(glLinkProgram(*id));
 
                 for_args(
                     [this](auto&& s)
                     {
-                        glDetachShader(*id, FWD(s));
+                        VRM_SDL_GLCHECK(glDetachShader(*id, FWD(s)));
                     },
                     FWD(mShaders)...);
             }
@@ -72,7 +50,11 @@ namespace vrm
 
             auto get_attribute(const std::string& a_name) const noexcept
             {
-                auto location(glGetAttribLocation(*id, a_name.c_str()));
+                GLuint location;
+
+                VRM_SDL_GLCHECK(
+                    location = glGetAttribLocation(*id, a_name.c_str()););
+
                 assert(location != GL_INVALID_OPERATION);
 
                 return attribute{static_cast<GLuint>(location)};
@@ -82,7 +64,8 @@ namespace vrm
         template <typename... TShaders>
         auto make_program(TShaders&&... mShaders) noexcept
         {
-            auto id(glCreateProgram());
+            GLuint id;
+            VRM_SDL_GLCHECK(id = glCreateProgram(););
 
             impl::unique_program res{id};
             program p{std::move(res)};

@@ -1,3 +1,70 @@
+
+/*
+foreach(entity/object drawable)
+{
+    // Bind VAO & Shader
+    // glDrawArrays / glDrawElements
+    // Unbind VAO & Shader
+}
+*/
+
+/*
+foreach(vertexarray draw call)
+{
+    apply transform;
+    apply view;
+    apply blend mode;
+    apply texture;
+
+    apply shader;
+        use program; (stores a ptr to it)
+        bind textures;
+
+        un-use program;
+
+    glVertexPointer;
+        glCheck(glVertexPointer(2, GL_FLOAT, sizeof(Vertex), data + 0));
+
+    glColorPointer;
+        glCheck(glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), data + 8));
+
+    glTexCoordPointer;
+        glCheck(glTexCoordPointer(2, GL_FLOAT, sizeof(Vertex), data + 12));
+
+    glDrawArrays;
+
+    unbind shader;
+}
+*/
+
+/*
+    //initialization
+    glGenVertexArrays
+    glBindVertexArray
+
+    glGenBuffers
+    glBindBuffer
+    glBufferData
+
+    glVertexAttribPointer
+    glEnableVertexAttribArray
+
+    glBindVertexArray(0)
+
+    glDeleteBuffers //you can already delete it after the VAO is
+    unbound, since the
+                     //VAO still references it, keeping it alive (see
+    comments below).
+
+    ...
+
+    //rendering
+    glBindVertexArray
+    glDrawWhatever
+*/
+    
+
+
 // Init
 
 // vao->bind

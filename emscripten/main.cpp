@@ -11,94 +11,35 @@
 #include <random>
 #include <vrm/sdl.hpp>
 
+
 const char* vShaderStr = R"(
-    attribute vec4 position; 
+    attribute vec2 position; 
+    attribute vec2 tex_coords;
     attribute vec4 color;
 
-    varying vec4 vertex_color;
+    uniform mat4 uf_mat;
+
+    varying vec2 var_tex_coords;
+    varying vec4 var_color;
 
     void main()
     {
-        vertex_color = color;
-        gl_Position = vec4(position.xyz, 1.0); 
+        var_color = color;
+        gl_Position = vec4(position.xy, 0.0, 1.0); 
     })";
 
 const char* fShaderStr = R"(
     precision mediump float;
 
-    varying vec4 vertex_color;
+    varying vec4 var_color;
 
     void main()
-    {
-        // gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-        gl_FragColor = vertex_color;
+    {        
+        gl_FragColor = var_color;
     })";
 
 namespace sdl = vrm::sdl;
 
-/*
-foreach(entity/object drawable)
-{
-    // Bind VAO & Shader
-    // glDrawArrays / glDrawElements
-    // Unbind VAO & Shader
-}
-*/
-
-/*
-foreach(vertexarray draw call)
-{
-    apply transform;
-    apply view;
-    apply blend mode;
-    apply texture;
-
-    apply shader;
-        use program; (stores a ptr to it)
-        bind textures;
-
-        un-use program;
-
-    glVertexPointer;
-        glCheck(glVertexPointer(2, GL_FLOAT, sizeof(Vertex), data + 0));
-
-    glColorPointer;
-        glCheck(glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), data + 8));
-
-    glTexCoordPointer;
-        glCheck(glTexCoordPointer(2, GL_FLOAT, sizeof(Vertex), data + 12));
-
-    glDrawArrays;
-
-    unbind shader;
-}
-*/
-
-/*
-    //initialization
-    glGenVertexArrays
-    glBindVertexArray
-
-    glGenBuffers
-    glBindBuffer
-    glBufferData
-
-    glVertexAttribPointer
-    glEnableVertexAttribArray
-
-    glBindVertexArray(0)
-
-    glDeleteBuffers //you can already delete it after the VAO is
-    unbound, since the
-                     //VAO still references it, keeping it alive (see
-    comments below).
-
-    ...
-
-    //rendering
-    glBindVertexArray
-    glDrawWhatever
-*/
 
 namespace vrm
 {
@@ -108,9 +49,10 @@ namespace vrm
         {
             lines,
             triangles,
-            // quads, // use index buffer (element buffer) + triangles
             triangle_strip,
             triangle_fan
+
+            // quads, // use index buffer (element buffer) + triangles
         };
 
         namespace impl
@@ -143,25 +85,59 @@ namespace vrm
             };
         }
 
-        struct color
+        struct color_byte
         {
-            float r, g, b, a;
+            GLubyte _r, _g, _b, _a;
+
+            color_byte() noexcept : _r{255}, _g{255}, _b{255}, _a{255} {}
+
+            color_byte(GLubyte r, GLubyte g, GLubyte b) noexcept : _r{r},
+                                                                   _g{g},
+                                                                   _b{b},
+                                                                   _a{255}
+            {
+            }
+
+            color_byte(GLubyte r, GLubyte g, GLubyte b, GLubyte a) noexcept
+                : _r{r},
+                  _g{g},
+                  _b{b},
+                  _a{a}
+            {
+            }
         };
+
+
 
         // consider?:
         // http://codereview.stackexchange.com/questions/52272/standard-layout-tuple-implementation
 
         struct vertex2
         {
-            vec2f _position;
-            color _color;
-            // vec2f tex_coords;
+            vec2<GLfloat> _position;
+            vec2<GLfloat> _tex_coords;
+            color_byte _color;
+            // GLubyte padding[12];
 
             vertex2(const vec2f& position) noexcept : _position{position} {}
 
-            vertex2(const vec2f& position, const color& color) noexcept
+            vertex2(const vec2f& position, const color_byte& color) noexcept
                 : _position{position},
                   _color{color}
+            {
+            }
+
+            vertex2(const vec2f& position, const vec2f& tex_coords) noexcept
+                : _position{position},
+                  _tex_coords{tex_coords},
+                  _color{255, 255, 255, 255}
+            {
+            }
+
+            vertex2(const vec2f& position, const vec2f& tex_coords,
+                const color_byte& color) noexcept : _position{position},
+                                                    _tex_coords{tex_coords},
+                                                    _color{color}
             {
             }
         };
@@ -169,6 +145,8 @@ namespace vrm
         static_assert(std::is_standard_layout<vertex2>{}, "");
 
         constexpr auto vertex2_position_offset(offsetof(vertex2, _position));
+        constexpr auto vertex2_tex_coords_offset(
+            offsetof(vertex2, _tex_coords));
         constexpr auto vertex2_color_offset(offsetof(vertex2, _color));
 
         template <primitive TP>
@@ -192,31 +170,33 @@ namespace vrm
 
             void init(program& p)
             {
-                auto use_vertex_float_attribute = [this, &p](
-                    const auto& name, auto n_values, auto offset)
+                auto use_vertex_attribute = [this, &p](
+                    const auto& name, auto type, auto n_values, auto offset)
                 {
                     auto a(p.get_attribute(name));
                     a.enable();
-                    a.vertex_attrib_pointer(n_values, GL_FLOAT, true,
-                        sizeof(vertex2), (void*)offset);
+                    a.vertex_attrib_pointer(
+                        n_values, type, true, sizeof(vertex2), (void*)offset);
                 };
 
-                auto vbo = sdl::make_vbo(1);
-                vbo->with(GL_ARRAY_BUFFER, [&, this]
+                auto vbo = sdl::make_vbo<GL_ARRAY_BUFFER>(1);
+                vbo->with([&, this]
                     {
-                        // vbo->bind(GL_ARRAY_BUFFER);
-                        vbo->buffer_data(GL_ARRAY_BUFFER, GL_STATIC_DRAW,
-                            _vertices.data(), _vertices.size());
+                        vbo->buffer_data(
+                            GL_STATIC_DRAW, _vertices.data(), _vertices.size());
 
                         // vao has to be unbound before the vbo
                         _vao->with([&, this]
                             {
                                 // Enable pos attribute
-                                use_vertex_float_attribute(
-                                    "position", 2, vertex2_position_offset);
+                                use_vertex_attribute("position", GL_FLOAT, 2,
+                                    vertex2_position_offset);
 
-                                use_vertex_float_attribute(
-                                    "color", 4, vertex2_color_offset);
+                                // use_vertex_attribute("tex_coords", GL_FLOAT,
+                                // 2, vertex2_position_offset);
+
+                                use_vertex_attribute("color", GL_UNSIGNED_BYTE,
+                                    4, vertex2_color_offset);
                             });
                     });
             }
@@ -268,8 +248,8 @@ int main(int argc, char** argv)
 
     auto rnd_color = [&]
     {
-        return sdl::color{
-            rndf(0.f, 1.f), rndf(0.f, 1.f), rndf(0.f, 1.f), rndf(0.f, 1.f)};
+        return sdl::color_byte(rndf(0.f, 255.f), rndf(0.f, 255.f),
+            rndf(0.f, 255.f), rndf(0.f, 255.f));
     };
 
     auto add_rnd_triangle = [&](auto& v)

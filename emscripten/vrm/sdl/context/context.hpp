@@ -11,125 +11,12 @@
 #include <vrm/sdl/utils.hpp>
 #include <vrm/sdl/resource.hpp>
 #include <vrm/sdl/elements.hpp>
+#include <vrm/sdl/context/unique_sdl_resources.hpp>
 
 namespace vrm
 {
     namespace sdl
     {
-        namespace impl
-        {
-            struct window_deleter
-            {
-                void operator()(window& p) noexcept
-                {
-                    SDL_DestroyWindow(p.ptr());
-                }
-            };
-
-            struct texture_deleter
-            {
-                void operator()(texture& p) noexcept
-                {
-                    SDL_DestroyTexture(p.ptr());
-                }
-            };
-
-            struct renderer_deleter
-            {
-                void operator()(renderer& p) noexcept
-                {
-                    SDL_DestroyRenderer(p.ptr());
-                }
-            };
-
-            struct surface_deleter
-            {
-                void operator()(surface& p) noexcept
-                {
-                    SDL_FreeSurface(p.ptr());
-                }
-            };
-
-            struct glcontext_deleter
-            {
-                void operator()(glcontext& p) noexcept
-                {
-                    SDL_GL_DeleteContext(p.context());
-                }
-            };
-
-            struct ttffont_deleter
-            {
-                void operator()(ttffont& p) noexcept { TTF_CloseFont(p.ptr()); }
-            };
-
-            struct gl_shader_deleter
-            {
-                void operator()(GLint id) noexcept { glDeleteShader(id); }
-            };
-
-            struct gl_program_deleter
-            {
-                void operator()(GLint id) noexcept { glDeleteProgram(id); }
-            };
-
-            
-            using unique_window = unique_resource<window, window_deleter>;
-
-            using unique_texture = unique_resource<texture, texture_deleter>;
-
-            using unique_renderer = unique_resource<renderer, renderer_deleter>;
-
-            using unique_surface = unique_resource<surface, surface_deleter>;
-
-            using unique_glcontext =
-                unique_resource<glcontext, glcontext_deleter>;
-
-            using unique_ttffont = unique_resource<ttffont, ttffont_deleter>;
-
-            using unique_shader = unique_resource<GLint, gl_shader_deleter>;
-            using unique_program = unique_resource<GLint, gl_program_deleter>;
-
-            template <typename T>
-            struct unique_sdl_element;
-
-            template <>
-            struct unique_sdl_element<SDL_Window>
-            {
-                using type = unique_window;
-            };
-
-            template <>
-            struct unique_sdl_element<SDL_Texture>
-            {
-                using type = unique_texture;
-            };
-
-            template <>
-            struct unique_sdl_element<SDL_Renderer>
-            {
-                using type = unique_renderer;
-            };
-
-            template <>
-            struct unique_sdl_element<SDL_Surface>
-            {
-                using type = unique_surface;
-            };
-
-            template <>
-            struct unique_sdl_element<SDL_GLContext>
-            {
-                using type = unique_glcontext;
-            };
-
-            template <>
-            struct unique_sdl_element<TTF_Font>
-            {
-                using type = unique_ttffont;
-            };
-        }
-
         class context
         {
         private:
@@ -171,9 +58,6 @@ namespace vrm
             void run_events();
             void run_update();
             void run_draw();
-
-            template <typename T, typename... Ts>
-            auto make_unique_res(Ts&&... xs);
 
         public:
             context(const std::string& title, std::size_t width,

@@ -72,7 +72,8 @@ namespace vrm
             //_renderer->target(nullptr);
             //_renderer->draw(*_texture);
 
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+                    GL_STENCIL_BUFFER_BIT);
 
             draw_fn()();
 
@@ -198,27 +199,16 @@ namespace vrm
         auto context::key(kkey k) const noexcept { return _input_state.key(k); }
         auto context::btn(mbtn b) const noexcept { return _input_state.btn(b); }
 
-        template <typename T, typename... Ts>
-        auto context::make_unique_res(Ts&&... xs)
-        {
-            using base_type = typename T::base_type;
-            using element_type = typename base_type::element_type;
-            using unique_type =
-                typename impl::unique_sdl_element<element_type>::type;
-
-            return unique_type{FWD(xs)...};
-        }
-
         template <typename... Ts>
         auto context::make_image(Ts&&... xs) noexcept
         {
-            return make_unique_res<surface>(FWD(xs)...);
+            return impl::unique_surface(FWD(xs)...);
         }
 
         template <typename... Ts>
         auto context::make_texture(Ts&&... xs) noexcept
         {
-            return make_unique_res<texture>(*_renderer, FWD(xs)...);
+            return impl::unique_texture(*_renderer, FWD(xs)...);
         }
 
 
@@ -227,14 +217,13 @@ namespace vrm
 
         auto context::make_ttffont(const std::string& path, sz_t font_size)
         {
-            return make_unique_res<ttffont>(path, font_size);
+            return impl::unique_ttffont(path, font_size);
         }
 
         auto context::make_ttftext_texture(
             ttffont& f, const std::string& s, SDL_Color color)
         {
-            auto temp(make_unique_res<surface>(
-                TTF_RenderText_Blended(f, s.c_str(), color)));
+            auto temp(make_image(TTF_RenderText_Blended(f, s.c_str(), color)));
             auto result(make_texture(*temp));
             return result;
         }
@@ -246,7 +235,7 @@ namespace vrm
         void context::draw(sprite& s) noexcept { _renderer->draw(s); }
 
         void context::title(const std::string& s) noexcept
-        {   
+        {
             _window->title(s);
         }
     }
