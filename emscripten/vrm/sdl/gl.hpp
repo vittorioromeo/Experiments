@@ -5,4 +5,5 @@
 
 #pragma once
 
-#include <vrm/sdl/utils/for_args.hpp>
+#include <vrm/sdl/gl/shader.hpp>
+#include <vrm/sdl/gl/program.hpp>

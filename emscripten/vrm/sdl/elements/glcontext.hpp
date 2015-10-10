@@ -9,20 +9,24 @@ namespace vrm
 {
     namespace sdl
     {
-        class glcontext : public impl::sdl_element<SDL_GLContext>
+        class glcontext
         {
         private:
             SDL_GLContext _glcontext;
 
         public:
-            using base_type =
-                impl::sdl_element<SDL_GLContext>;
-
-            glcontext(window& w) noexcept : _glcontext{SDL_GL_CreateContext(w)},
-                                            base_type{&_glcontext}
+            glcontext(window& w) noexcept
             {
+                SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+                SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
                 SDL_GL_SetSwapInterval(0);
+                SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+                SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+                _glcontext = SDL_GL_CreateContext(w);
             }
+
+            auto context() const noexcept { return _glcontext; }
         };
     }
 }

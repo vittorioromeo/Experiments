@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <vrm/sdl/common/dependencies.hpp>
 #include <vrm/sdl/common/macros.hpp>
 #include <vrm/sdl/common/typedefs.hpp>
 #include <vrm/sdl/common/error.hpp>

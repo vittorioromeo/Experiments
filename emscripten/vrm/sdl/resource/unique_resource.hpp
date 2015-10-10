@@ -25,7 +25,7 @@ namespace vrm
                 {
                     if(!_must_delete) return;
 
-                    _deleter(_res.ptr());
+                    _deleter(_res);
                     _must_delete = false;
                 }
 
@@ -42,7 +42,7 @@ namespace vrm
                 unique_resource(Ts&&... xs)
                     : _res(FWD(xs)...), _must_delete{true}
                 {
-                    assert(_res.ptr() != nullptr);
+                    // assert(_res.ptr() != nullptr);
                 }
 
                 unique_resource(const unique_resource&) = delete;

@@ -1,18 +1,6 @@
 #include <stdio.h>
 #include <iostream>
 
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_ttf.h>
-#else
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_ttf.h>
-#endif
-
 #include <memory>
 #include <bitset>
 #include <algorithm>
@@ -23,12 +11,34 @@
 #include <type_traits>
 #include <vrm/sdl.hpp>
 
+const char* vShaderStr =
+    "attribute vec4 vPosition;    \n"
+    "void main()                  \n"
+    "{                            \n"
+    "   gl_Position = vec4(vPosition.xyz, 1.0);  \n"
+    "}                            \n";
+
+const char* fShaderStr =
+    "precision mediump float;\n"
+    "void main()                                  \n"
+    "{                                            \n"
+    "  gl_FragColor = vec4 ( 1.0, 1.0, 1.0, 1.0 );\n"
+    "}                                            \n";
+
+
 namespace sdl = vrm::sdl;
 
 int main(int argc, char** argv)
 {
-    auto c_handle(sdl::make_global_context(1000, 600));
+    // SDL_Init(SDL_INIT_VIDEO);
+
+    auto c_handle(sdl::make_global_context("test game", 1000, 600));
     auto& c(*c_handle);
+
+    auto v_shader = sdl::make_shader(GL_VERTEX_SHADER, &vShaderStr);
+    auto f_shader = sdl::make_shader(GL_FRAGMENT_SHADER, &fShaderStr);
+    auto program = sdl::make_program(*v_shader, *f_shader);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     auto toriel_image(c.make_image("files/toriel.png"));
     auto soul_image(c.make_image("files/soul.png"));
@@ -156,13 +166,34 @@ int main(int argc, char** argv)
 
         if(c.key(sdl::kkey::escape)) sdl::stop_global_context();
 
-        if(rand() % 100 < 20)
-        std::cout << "(" << c.fps() << ") " << entities.size() << "\n";
+        // if(rand() % 100 < 20)
+        //    std::cout << "(" << c.fps() << ") " << entities.size() << "\n";
     };
 
     c.draw_fn() = [&]
     {
-        for(auto& e : entities) e._draw_fn(e);
+        program.use();
+        GLfloat vVertices[] = {
+            0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
+
+        // Set the viewport
+        glViewport(0, 0, 1000, 600);
+
+        // Clear the color buffer
+        glClear(
+            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+
+        // Use the program object
+
+        // Load the vertex data
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+        glEnableVertexAttribArray(0);
+
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // for(auto& e : entities) e._draw_fn(e);
+
     };
 
     sdl::run_global_context();

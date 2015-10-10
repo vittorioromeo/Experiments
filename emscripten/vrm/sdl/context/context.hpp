@@ -15,6 +15,61 @@ namespace vrm
     {
         namespace impl
         {
+            struct window_deleter
+            {
+                void operator()(window& p) noexcept
+                {
+                    SDL_DestroyWindow(p.ptr());
+                }
+            };
+
+            struct texture_deleter
+            {
+                void operator()(texture& p) noexcept
+                {
+                    SDL_DestroyTexture(p.ptr());
+                }
+            };
+
+            struct renderer_deleter
+            {
+                void operator()(renderer& p) noexcept
+                {
+                    SDL_DestroyRenderer(p.ptr());
+                }
+            };
+
+            struct surface_deleter
+            {
+                void operator()(surface& p) noexcept
+                {
+                    SDL_FreeSurface(p.ptr());
+                }
+            };
+
+            struct glcontext_deleter
+            {
+                void operator()(glcontext& p) noexcept
+                {
+                    SDL_GL_DeleteContext(p.context());
+                }
+            };
+
+            struct ttffont_deleter
+            {
+                void operator()(ttffont& p) noexcept { TTF_CloseFont(p.ptr()); }
+            };
+
+            struct gl_shader_deleter
+            {
+                void operator()(GLint id) noexcept { glDeleteShader(id); }
+            };
+
+            struct gl_program_deleter
+            {
+                void operator()(GLint id) noexcept { glDeleteProgram(id); }
+            };
+
             using unique_window = unique_resource<window, window_deleter>;
 
             using unique_texture = unique_resource<texture, texture_deleter>;
@@ -27,6 +82,9 @@ namespace vrm
                 unique_resource<glcontext, glcontext_deleter>;
 
             using unique_ttffont = unique_resource<ttffont, ttffont_deleter>;
+
+            using unique_shader = unique_resource<GLint, gl_shader_deleter>;
+            using unique_program = unique_resource<GLint, gl_program_deleter>;
 
             template <typename T>
             struct unique_sdl_element;
@@ -114,7 +172,8 @@ namespace vrm
             auto make_unique_res(Ts&&... xs);
 
         public:
-            context(std::size_t width, std::size_t height);
+            context(const std::string& title, std::size_t width,
+                std::size_t height);
 
             context(const context&) = delete;
             context& operator=(const context&) = delete;

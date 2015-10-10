@@ -13,6 +13,15 @@ namespace vrm
             : base_type{SDL_CreateRenderer(
                   w, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE)}
         {
+            SDL_RendererInfo sri;
+            if(SDL_GetRendererInfo(*this, &sri) == 0)
+            {
+                printf("Renderer backend: %s\n", sri.name);
+            }
+            else
+            {
+                printf("Could not get renderer info\n");
+            }
         }
 
         void renderer::draw_color(int r, int g, int b, int a) noexcept

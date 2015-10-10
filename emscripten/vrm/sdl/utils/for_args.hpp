@@ -9,9 +9,11 @@ namespace vrm
 {
     namespace sdl
     {
-        namespace impl
+        template <typename TF, typename... Ts>
+        void for_args(TF&& fn, Ts&&... xs)
         {
-            
+            using swallow = int[];
+            return (void)swallow{(fn(FWD(xs)), 0)...};
         }
     }
 }

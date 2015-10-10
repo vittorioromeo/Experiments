@@ -12,3 +12,4 @@
 #include <vrm/sdl/elements.hpp>
 #include <vrm/sdl/context.hpp>
 #include <vrm/sdl/global.hpp>
+#include <vrm/sdl/gl.hpp>

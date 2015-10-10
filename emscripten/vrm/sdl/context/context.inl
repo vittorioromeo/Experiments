@@ -8,6 +8,9 @@
 #include <chrono>
 #include <vrm/sdl/math.hpp>
 #include <vrm/sdl/common.hpp>
+#include <vrm/sdl/resource.hpp>
+#include <vrm/sdl/elements.hpp>
+#include <vrm/sdl/context/context.hpp>
 
 namespace vrm
 {
@@ -29,10 +32,14 @@ namespace vrm
                 switch(_event.type)
                 {
                     case SDL_KEYDOWN:
-                        on_key_down()(static_cast<kkey>(_event.key.keysym.scancode));
+                        on_key_down()(
+                            static_cast<kkey>(_event.key.keysym.scancode));
                         break;
 
-                    case SDL_KEYUP: on_key_up()(static_cast<kkey>(_event.key.keysym.scancode)); break;
+                    case SDL_KEYUP:
+                        on_key_up()(
+                            static_cast<kkey>(_event.key.keysym.scancode));
+                        break;
 
                     case SDL_MOUSEBUTTONDOWN:
                         on_btn_down()(static_cast<mbtn>(_event.button.button));
@@ -46,6 +53,12 @@ namespace vrm
                         _input_state.mouse_x(_event.motion.x);
                         _input_state.mouse_y(_event.motion.y);
                         break;
+
+                    case SDL_QUIT: break;
+                    case SDL_WINDOWEVENT: break;
+                    case SDL_FINGERDOWN: break;
+                    case SDL_FINGERUP: break;
+                    case SDL_FINGERMOTION: break;
                 }
             }
         }
@@ -53,22 +66,27 @@ namespace vrm
         void context::run_update() { update_fn()(1.f); }
         void context::run_draw()
         {
-            _renderer->clear();
-            _renderer->clear_texture(*_texture, 0, 0, 0, 255);
+            //_renderer->clear();
+            //_renderer->clear_texture(*_texture, 0, 0, 0, 255);
 
-            _renderer->target(nullptr);
-            _renderer->draw(*_texture);
+            //_renderer->target(nullptr);
+            //_renderer->draw(*_texture);
 
             draw_fn()();
 
-            _renderer->present();
+            //_renderer->present();
+            SDL_GL_SwapWindow(*_window);
         }
 
-        context::context(std::size_t width, std::size_t height)
-            : _width{width}, _height{height}, _window{width, height},
+        context::context(
+            const std::string& title, std::size_t width, std::size_t height)
+            : _width{width}, _height{height}, _window{title, width, height},
               _glcontext{*_window}, _renderer{*_window},
               _texture{*_renderer, width, height, SDL_TEXTUREACCESS_STREAMING}
         {
+            // glewExperimental = GL_TRUE;
+            // glewInit();
+
             if(TTF_Init() != 0)
             {
                 impl::log_sdl_error("ttf_init");
@@ -158,7 +176,7 @@ namespace vrm
         auto context::fps() const noexcept
         {
             constexpr float seconds_ft_ratio{60.f};
-            //return seconds_ft_ratio / total_ms();
+            // return seconds_ft_ratio / total_ms();
             return static_cast<int>(((1.f / total_ms()) * 1000.f));
         }
 
