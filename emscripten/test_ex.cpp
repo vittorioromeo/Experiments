@@ -1,6 +1,8 @@
 #include <exception>
 #include <functional>
 
+#ifdef __EMSCRIPTEN__
+
 #include <emscripten.h>
 #include <SDL.h>
 #include <SDL_image.h>
@@ -8,6 +10,15 @@
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL_opengles2.h>
+
+#else
+
+#include <SDL2/SDL.h>
+
+#define GL_GLEXT_PROTOTYPES 1
+#include <SDL2/SDL_opengles2.h>
+
+#endif
 
 // Shader sources
 const GLchar* vertexSource =
@@ -29,7 +40,7 @@ void main_loop() { loop(); }
 
 int main(int argc, char** argv)
 {
-    SDL_Init(SDL_INIT_VIDEO);
+    // SDL_Init(SDL_INIT_VIDEO);
 
     auto wnd(
         SDL_CreateWindow("test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -102,7 +113,11 @@ int main(int argc, char** argv)
         SDL_GL_SwapWindow(wnd);
     };
 
+#ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, true);
+#else
+    while(true) main_loop();
+#endif
 
     return 0;
 }

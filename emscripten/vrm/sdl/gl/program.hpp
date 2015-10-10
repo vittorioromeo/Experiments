@@ -13,6 +13,29 @@ namespace vrm
 {
     namespace sdl
     {
+        class attribute
+        {
+        private:
+            GLuint _location;
+
+        public:
+            attribute(GLuint location) noexcept : _location{location} {}
+
+            void enable() { glEnableVertexAttribArray(_location); }
+
+            void disable() { glDisableVertexAttribArray(_location); }
+
+            void vertex_attrib_pointer(sz_t n_components, GLenum type,
+                bool normalized = true, sz_t stride = 0,
+                const GLvoid* first_element = nullptr)
+            {
+                assert(n_components > 0 && n_components < 5);
+
+                glVertexAttribPointer(_location, n_components, type, normalized,
+                    stride, first_element);
+            }
+        };
+
         class program
         {
         private:
@@ -45,9 +68,15 @@ namespace vrm
                     FWD(mShaders)...);
             }
 
-            inline void use() noexcept { glUseProgram(*id); }
+            void use() noexcept { glUseProgram(*id); }
 
-            inline auto attribute(const std::string& mName) const noexcept {}
+            auto get_attribute(const std::string& a_name) const noexcept
+            {
+                auto location(glGetAttribLocation(*id, a_name.c_str()));
+                assert(location != GL_INVALID_OPERATION);
+
+                return attribute{static_cast<GLuint>(location)};
+            }
         };
 
         template <typename... TShaders>

@@ -70,6 +70,7 @@ namespace vrm
                 void operator()(GLint id) noexcept { glDeleteProgram(id); }
             };
 
+            
             using unique_window = unique_resource<window, window_deleter>;
 
             using unique_texture = unique_resource<texture, texture_deleter>;

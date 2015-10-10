@@ -54,7 +54,7 @@ namespace vrm
                         _input_state.mouse_y(_event.motion.y);
                         break;
 
-                    case SDL_QUIT: break;
+                    case SDL_QUIT: std::terminate(); break;
                     case SDL_WINDOWEVENT: break;
                     case SDL_FINGERDOWN: break;
                     case SDL_FINGERUP: break;
@@ -71,6 +71,8 @@ namespace vrm
 
             //_renderer->target(nullptr);
             //_renderer->draw(*_texture);
+
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
             draw_fn()();
 
