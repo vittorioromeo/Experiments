@@ -158,7 +158,8 @@ namespace vrm
         auto context::fps() const noexcept
         {
             constexpr float seconds_ft_ratio{60.f};
-            return seconds_ft_ratio / total_ms();
+            //return seconds_ft_ratio / total_ms();
+            return static_cast<int>(((1.f / total_ms()) * 1000.f));
         }
 
         auto context::mouse_x() const noexcept

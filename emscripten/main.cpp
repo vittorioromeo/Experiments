@@ -123,7 +123,7 @@ int main(int argc, char** argv)
         {
             if((rand() % 100) > 30)
             {
-                for(int i = 0; i < 20; ++i)
+                for(int i = 0; i < 30; ++i)
                     if(entities.size() < max_entities)
                         entities.emplace_back(make_fireball(x._pos,
                             sdl::make_vec2(-2.f + (rand() % 500) / 100.f, 2.f),
@@ -155,6 +155,9 @@ int main(int argc, char** argv)
             std::end(entities));
 
         if(c.key(sdl::kkey::escape)) sdl::stop_global_context();
+
+        if(rand() % 100 < 20)
+        std::cout << "(" << c.fps() << ") " << entities.size() << "\n";
     };
 
     c.draw_fn() = [&]
