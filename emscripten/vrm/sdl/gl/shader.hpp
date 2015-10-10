@@ -55,6 +55,14 @@ namespace vrm
                     glBindVertexArrayOES(_id);
                 }
                 void unbind() { glBindVertexArrayOES(0); }
+
+                template<typename TF>
+                void with(TF&& f)
+                {
+                    bind();
+                    f();
+                    // unbind();
+                }
             };
 
             struct gl_vao_deleter
@@ -98,6 +106,14 @@ namespace vrm
                 void buffer_data(GLenum target, GLenum usage, T(&arr)[TN])
                 {
                     buffer_data(target, usage, arr, TN);
+                }
+
+                template<typename TF>
+                void with(GLenum target, TF&& f)
+                {
+                    bind(target);
+                    f();
+                    // unbind();
                 }
             };
 
