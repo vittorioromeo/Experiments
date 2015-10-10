@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <vrm/sdl/common/dependencies.hpp>
 #include <vrm/sdl/common/typedefs.hpp>
 
 namespace vrm

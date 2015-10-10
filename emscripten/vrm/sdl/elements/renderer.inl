@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <vrm/sdl/elements/renderer.hpp>
+
 namespace vrm
 {
     namespace sdl

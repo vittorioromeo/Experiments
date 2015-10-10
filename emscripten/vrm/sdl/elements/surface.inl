@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <vrm/sdl/elements/surface.hpp>
+
 namespace vrm
 {
     namespace sdl

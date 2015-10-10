@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <utility>
+
 namespace vrm
 {
     namespace sdl
@@ -18,7 +20,6 @@ namespace vrm
                 T _res;
                 TDeleter _deleter;
                 bool _must_delete;
-
 
             public:
                 void reset() noexcept
@@ -42,7 +43,6 @@ namespace vrm
                 unique_resource(Ts&&... xs)
                     : _res(FWD(xs)...), _must_delete{true}
                 {
-                    // assert(_res.ptr() != nullptr);
                 }
 
                 unique_resource(const unique_resource&) = delete;
@@ -76,28 +76,6 @@ namespace vrm
                 auto& operator*() noexcept { return _res; }
                 const auto& operator*() const noexcept { return _res; }
             };
-            /*
-                        template <typename T, typename TDeleter>
-                        class shared_resource
-                        {
-                        private:
-                            std::shared_ptr<T> _ptr{nullptr, TDeleter{}};
-
-                        public:
-                            auto ptr() noexcept
-                            {
-                                assert(_ptr != nullptr);
-                                return _ptr.get();
-                            }
-                            auto ptr() const noexcept
-                            {
-                                assert(_ptr != nullptr);
-                                return _ptr.get();
-                            }
-
-                            auto& get() noexcept { return *ptr(); }
-                            const auto& get() const noexcept { return *ptr(); }
-                        };*/
         }
     }
 }

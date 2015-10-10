@@ -8,6 +8,9 @@
 #include <chrono>
 #include <vrm/sdl/math.hpp>
 #include <vrm/sdl/common.hpp>
+#include <vrm/sdl/utils.hpp>
+#include <vrm/sdl/resource.hpp>
+#include <vrm/sdl/elements.hpp>
 
 namespace vrm
 {

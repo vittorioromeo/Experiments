@@ -5,6 +5,10 @@
 
 #pragma once
 
+#include <vrm/sdl/math.hpp>
+#include <vrm/sdl/common.hpp>
+#include <vrm/sdl/elements/sdl_element.hpp>
+
 namespace vrm
 {
     namespace sdl

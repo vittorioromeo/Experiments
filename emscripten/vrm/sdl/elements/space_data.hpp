@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <vrm/sdl/math.hpp>
+
 namespace vrm
 {
     namespace sdl

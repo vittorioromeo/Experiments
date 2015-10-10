@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <functional>
 #include <chrono>
+#include <vrm/sdl/common/dependencies.hpp>
 
 namespace vrm
 {

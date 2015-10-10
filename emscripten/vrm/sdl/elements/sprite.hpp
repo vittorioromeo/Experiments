@@ -5,6 +5,12 @@
 
 #pragma once
 
+#include <vrm/sdl/math.hpp>
+#include <vrm/sdl/common.hpp>
+#include <vrm/sdl/elements/sdl_element.hpp>
+#include <vrm/sdl/elements/space_data.hpp>
+#include <vrm/sdl/elements/texture.hpp>
+
 namespace vrm
 {
     namespace sdl

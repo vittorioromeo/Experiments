@@ -204,7 +204,7 @@ namespace vrm
                 auto vbo = sdl::make_vbo(1);
                 vbo->with(GL_ARRAY_BUFFER, [&, this]
                     {
-                        vbo->bind(GL_ARRAY_BUFFER);
+                        // vbo->bind(GL_ARRAY_BUFFER);
                         vbo->buffer_data(GL_ARRAY_BUFFER, GL_STATIC_DRAW,
                             _vertices.data(), _vertices.size());
 
