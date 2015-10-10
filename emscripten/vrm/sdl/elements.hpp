@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <vrm/sdl/resource.hpp>
+
 #include <vrm/sdl/elements/sdl_element.hpp>
 
 #include <vrm/sdl/elements/surface.hpp>

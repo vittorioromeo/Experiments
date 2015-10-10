@@ -5,6 +5,8 @@
 
 #pragma once
 
-#include <vrm/sdl/resource/unique_sdl_resources.hpp>
+#include <vrm/sdl/resource.hpp>
+#include <vrm/sdl/elements.hpp>
+
 #include <vrm/sdl/context/context.hpp>
 #include <vrm/sdl/context/context.inl>

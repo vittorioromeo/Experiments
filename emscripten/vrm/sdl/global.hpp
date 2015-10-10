@@ -5,4 +5,8 @@
 
 #pragma once
 
+#include <vrm/sdl/resource.hpp>
+#include <vrm/sdl/elements.hpp>
+#include <vrm/sdl/context.hpp>
+
 #include <vrm/sdl/global/global_context.hpp>
