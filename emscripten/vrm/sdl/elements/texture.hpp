@@ -40,6 +40,11 @@ namespace vrm
             }
 
             const auto& size() const noexcept { return _size; }
+
+            void bind() noexcept
+            {
+                SDL_GL_BindTexture(*this, nullptr, nullptr);
+            }
         };
     }
 }

@@ -40,6 +40,33 @@ namespace vrm
                 VRM_SDL_GLCHECK(glVertexAttribPointer(_location, n_components,
                     type, normalized, stride, first_element));
             }
+
+            auto location() const noexcept { return _location; }
+        };
+
+        class uniform
+        {
+        private:
+            GLuint _location;
+
+        public:
+            uniform(GLuint location) noexcept : _location{location} {}
+
+            void matrix4fv(sz_t count, bool transpose, const GLfloat* value)
+            {
+                VRM_SDL_GLCHECK(
+                    glUniformMatrix4fv(_location, count, transpose, value));
+            }
+
+            void matrix4fv(const glm::mat4& m) noexcept
+            {
+                matrix4fv(1, false, glm::value_ptr(m));
+            }
+
+            void integer(int x) noexcept { VRM_SDL_GLCHECK(glUniform1i(_location, x)); }
+
+
+            auto location() const noexcept { return _location; }
         };
     }
 }

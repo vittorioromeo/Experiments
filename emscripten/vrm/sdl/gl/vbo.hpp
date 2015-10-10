@@ -41,7 +41,7 @@ namespace vrm
                 template <typename T, sz_t TN>
                 void buffer_data(GLenum usage, T(&arr)[TN])
                 {
-                    buffer_data(TTarget, usage, arr, TN);
+                    buffer_data(usage, &arr[0], TN);
                 }
 
                 template <typename TF>

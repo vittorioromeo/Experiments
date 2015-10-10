@@ -20,6 +20,8 @@ namespace vrm
             impl::unique_program id;
 
         public:
+            program() = default;
+
             program(impl::unique_program&& mResource) : id{std::move(mResource)}
             {
             }
@@ -57,7 +59,19 @@ namespace vrm
 
                 assert(location != GL_INVALID_OPERATION);
 
-                return attribute{static_cast<GLuint>(location)};
+                return attribute{location};
+            }
+
+            auto get_uniform(const std::string& a_name) const noexcept
+            {
+                GLuint location;
+
+                VRM_SDL_GLCHECK(
+                    location = glGetUniformLocation(*id, a_name.c_str()););
+
+                assert(location != GL_INVALID_OPERATION);
+
+                return uniform{location};
             }
         };
 
