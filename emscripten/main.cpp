@@ -188,6 +188,7 @@ namespace vrm
                 t.bind();
 
 // texture works on EMSCRIPTEN, not on DESKTOP
+                //TODO:  write own opengl texture wrapper!!!!!
 
                 _vao->with([this]
                     {
