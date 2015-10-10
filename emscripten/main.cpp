@@ -30,8 +30,8 @@ const char* fShaderStr = R"(
 
     void main()
     {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-        // gl_FragColor = vertex_color;
+        // gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        gl_FragColor = vertex_color;
     })";
 
 namespace sdl = vrm::sdl;
@@ -73,6 +73,32 @@ foreach(vertexarray draw call)
     unbind shader;
 }
 */
+
+/*
+           //initialization
+           glGenVertexArrays
+           glBindVertexArray
+
+           glGenBuffers
+           glBindBuffer
+           glBufferData
+
+           glVertexAttribPointer
+           glEnableVertexAttribArray
+
+           glBindVertexArray(0)
+
+           glDeleteBuffers //you can already delete it after the VAO is
+           unbound, since the
+                           //VAO still references it, keeping it alive (see
+           comments below).
+
+           ...
+
+           //rendering
+           glBindVertexArray
+           glDrawWhatever
+           */
 
 namespace vrm
 {
@@ -133,13 +159,12 @@ namespace vrm
 
             vertex2(const vec2f& position) noexcept : _position{position} {}
 
-            
+
             vertex2(const vec2f& position, const color& color) noexcept
                 : _position{position},
                   _color{color}
             {
             }
-            
         };
 
         template <primitive TP>
@@ -148,19 +173,49 @@ namespace vrm
         private:
             std::vector<vertex2> _vertices;
             sdl::impl::unique_vao _vao;
-            sdl::impl::unique_vbo _vbo;
 
             using my_primitive_traits = impl::primitive_traits<TP>;
+
             static constexpr auto primitive_gl_value =
                 my_primitive_traits::gl_value;
+
             static constexpr auto vertex_dimensions = 2;
 
 
         public:
-            primitive_vector() noexcept
+            primitive_vector() noexcept { _vao = sdl::make_vao(1); }
+
+            void init(program& p)
             {
-                _vao = sdl::make_vao(1);
-                _vbo = sdl::make_vbo(1);
+                auto data(_vertices.data());
+
+                _vao->with([this, &p, data]
+                    {
+                        auto vbo = sdl::make_vbo(1);
+                        vbo->bind(GL_ARRAY_BUFFER);
+                        vbo->buffer_data(GL_ARRAY_BUFFER, GL_STATIC_DRAW, data,
+                            _vertices.size());
+
+                        // Enable pos attribute
+                        auto pos(p.get_attribute("position"));
+                        pos.enable();
+                        pos.vertex_attrib_pointer(vertex_dimensions, GL_FLOAT,
+                            true, sizeof(vertex2),
+                            (void*)vertex2::position_offset);
+                        // pos.vertex_attrib_pointer(vertex_dimensions,
+                        // GL_FLOAT, true,
+                        // sizeof(vertex2), data + vertex2::position_offset);
+
+                        // Enable color attribute
+                        auto col(p.get_attribute("color"));
+                        col.enable();
+                        col.vertex_attrib_pointer(4, GL_FLOAT, true,
+                            sizeof(vertex2), (void*)vertex2::color_offset);
+                    });
+
+
+
+                // _vao->unbind();
             }
 
             template <typename... Ts>
@@ -180,68 +235,17 @@ namespace vrm
                     FWD(xs)...);
             }
 
+
+
             void draw(program& p)
             {
-                auto data(_vertices.data());
-
-                // Bind vao
                 _vao->bind();
-
-                // Bind vbo and buffer vertex data
-                _vbo->bind(GL_ARRAY_BUFFER);
-                _vbo->buffer_data(
-                    GL_ARRAY_BUFFER, GL_STATIC_DRAW, data, _vertices.size());
-
-                // Enable pos attribute
-                auto pos(p.get_attribute("position"));
-                pos.enable();
-                pos.vertex_attrib_pointer(vertex_dimensions, GL_FLOAT, true, sizeof(vertex2), (void*)vertex2::position_offset);
-                // pos.vertex_attrib_pointer(vertex_dimensions, GL_FLOAT, true, sizeof(vertex2), data + vertex2::position_offset);
-
-                // Enable color attribute
-                auto col(p.get_attribute("color"));
-                col.enable();
-                col.vertex_attrib_pointer(vertex_dimensions, GL_FLOAT, true, sizeof(vertex2), (void*)vertex2::color_offset);
-
-                // glDrawArrays(primitive_gl_value, 0, _vertices.size());
-                glDrawArrays(GL_TRIANGLES, 0, _vertices.size());
+                glDrawArrays(primitive_gl_value, 0, _vertices.size());
+                // _vao->unbind();
             }
         };
     }
 }
-/*
-struct test_vtx2D_group
-{
-    std::vector<float> vertices;
-    sdl::impl::unique_vao _vao;
-    sdl::impl::unique_vbo _vbo;
-
-    test_vtx2D_group()
-    {
-        _vao = sdl::make_vao(1);
-        _vbo = sdl::make_vbo(1);
-    }
-
-    void add(const sdl::vec2f v)
-    {
-        vertices.emplace_back(v.x());
-        vertices.emplace_back(v.y());
-    }
-
-    // TODO: specialize buffer_data for std::vector
-    template <typename TF>
-    void draw(TF&& f)
-    {
-        _vao->bind();
-        _vbo->bind(GL_ARRAY_BUFFER);
-        _vbo->buffer_data(
-            GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertices.data(), vertices.size());
-
-        f();
-
-        glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 2);
-    }
-};*/
 
 int main(int argc, char** argv)
 {
@@ -258,6 +262,12 @@ int main(int argc, char** argv)
         return dist_t{min, max}(rnd_gen);
     };
 
+    auto rnd_color = [&]
+    {
+        return sdl::color{
+            rndf(0.f, 1.f), rndf(0.f, 1.f), rndf(0.f, 1.f), rndf(0.f, 1.f)};
+    };
+
     auto add_rnd_triangle = [&](auto& v)
     {
         auto c_x = rndf(-1.f, 1.f);
@@ -268,7 +278,11 @@ int main(int argc, char** argv)
         auto p1 = sdl::make_vec2(c_x + sz, c_y - sz);
         auto p2 = sdl::make_vec2(c_x + sz, c_y);
 
-        v.add_more(p0, p1, p2);
+        auto v0 = sdl::vertex2{p0, rnd_color()};
+        auto v1 = sdl::vertex2{p1, rnd_color()};
+        auto v2 = sdl::vertex2{p2, rnd_color()};
+
+        v.add_more(v0, v1, v2);
     };
 
     auto c_handle(sdl::make_global_context("test game", 1000, 600));
@@ -320,7 +334,12 @@ int main(int argc, char** argv)
 
     c.update_fn() = [&](auto)
     {
-        if(c.key(sdl::kkey::space)) add_rnd_triangle(triangles);
+        if(c.key(sdl::kkey::space))
+        {
+
+            add_rnd_triangle(triangles);
+            triangles.init(program);
+        }
     };
 
     c.draw_fn() = [&]
