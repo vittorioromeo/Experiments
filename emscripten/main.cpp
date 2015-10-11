@@ -120,43 +120,21 @@ namespace vrm
 
             texture_cache<3> _texture_cache;
 
-            std::vector<float> vertices_old{
-                0.0f, 1.0f, // 0.xy
-                0.0f, 1.0f, // 0.zw
-
-                1.0f, 0.0f, // 1.xy
-                1.0f, 0.0f, // 1.zw
-
-                0.0f, 0.0f, // 2.xy
-                0.0f, 0.0f, // 2.zw
-
-                0.0f, 1.0f, // 3.xy
-                0.0f, 1.0f, // 3.zw
-
-                1.0f, 1.0f, // 4.xy
-                1.0f, 1.0f, // 4.zw
-
-                1.0f, 0.0f, // 5.xy
-                1.0f, 0.0f  // 5.zw
-            };
-
-            std::vector<float> vertices{
+            float vertices[16]{
                 0.f, 1.f, // sw
                 0.f, 1.f, // sw
 
                 0.f, 0.f, // ne
                 0.f, 0.f, // ne
+
                 1.f, 0.f, // nw
                 1.f, 0.f, // nw
 
-
                 1.f, 1.f, // se
                 1.f, 1.f, // se
-
-
             };
 
-            std::vector<GLubyte> indices{
+            GLubyte indices[6]{
                 0, 1, 2, // first triangle
                 0, 2, 3  // second triangle
             };
@@ -245,21 +223,10 @@ namespace vrm
                 uf_view.matrix4fv(view);
                 uf_projection.matrix4fv(projection);
 
-                auto unit_idx(_texture_cache.use(t));
-                uf_tex.integer(unit_idx);
+                // Gets the texture unit index from the cache and uses it.
+                uf_tex.integer(_texture_cache.use(t));
 
-                // If necessary, activate texture on `GL_TEXTURE0` unit, then
-                // bind it.
-                /*if(_last_bound_texture != t.location())
-                {
-                    t.activate_and_bind(GL_TEXTURE0);
-                    _last_bound_texture = t.location();
-
-                    // Set texture unit uniform ID.
-                    uf_tex.integer(0);
-                }*/
-
-                // Assumes the VBOs and VAO are bound.
+                // Assumes the VBOs, VAO, and texture unit are bound.
                 glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
             }
         };
