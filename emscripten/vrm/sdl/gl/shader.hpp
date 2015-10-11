@@ -12,6 +12,25 @@ namespace vrm
 {
     namespace sdl
     {
+        enum class shader_t
+        {
+            vertex,
+            fragment
+        };
+
+        namespace impl
+        {
+            template <shader_t TV>
+            constexpr GLenum shader_t_value{0};
+
+            template <>
+            constexpr GLenum shader_t_value<shader_t::vertex>{GL_VERTEX_SHADER};
+
+            template <>
+            constexpr GLenum shader_t_value<shader_t::fragment>{
+                GL_FRAGMENT_SHADER};
+        }
+
         auto make_shader(GLenum type, const GLchar** src) noexcept
         {
             constexpr std::size_t shaderLogBufferSize{512};
@@ -28,7 +47,8 @@ namespace vrm
             VRM_SDL_GLCHECK(glGetShaderiv(id, GL_COMPILE_STATUS, &status));
 
 
-            VRM_SDL_GLCHECK(glGetShaderInfoLog(id, shaderLogBufferSize, nullptr, logBuffer));
+            VRM_SDL_GLCHECK(glGetShaderInfoLog(
+                id, shaderLogBufferSize, nullptr, logBuffer));
             logString = logBuffer;
 
             if(!logString.empty())
@@ -36,5 +56,7 @@ namespace vrm
 
             return impl::unique_shader{id};
         }
+
+        auto make_shader_from_file(
     }
 }
