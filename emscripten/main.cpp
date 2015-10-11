@@ -109,18 +109,18 @@ namespace vrm
             sdl::impl::unique_vbo<buffer_target::array> _vbo0;
             sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
 
-            glm::mat4 model;
-            glm::mat4 view;
-            glm::mat4 projection;
+            glm::mat4 _model;
+            glm::mat4 _view;
+            glm::mat4 _projection;
 
-            sdl::uniform uf_model;
-            sdl::uniform uf_view;
-            sdl::uniform uf_projection;
-            sdl::uniform uf_tex;
+            sdl::uniform _uf_model;
+            sdl::uniform _uf_view;
+            sdl::uniform _uf_projection;
+            sdl::uniform _uf_tex;
 
             texture_cache<3> _texture_cache;
 
-            float vertices[16]{
+            float _vertices[16]{
                 0.f, 1.f, // sw
                 0.f, 1.f, // sw
 
@@ -134,14 +134,14 @@ namespace vrm
                 1.f, 1.f, // se
             };
 
-            GLubyte indices[6]{
+            GLubyte _indices[6]{
                 0, 1, 2, // first triangle
                 0, 2, 3  // second triangle
             };
 
             sprite_renderer()
             {
-                projection = make_2d_projection(1000.f, 600.f);
+                _projection = make_2d_projection(1000.f, 600.f);
                 init_render_data();
             }
 
@@ -155,7 +155,8 @@ namespace vrm
                 _vbo0 = sdl::make_vbo<buffer_target::array>(1);
                 _vbo0->with([&, this]
                     {
-                        _vbo0->buffer_data<buffer_usage::static_draw>(vertices);
+                        _vbo0->buffer_data<buffer_usage::static_draw>(
+                            _vertices);
 
                         _vao->with([&, this]
                             {
@@ -168,14 +169,14 @@ namespace vrm
                 _vbo1 = sdl::make_vbo<buffer_target::element_array>(1);
                 _vbo1->with([&, this]
                     {
-                        _vbo1->buffer_data<buffer_usage::static_draw>(indices);
+                        _vbo1->buffer_data<buffer_usage::static_draw>(_indices);
                     });
 
                 // Set model/view/projection uniform matrices.
-                uf_model = _program.get_uniform("model");
-                uf_view = _program.get_uniform("view");
-                uf_projection = _program.get_uniform("projection");
-                uf_tex = _program.get_uniform("uf_tex");
+                _uf_model = _program.get_uniform("model");
+                _uf_view = _program.get_uniform("view");
+                _uf_projection = _program.get_uniform("projection");
+                _uf_tex = _program.get_uniform("uf_tex");
             }
 
             void use()
@@ -192,7 +193,7 @@ namespace vrm
                 float radians) noexcept
             {
                 // Reset `model` to identity matrix.
-                model = glm::mat4{};
+                _model = glm::mat4{};
 
                 // Tranformation order:
                 // 1) Scale.
@@ -202,29 +203,29 @@ namespace vrm
                 // They will occur in the opposite order below.
 
                 // Translate to `position`.
-                model = glm::translate(model, glm::vec3(position, 0.0f));
+                _model = glm::translate(_model, glm::vec3(position, 0.0f));
 
                 // Rotate around origin.
-                model =
-                    glm::rotate(model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
+                _model =
+                    glm::rotate(_model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
 
                 // Set origin to the center of the quad.
-                model = glm::translate(model, glm::vec3(-origin, 0.0f));
+                _model = glm::translate(_model, glm::vec3(-origin, 0.0f));
 
                 // Set origin back to `(0, 0)`.
-                model = glm::translate(
-                    model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
+                _model = glm::translate(
+                    _model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
 
                 // Scale to `size`.
-                model = glm::scale(model, glm::vec3(size, 1.0f));
+                _model = glm::scale(_model, glm::vec3(size, 1.0f));
 
                 // Set model/view/projection uniform matrices.
-                uf_model.matrix4fv(model);
-                uf_view.matrix4fv(view);
-                uf_projection.matrix4fv(projection);
+                _uf_model.matrix4fv(_model);
+                _uf_view.matrix4fv(_view);
+                _uf_projection.matrix4fv(_projection);
 
                 // Gets the texture unit index from the cache and uses it.
-                uf_tex.integer(_texture_cache.use(t));
+                _uf_tex.integer(_texture_cache.use(t));
 
                 // Assumes the VBOs, VAO, and texture unit are bound.
                 glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
@@ -234,6 +235,188 @@ namespace vrm
 }
 
 int main(int argc, char** argv)
+{
+
+    auto c_handle(sdl::make_global_context("test game", 1000, 600));
+    auto& c(*c_handle);
+
+    auto make_texture_from_image([&](const auto& path)
+        {
+            auto s(c.make_surface(path));
+            return sdl::make_gltexture2d(*s);
+        });
+
+
+    sdl::sprite_renderer sr;
+
+    auto toriel_texture(make_texture_from_image("files/toriel.png"));
+    auto soul_texture(make_texture_from_image("files/soul.png"));
+    auto fireball_texture(make_texture_from_image("files/fireball.png"));
+
+    struct entity
+    {
+        glm::vec2 _pos, _origin, _size;
+        float _radians;
+        sdl::impl::gltexture2d _texture;
+
+        float _hitbox_radius;
+        bool alive{true};
+        std::function<void(entity&, sdl::ft)> _update_fn;
+        std::function<void(entity&)> _draw_fn;
+    };
+
+    constexpr sdl::sz_t max_entities{10000};
+    std::vector<entity> entities;
+    entities.reserve(max_entities);
+
+    auto make_soul = [&](auto pos)
+    {
+        entity e;
+        e._pos = pos;
+        e._origin = glm::vec2{0, 0};
+        e._texture = *soul_texture;
+        e._size = glm::vec2{soul_texture->size()};
+
+        e._hitbox_radius = 3.f;
+        // e._sprite = c.make_sprite(*soul_texture);
+        // e._sprite.set_origin_to_center();
+
+        e._update_fn = [&](auto& x, auto)
+        {
+            constexpr float speed{5.f};
+            sdl::vec2f input;
+
+            if(c.key(sdl::kkey::left))
+                input.x = -1;
+            else if(c.key(sdl::kkey::right))
+                input.x = 1;
+
+            if(c.key(sdl::kkey::up))
+                input.y = -1;
+            else if(c.key(sdl::kkey::down))
+                input.y = 1;
+
+            x._pos += input * speed;
+        };
+
+        e._draw_fn = [&](auto& x)
+        {
+            sr.draw_sprite(x._texture, x._pos, x._origin, x._size, x._radians);
+        };
+
+        return e;
+    };
+
+    auto make_fireball = [&](auto pos, auto vel, auto speed)
+    {
+        entity e;
+        e._pos = pos;
+        e._origin = glm::vec2{0, 0};
+        e._texture = *fireball_texture;
+        e._size = glm::vec2{fireball_texture->size()};
+        e._hitbox_radius = 3.f;
+
+
+        e._update_fn = [&, vel, speed, life = 100.f ](auto& x, auto) mutable
+        {
+            x._pos += vel * speed;
+
+            if(life-- <= 0.f) x.alive = false;
+        };
+
+        e._draw_fn = [&](auto& x)
+        {
+            sr.draw_sprite(x._texture, x._pos, x._origin, x._size, x._radians);
+        };
+
+        return e;
+    };
+
+    auto make_toriel = [&](auto pos)
+    {
+        entity e;
+        e._pos = pos;
+        e._origin = glm::vec2{0, 0};
+        e._texture = *toriel_texture;
+        e._size = glm::vec2{toriel_texture->size()};
+        e._hitbox_radius = 30.f;
+
+        e._update_fn = [&](auto& x, auto)
+        {
+            if((rand() % 100) > 30)
+            {
+                for(int i = 0; i < 30; ++i)
+                    if(entities.size() < max_entities)
+                        entities.emplace_back(make_fireball(x._pos,
+                            sdl::make_vec2(-2.f + (rand() % 500) / 100.f, 2.f),
+                            1.f + (rand() % 100) / 80.f));
+            }
+        };
+
+        e._draw_fn = [&](auto& x)
+        {
+            sr.draw_sprite(x._texture, x._pos, x._origin, x._size, x._radians);
+        };
+
+        return e;
+    };
+
+    entities.emplace_back(make_toriel(sdl::make_vec2(500.f, 100.f)));
+    entities.emplace_back(make_soul(sdl::make_vec2(500.f, 500.f)));
+
+    c.update_fn() = [&](auto ft)
+    {
+
+        for(auto& e : entities) e._update_fn(e, ft);
+        entities.erase(std::remove_if(std::begin(entities), std::end(entities),
+                           [](auto& e)
+                           {
+                               return !e.alive;
+                           }),
+            std::end(entities));
+
+
+        if(c.key(sdl::kkey::escape)) sdl::stop_global_context();
+
+        // if(rand() % 100 < 20)
+        //    std::cout << "(" << c.fps() << ") " << entities.size() << "\n";
+    };
+
+    c.draw_fn() = [&]
+    {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        sr.use();
+        /* program.use();
+         GLfloat vVertices[] = {
+             0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
+
+         // Set the viewport
+         glViewport(0, 0, 1000, 600);
+
+         // Clear the color buffer
+         glClear(
+             GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+
+         // Use the program object
+
+         // Load the vertex data
+         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+         glEnableVertexAttribArray(0);
+
+         glDrawArrays(GL_TRIANGLES, 0, 3);*/
+
+        for(auto& e : entities) e._draw_fn(e);
+
+    };
+
+    sdl::run_global_context();
+
+    return 0;
+}
+
+int main_stress(int argc, char** argv)
 {
     auto c_handle(sdl::make_global_context("test game", 1000, 600));
     auto& c(*c_handle);
@@ -272,9 +455,9 @@ int main(int argc, char** argv)
 
         ++timer;
 
-        sr.view = glm::translate(sr.view, glm::vec3(500.f, 300.f, 0.f));
-        sr.view = glm::scale(sr.view, glm::vec3(0.995f, 0.995f, 1.f));
-        sr.view = glm::translate(sr.view, glm::vec3(-500.f, -300.f, 0.f));
+        sr._view = glm::translate(sr._view, glm::vec3(500.f, 300.f, 0.f));
+        sr._view = glm::scale(sr._view, glm::vec3(0.995f, 0.995f, 1.f));
+        sr._view = glm::translate(sr._view, glm::vec3(-500.f, -300.f, 0.f));
 
         for(auto ix = 0; ix < 100; ++ix)
             for(auto iy = 0; iy < 70; ++iy)
