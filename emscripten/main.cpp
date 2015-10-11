@@ -36,10 +36,78 @@ namespace vrm
             }
         }
 
+        namespace impl
+        {
+            auto get_texture_unit_idx(GLenum texture_unit) noexcept
+            {
+                return static_cast<sz_t>(texture_unit) -
+                       static_cast<sz_t>(GL_TEXTURE0);
+            }
+
+            auto get_texture_unit(sz_t idx) noexcept
+            {
+                return static_cast<GLenum>(
+                    static_cast<sz_t>(GL_TEXTURE0) + idx);
+            }
+        }
+
+        template <sz_t TN>
+        struct texture_cache
+        {
+        private:
+            static constexpr sz_t _null_bind{TN};
+            GLuint _last_binds[TN];
+
+            auto get_unit_idx(const impl::gltexture2d& t) const noexcept
+            {
+                for(sz_t i(0); i < TN; ++i)
+                    if(_last_binds[i] == t.location()) return i;
+
+                return _null_bind;
+            }
+
+            auto get_free_unit_idx() const noexcept
+            {
+                for(sz_t i(0); i < TN; ++i)
+                    if(_last_binds[i] == 0) return i;
+
+                return _null_bind;
+            }
+
+        public:
+            texture_cache() noexcept
+            {
+                for(sz_t i(0); i < TN; ++i)
+                {
+                    // Set cache to "unbound".
+                    _last_binds[i] = 0;
+                }
+            }
+
+            auto use(impl::gltexture2d& t) noexcept
+            {
+                auto unit_idx(get_unit_idx(t));
+
+                // If the texture is already bound, return the texture unit
+                // index.
+                if(unit_idx != _null_bind) return unit_idx;
+
+                // Otherwise, find a free texture unit, bind the texture, cache
+                // its location and return the texture unit index.
+                auto free_unit_idx(get_free_unit_idx());
+                t.activate_and_bind(impl::get_texture_unit(free_unit_idx));
+                _last_binds[free_unit_idx] = t.location();
+                return free_unit_idx;
+            }
+        };
+
         struct sprite_renderer
         {
             program _program{impl::make_sprite_renderer_program()};
             sdl::impl::unique_vao _vao;
+
+            sdl::impl::unique_vbo<buffer_target::array> _vbo0;
+            sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
 
             glm::mat4 model;
             glm::mat4 view;
@@ -49,6 +117,8 @@ namespace vrm
             sdl::uniform uf_view;
             sdl::uniform uf_projection;
             sdl::uniform uf_tex;
+
+            texture_cache<3> _texture_cache;
 
             std::vector<float> vertices_old{
                 0.0f, 1.0f, // 0.xy
@@ -71,17 +141,19 @@ namespace vrm
             };
 
             std::vector<float> vertices{
-                -1.f, -1.f, // sw
-                -1.f, -1.f, // sw
+                0.f, 1.f, // sw
+                0.f, 1.f, // sw
 
-                -1.f, 1.f, // nw
-                -1.f, 1.f, // nw
+                0.f, 0.f, // ne
+                0.f, 0.f, // ne
+                1.f, 0.f, // nw
+                1.f, 0.f, // nw
 
-                1.f, -1.f, // ne
-                1.f, -1.f, // ne
 
-                1.f, -1.f, // se
-                1.f, -1.f, // se
+                1.f, 1.f, // se
+                1.f, 1.f, // se
+
+
             };
 
             std::vector<GLubyte> indices{
@@ -102,10 +174,10 @@ namespace vrm
 
                 _vao = make_vao(1);
 
-                auto vbo = sdl::make_vbo<buffer_target::array>(1);
-                vbo->with([&, this]
+                _vbo0 = sdl::make_vbo<buffer_target::array>(1);
+                _vbo0->with([&, this]
                     {
-                        vbo->buffer_data<buffer_usage::static_draw>(vertices);
+                        _vbo0->buffer_data<buffer_usage::static_draw>(vertices);
 
                         _vao->with([&, this]
                             {
@@ -115,10 +187,10 @@ namespace vrm
                             });
                     });
 
-                auto vbo2 = sdl::make_vbo<buffer_target::element_array>(1);
-                vbo2->with([&, this]
+                _vbo1 = sdl::make_vbo<buffer_target::element_array>(1);
+                _vbo1->with([&, this]
                     {
-                        vbo2->buffer_data<buffer_usage::static_draw>(indices);
+                        _vbo1->buffer_data<buffer_usage::static_draw>(indices);
                     });
 
                 // Set model/view/projection uniform matrices.
@@ -128,7 +200,14 @@ namespace vrm
                 uf_tex = _program.get_uniform("uf_tex");
             }
 
-            void use() { _program.use(); }
+            void use()
+            {
+                _program.use();
+
+                _vao->bind();
+                _vbo0->bind();
+                _vbo1->bind();
+            }
 
             void draw_sprite(impl::gltexture2d& t, const glm::vec2& position,
                 const glm::vec2& origin, const glm::vec2& size,
@@ -166,23 +245,25 @@ namespace vrm
                 uf_view.matrix4fv(view);
                 uf_projection.matrix4fv(projection);
 
-                // Activate texture on `GL_TEXTURE0` unit, then bind it.
-                t.with(GL_TEXTURE0, [&, this]
-                    {
-                        // Set texture unit uniform ID.
-                        uf_tex.integer(0);
+                auto unit_idx(_texture_cache.use(t));
+                uf_tex.integer(unit_idx);
 
-                        // Bind VAO, call `glDrawArrays`, unbind VAO.
-                        // _vao->with_draw_arrays<primitive::triangles>(0, 6);
-                        _vao->bind();
-                        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
-                        _vao->unbind();
+                // If necessary, activate texture on `GL_TEXTURE0` unit, then
+                // bind it.
+                /*if(_last_bound_texture != t.location())
+                {
+                    t.activate_and_bind(GL_TEXTURE0);
+                    _last_bound_texture = t.location();
 
-                        // Unbind texture.
-                    });
+                    // Set texture unit uniform ID.
+                    uf_tex.integer(0);
+                }*/
+
+                // Assumes the VBOs and VAO are bound.
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
             }
         };
-    }
+    };
 }
 
 int main(int argc, char** argv)
