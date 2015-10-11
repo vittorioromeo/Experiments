@@ -83,6 +83,16 @@ namespace vrm
                 VRM_SDL_GLCHECK(glUniform1i(_location, x));
             }
 
+            void floating(float x) noexcept
+            {
+                VRM_SDL_GLCHECK(glUniform1f(_location, x));
+            }
+
+            void vec4(const glm::vec4& x) noexcept
+            {
+                VRM_SDL_GLCHECK(glUniform4f(_location, x.x, x.y, x.z, x.w));
+            }
+
 
             auto location() const noexcept { return _location; }
         };

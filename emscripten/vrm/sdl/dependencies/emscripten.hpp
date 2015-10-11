@@ -28,5 +28,6 @@
 #include <gtx/matrix_decompose.hpp>
 #include <gtx/color_space.hpp>
 #include <gtx/string_cast.hpp>
+#include <gtx/rotate_vector.hpp>
 
 #endif

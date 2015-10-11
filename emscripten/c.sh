@@ -11,6 +11,8 @@ sudo cp -R ./vrm/ /usr/local/include/
     --preload-file ./vrm/sdl/glsl/ \
     -std=c++14 "${@:2}" \
     -o "$1".html ./"$1".cpp \
-&& (vblank_mode=0 chromium --disable-gpu-vsync http://localhost:8080/"$1".html)
+&& (vblank_mode=0 __GL_SYNC_TO_VBLANK=0 chromium --disable-gpu-vsync http://localhost:8080/"$1".html)
+# && (vblank_mode=0 firefox http://localhost:8080/"$1".html)
+
 # -O3 -ffast-math -fno-exceptions \
 # -O3 --profiling -ffast-math -fno-exceptions \

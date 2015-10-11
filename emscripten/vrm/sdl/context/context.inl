@@ -74,6 +74,8 @@ namespace vrm
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
                         GL_STENCIL_BUFFER_BIT);
 
+                
+
                 draw_fn()();
 
                 SDL_GL_SwapWindow(*_window);
@@ -188,7 +190,6 @@ namespace vrm
                             });
 
 
-                    
 
                         if(total_ms() < ms_limit())
                         {

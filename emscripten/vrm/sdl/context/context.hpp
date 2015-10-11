@@ -102,7 +102,7 @@ namespace vrm
                 auto ms_from_duration(const T& duration) const noexcept;
 
             public:
-                float fps_limit{60.0};
+                float fps_limit{144.0};
 
                 float ms_limit() const noexcept { return 1000.f / fps_limit; }
 

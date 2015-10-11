@@ -49,6 +49,16 @@ namespace vrm
                 return static_cast<GLenum>(
                     static_cast<sz_t>(GL_TEXTURE0) + idx);
             }
+
+            constexpr auto get_max_texture_unit_count() noexcept
+            {
+                return GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+            }
+
+            constexpr auto get_valid_texture_unit_count(int desired) noexcept
+            {
+                return std::min(desired, get_max_texture_unit_count());
+            }
         }
 
         template <sz_t TN>
@@ -75,7 +85,9 @@ namespace vrm
             }
 
         public:
-            texture_cache() noexcept
+            texture_cache() noexcept { clear(); }
+
+            void clear()
             {
                 for(sz_t i(0); i < TN; ++i)
                 {
@@ -84,7 +96,7 @@ namespace vrm
                 }
             }
 
-            auto use(impl::gltexture2d& t) noexcept
+            auto use(const impl::gltexture2d& t) noexcept
             {
                 auto unit_idx(get_unit_idx(t));
 
@@ -101,6 +113,17 @@ namespace vrm
             }
         };
 
+        struct sprite_data
+        {
+            impl::gltexture2d _texture;
+            glm::vec2 _position;
+            glm::vec2 _origin;
+            glm::vec2 _size;
+            glm::vec4 _color;
+            float _radians;
+            float _hue;
+        };
+
         struct sprite_renderer
         {
             program _program{impl::make_sprite_renderer_program()};
@@ -113,12 +136,12 @@ namespace vrm
             glm::mat4 _view;
             glm::mat4 _projection;
 
-            sdl::uniform _uf_model;
-            sdl::uniform _uf_view;
-            sdl::uniform _uf_projection;
-            sdl::uniform _uf_tex;
+            sdl::uniform _u_projection_view_model;
+            sdl::uniform _u_texture;
+            sdl::uniform _u_color;
+            sdl::uniform _u_hue;
 
-            texture_cache<3> _texture_cache;
+            texture_cache<impl::get_valid_texture_unit_count(500)> _texture_cache;
 
             float _vertices[16]{
                 0.f, 1.f, // sw
@@ -173,10 +196,12 @@ namespace vrm
                     });
 
                 // Set model/view/projection uniform matrices.
-                _uf_model = _program.get_uniform("model");
-                _uf_view = _program.get_uniform("view");
-                _uf_projection = _program.get_uniform("projection");
-                _uf_tex = _program.get_uniform("uf_tex");
+                _u_projection_view_model =
+                    _program.get_uniform("u_projection_view_model");
+
+                _u_texture = _program.get_uniform("u_texture");
+                _u_color = _program.get_uniform("u_color");
+                _u_hue = _program.get_uniform("u_hue");
             }
 
             void use()
@@ -186,11 +211,17 @@ namespace vrm
                 _vao->bind();
                 _vbo0->bind();
                 _vbo1->bind();
+
+                // _texture_cache.clear();
             }
 
-            void draw_sprite(impl::gltexture2d& t, const glm::vec2& position,
-                const glm::vec2& origin, const glm::vec2& size,
-                float radians) noexcept
+
+
+            void draw_sprite(const impl::gltexture2d& t,
+                const glm::vec2& position, const glm::vec2& origin,
+                const glm::vec2& size, float radians,
+                const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
+                float hue = 0.f) noexcept
             {
                 // Reset `model` to identity matrix.
                 _model = glm::mat4{};
@@ -220,15 +251,22 @@ namespace vrm
                 _model = glm::scale(_model, glm::vec3(size, 1.0f));
 
                 // Set model/view/projection uniform matrices.
-                _uf_model.matrix4fv(_model);
-                _uf_view.matrix4fv(_view);
-                _uf_projection.matrix4fv(_projection);
+                _u_projection_view_model.matrix4fv(
+                    _projection * _view * _model);
 
                 // Gets the texture unit index from the cache and uses it.
-                _uf_tex.integer(_texture_cache.use(t));
+                _u_texture.integer(_texture_cache.use(t));
+                _u_color.vec4(color);
+                _u_hue.floating(hue);
 
                 // Assumes the VBOs, VAO, and texture unit are bound.
                 glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+            }
+
+            void draw_sprite(const sprite_data& d) noexcept
+            {
+                draw_sprite(d._texture, d._position, d._origin, d._size,
+                    d._radians, d._color, d._hue);
             }
         };
     };
@@ -236,6 +274,21 @@ namespace vrm
 
 int main(int argc, char** argv)
 {
+    std::random_device rnd_device;
+    std::default_random_engine rnd_gen{rnd_device()};
+
+    auto rndf = [&](auto min, auto max)
+    {
+        using common_min_max_t =
+            std::common_type_t<decltype(min), decltype(max)>;
+
+        using dist_t = std::uniform_real_distribution<common_min_max_t>;
+
+        return dist_t(min, max)(rnd_gen);
+    };
+
+
+
     auto c_handle(sdl::make_global_context("test game", 1000, 600));
     auto& c(*c_handle);
 
@@ -255,7 +308,7 @@ int main(int argc, char** argv)
     struct entity
     {
         glm::vec2 _pos, _origin, _size;
-        float _radians{0.f};
+        float _radians{0.f}, _opacity{1.f};
         sdl::impl::gltexture2d _texture;
 
         float _hitbox_radius;
@@ -313,22 +366,35 @@ int main(int argc, char** argv)
         e._radians = static_cast<float>(rand() % 6280) / 1000.f;
         e._origin = glm::vec2{0, 0};
         e._texture = *fireball_texture;
-        e._size = glm::vec2{fireball_texture->size()};
+        e._size = glm::vec2{fireball_texture->size()} * rndf(0.9f, 1.2f);
         e._hitbox_radius = 3.f;
+        e._opacity = 0.f;
 
-        e._update_fn = [&, vel, speed, life = 100.f, dir = rand() % 2 ](
+        e._update_fn = [&, vel, speed, life = 100.f, dir = rand() % 2, curve = rndf(-1.f, 1.f) ](
             auto& x, auto step) mutable
         {
             x._pos += vel * (speed * step);
             x._radians += dir ? 0.2 * step : -0.2 * step;
 
+            vel = glm::rotate(vel, curve);
+
+            if(std::abs(curve) > 0.01)
+            {
+                curve *= 0.5f;
+            }
+
             life -= step * 0.3f;
+
             if(life <= 0.f) x.alive = false;
+            if(life <= 10.f) x._opacity -= step * 0.2f;
+
+            if(x._opacity <= 1.f) x._opacity += step * 0.1f;
         };
 
-        e._draw_fn = [&](auto& x)
+        e._draw_fn = [&, hue = rndf(-0.6f, 0.1f) ](auto& x) mutable
         {
-            sr.draw_sprite(x._texture, x._pos, x._origin, x._size, x._radians);
+            sr.draw_sprite(x._texture, x._pos, x._origin, x._size, x._radians,
+                glm::vec4{1.f, 0.f, 0.f, x._opacity}, hue);
         };
 
         return e;
@@ -350,11 +416,21 @@ int main(int argc, char** argv)
             {
                 timer = 25.f;
 
-                for(int i = 0; i < 15; ++i)
+                for(int i = 0; i < 80; ++i)
+                {
                     if(entities.size() < max_entities)
-                        entities.emplace_back(make_fireball(x._pos,
-                            sdl::make_vec2(-2.f + (rand() % 500) / 100.f, 2.f),
-                            1.f + (rand() % 100) / 80.f));
+                    {
+                        auto angle(rndf(0.f, sdl::tau));
+                        auto speed(rndf(0.1f, 3.f));
+                        auto unit_vec(
+                            glm::vec2(std::cos(angle), std::sin(angle)));
+                        auto vel(unit_vec * speed);
+
+                        entities.emplace_back(
+                            make_fireball(x._pos + unit_vec * rndf(55.f, 90.f),
+                                vel, 1.f + (rand() % 100) / 80.f));
+                    }
+                }
             }
         };
 
@@ -369,9 +445,23 @@ int main(int argc, char** argv)
     entities.emplace_back(make_toriel(sdl::make_vec2(500.f, 100.f)));
     entities.emplace_back(make_soul(sdl::make_vec2(500.f, 500.f)));
 
+    auto& soul(entities.back());
+
     c.update_fn() = [&](auto step)
     {
-        for(auto& e : entities) e._update_fn(e, step);
+        for(auto& e : entities)
+        {
+            e._update_fn(e, step);
+
+            if(&e != &soul)
+            {
+                if(glm::distance(soul._pos, e._pos) <
+                    soul._hitbox_radius + e._hitbox_radius)
+                {
+                    soul.alive = false;
+                }
+            }
+        }
 
         entities.erase(std::remove_if(std::begin(entities), std::end(entities),
                            [](auto& e)
@@ -390,11 +480,15 @@ int main(int argc, char** argv)
 
         if(rand() % 100 < 30)
         {
-            c.title(std::to_string(c.fps_limit) + " | " + std::to_string(c._static_timer._loops) +
-                    " ||| " + std::to_string(c.fps()) + " | " +
+            c.title(std::to_string(entities.size()) + " ||| " +
+                    std::to_string(c.fps_limit) + " | " +
+                    std::to_string(c._static_timer._loops) + " ||| " +
+                    std::to_string(c.fps()) + " | " +
                     std::to_string(c.real_ms()) + " | " +
                     std::to_string(c.update_ms()));
         }
+
+
 
         // std::cout << c.real_ms() << "\n";
     };
