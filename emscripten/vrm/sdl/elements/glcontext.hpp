@@ -20,14 +20,18 @@ namespace vrm
 
         public:
             glcontext(window& w) noexcept
-            {
+            {            
+                _glcontext = SDL_GL_CreateContext(w);
+
                 SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
                 SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
                 SDL_GL_SetSwapInterval(0);
                 SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
                 SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+               // SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 0);
 
-                _glcontext = SDL_GL_CreateContext(w);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glEnable(GL_BLEND);
             }
 
             auto context() const noexcept { return _glcontext; }

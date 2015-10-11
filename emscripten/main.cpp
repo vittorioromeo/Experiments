@@ -236,7 +236,6 @@ namespace vrm
 
 int main(int argc, char** argv)
 {
-
     auto c_handle(sdl::make_global_context("test game", 1000, 600));
     auto& c(*c_handle);
 
@@ -256,7 +255,7 @@ int main(int argc, char** argv)
     struct entity
     {
         glm::vec2 _pos, _origin, _size;
-        float _radians;
+        float _radians{0.f};
         sdl::impl::gltexture2d _texture;
 
         float _hitbox_radius;
@@ -378,35 +377,15 @@ int main(int argc, char** argv)
 
         if(c.key(sdl::kkey::escape)) sdl::stop_global_context();
 
-        // if(rand() % 100 < 20)
-        //    std::cout << "(" << c.fps() << ") " << entities.size() << "\n";
+         if(rand() % 100 < 30)
+            c.title(std::to_string(c.fps()));
     };
 
     c.draw_fn() = [&]
     {
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
+        
+  
         sr.use();
-        /* program.use();
-         GLfloat vVertices[] = {
-             0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
-
-         // Set the viewport
-         glViewport(0, 0, 1000, 600);
-
-         // Clear the color buffer
-         glClear(
-             GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-
-         // Use the program object
-
-         // Load the vertex data
-         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-         glEnableVertexAttribArray(0);
-
-         glDrawArrays(GL_TRIANGLES, 0, 3);*/
-
         for(auto& e : entities) e._draw_fn(e);
 
     };

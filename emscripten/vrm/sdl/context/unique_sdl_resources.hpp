@@ -25,15 +25,7 @@ namespace vrm
                     SDL_DestroyWindow(p.ptr());
                 }
             };
-            /*
-                        struct texture_deleter
-                        {
-                            void operator()(texture& p) noexcept
-                            {
-                                SDL_DestroyTexture(p.ptr());
-                            }
-                        };
-            */
+         
             struct renderer_deleter
             {
                 void operator()(renderer& p) noexcept
@@ -74,8 +66,6 @@ namespace vrm
             };
 
             using unique_window = unique_resource<window, window_deleter>;
-
-            // using unique_texture = unique_resource<texture, texture_deleter>;
 
             using unique_renderer = unique_resource<renderer, renderer_deleter>;
 

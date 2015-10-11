@@ -22,33 +22,29 @@ namespace vrm
             class context
             {
             private:
-                const std::size_t _width;
-                const std::size_t _height;
+                const sz_t _width;
+                const sz_t _height;
 
-                impl::unique_window _window;
-                impl::unique_glcontext _glcontext;
-                // impl::unique_renderer _renderer;
-                // impl::unique_texture _texture;
+                unique_window _window;
+                unique_glcontext _glcontext;
 
                 SDL_Event _event;
 
-                impl::key_event_handler _on_key_down{
-                    impl::null_key_event_handler()};
-                impl::key_event_handler _on_key_up{
-                    impl::null_key_event_handler()};
+                key_event_handler _on_key_down{null_key_event_handler()};
+                key_event_handler _on_key_up{null_key_event_handler()};
 
-                impl::btn_event_handler _on_btn_down{
-                    impl::null_btn_event_handler()};
-                impl::btn_event_handler _on_btn_up{
-                    impl::null_btn_event_handler()};
+                btn_event_handler _on_btn_down{null_btn_event_handler()};
+                btn_event_handler _on_btn_up{null_btn_event_handler()};
 
-                impl::update_fn _update_fn{impl::null_update_fn()};
-                impl::draw_fn _draw_fn{impl::null_draw_fn()};
+                update_fn _update_fn{null_update_fn()};
+                draw_fn _draw_fn{null_draw_fn()};
 
                 hr_duration _update_duration;
                 hr_duration _draw_duration;
+                hr_duration _total_duration;
+                hr_duration _real_duration;
 
-                impl::input_state _input_state;
+                input_state _input_state;
 
                 auto& on_key_up() noexcept;
                 auto& on_key_down() noexcept;
@@ -65,6 +61,9 @@ namespace vrm
                 void run_update();
                 void run_draw();
 
+                template <typename T>
+                auto ms_from_duration(const T& duration) const noexcept;
+
             public:
                 context(const std::string& title, std::size_t width,
                     std::size_t height);
@@ -79,11 +78,14 @@ namespace vrm
 
                 const auto& update_duration() const noexcept;
                 const auto& draw_duration() const noexcept;
-                auto total_duration() const noexcept;
+                const auto& total_duration() const noexcept;
+                const auto& real_duration() const noexcept;
 
                 auto update_ms() const noexcept;
                 auto draw_ms() const noexcept;
                 auto total_ms() const noexcept;
+                auto real_ms() const noexcept;
+
                 auto fps() const noexcept;
 
                 auto mouse_x() const noexcept;

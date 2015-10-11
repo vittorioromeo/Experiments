@@ -17,6 +17,8 @@ namespace vrm
         using hr_clock = std::chrono::high_resolution_clock;
         using hr_duration = typename hr_clock::duration;
 
+        using ms_float_duration = std::chrono::duration<float, std::milli>;
+
         using sz_t = std::size_t;
         using ft = float;
 
@@ -32,5 +34,7 @@ namespace vrm
         class context;
         class texture;
         class sprite;
+
+        using namespace std::literals;
     }
 }

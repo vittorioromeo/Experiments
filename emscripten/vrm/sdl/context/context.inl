@@ -6,6 +6,7 @@
 #pragma once
 
 #include <chrono>
+#include <thread>
 #include <vrm/sdl/math.hpp>
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/resource.hpp>
@@ -70,33 +71,22 @@ namespace vrm
             void context::run_update() { update_fn()(1.f); }
             void context::run_draw()
             {
-                //_renderer->clear();
-                //_renderer->clear_texture(*_texture, 0, 0, 0, 255);
-
-                //_renderer->target(nullptr);
-                //_renderer->draw(*_texture);
-
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
                         GL_STENCIL_BUFFER_BIT);
 
                 draw_fn()();
 
-                //_renderer->present();
                 SDL_GL_SwapWindow(*_window);
             }
 
             context::context(
                 const std::string& title, std::size_t width, std::size_t height)
                 : _width{width}, _height{height}, _window{title, width, height},
-                  _glcontext{*_window} //, _renderer{*_window}
-            // _texture{*_renderer, width, height, SDL_TEXTUREACCESS_STREAMING}
+                  _glcontext{*_window}
             {
-                // glewExperimental = GL_TRUE;
-                // glewInit();
-
                 if(TTF_Init() != 0)
                 {
-                    impl::log_sdl_error("ttf_init");
+                    log_sdl_error("ttf_init");
                     std::terminate();
                 }
 
@@ -121,6 +111,23 @@ namespace vrm
                 };
             }
 
+            const auto& context::update_duration() const noexcept
+            {
+                return _update_duration;
+            }
+            const auto& context::draw_duration() const noexcept
+            {
+                return _draw_duration;
+            }
+            const auto& context::total_duration() const noexcept
+            {
+                return _total_duration;
+            }
+            const auto& context::real_duration() const noexcept
+            {
+                return _real_duration;
+            }
+
 
 
             void context::run()
@@ -133,58 +140,66 @@ namespace vrm
                         return hr_clock::now() - ms_start;
                     });
 
-                run_events();
-
-                _update_duration = time_dur([this]
+                _real_duration = time_dur([&, this]
                     {
-                        run_update();
-                    });
-                _draw_duration = time_dur([this]
-                    {
-                        run_draw();
+                        _total_duration = time_dur([&, this]
+                            {
+                                run_events();
+
+                                _update_duration = time_dur([this]
+                                    {
+                                        run_update();
+                                    });
+
+                                _draw_duration = time_dur([this]
+                                    {
+                                        run_draw();
+                                    });
+                            });
+
+                        constexpr auto fps_limit(144.f);
+                        constexpr auto ms_limit(
+                            ms_float_duration(1000.f / fps_limit));
+
+                        if(_total_duration < ms_limit)
+                        {
+                            std::this_thread::sleep_for(
+                                ms_limit - _total_duration);
+                        }
                     });
             }
 
-            // auto& screen() noexcept { return _screen; }
-            // const auto& screen() const noexcept { return _screen; }
-
-            const auto& context::update_duration() const noexcept
+            template <typename T>
+            auto context::ms_from_duration(const T& duration) const noexcept
             {
-                return _update_duration;
-            }
-            const auto& context::draw_duration() const noexcept
-            {
-                return _draw_duration;
-            }
-            auto context::total_duration() const noexcept
-            {
-                return update_duration() + draw_duration();
+                return std::chrono::duration_cast<ms_float_duration>(duration)
+                    .count();
             }
 
             auto context::update_ms() const noexcept
             {
-                return std::chrono::duration_cast<std::chrono::milliseconds>(
-                           update_duration())
-                    .count();
+                return ms_from_duration(update_duration());
             }
             auto context::draw_ms() const noexcept
             {
-                return std::chrono::duration_cast<std::chrono::milliseconds>(
-                           draw_duration())
-                    .count();
+                return ms_from_duration(draw_duration());
             }
             auto context::total_ms() const noexcept
             {
-                return std::chrono::duration_cast<std::chrono::milliseconds>(
-                           total_duration())
-                    .count();
+                return ms_from_duration(total_duration());
+            }
+            auto context::real_ms() const noexcept
+            {
+                return ms_from_duration(real_duration());
             }
 
             auto context::fps() const noexcept
             {
-                constexpr float seconds_ft_ratio{60.f};
+                // constexpr float seconds_ft_ratio{60.f};
                 // return seconds_ft_ratio / total_ms();
-                return static_cast<int>(((1.f / total_ms()) * 1000.f));
+                // return total_duration().count();
+
+                return static_cast<int>(1000.f / real_ms());
             }
 
             auto context::mouse_x() const noexcept
@@ -212,13 +227,13 @@ namespace vrm
             template <typename... Ts>
             auto context::make_surface(Ts&&... xs) noexcept
             {
-                return impl::unique_surface(FWD(xs)...);
+                return unique_surface(FWD(xs)...);
             }
 
             /*template <typename... Ts>
             auto context::make_texture(Ts&&... xs) noexcept
             {
-                return impl::unique_texture(*_renderer, FWD(xs)...);
+                return unique_texture(*_renderer, FWD(xs)...);
             }
 
 
@@ -227,7 +242,7 @@ namespace vrm
 
             auto context::make_ttffont(const std::string& path, sz_t font_size)
             {
-                return impl::unique_ttffont(path, font_size);
+                return unique_ttffont(path, font_size);
             }
 
             auto context::make_ttftext_texture(
