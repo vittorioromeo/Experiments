@@ -37,10 +37,10 @@ namespace vrm
                     _must_delete = true;
                 }
 
-                void release() { _must_delete = false; }
+                void release() noexcept { _must_delete = false; }
 
                 template <typename... Ts>
-                unique_resource(Ts&&... xs)
+                unique_resource(Ts&&... xs) noexcept(noexcept(T(FWD(xs)...)))
                     : _res(FWD(xs)...), _must_delete{true}
                 {
                 }

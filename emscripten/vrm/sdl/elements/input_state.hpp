@@ -14,9 +14,11 @@ namespace vrm
     {
         namespace impl
         {
+            class context;
+
             class input_state
             {
-                friend class ::vrm::sdl::context;
+                friend class ::vrm::sdl::impl::context;
 
             private:
                 std::bitset<impl::kkey_count> _keys;

@@ -73,7 +73,7 @@ namespace vrm
                 _program = make_program(*v_sh, *f_sh);
 
                 projection =
-                    glm::ortho(0.0f, 1000.0f, 0.0f, 600.0f, -1.0f, 1.0f);
+                    glm::ortho(0.0f, 1000.0f, 600.0f, 0.0f, -1.0f, 1.0f);
 
                 init_render_data();
             }
@@ -152,7 +152,7 @@ namespace vrm
                 // glBindVertexArray(0);
             }
 
-            void draw_sprite(texture& t, const glm::vec2& position,
+            void draw_sprite(impl::gltexture2d& t, const glm::vec2& position,
                 const glm::vec2& size, float radians)
             {
                 _program.use();
@@ -176,7 +176,7 @@ namespace vrm
                 // printf("%f, %f\n", position.x, position.y);
                 glm::vec4 result =
                     projection * view * model * glm::vec4(position, 0.f, 1.f);
-                printf("%f, %f\n\n", result.x, result.y);
+                //printf("%f, %f\n\n", result.x, result.y);
 
                 _program.get_uniform("uf_tex").integer(0);
 
@@ -187,8 +187,8 @@ namespace vrm
                 VRM_SDL_GLCHECK(glActiveTexture(GL_TEXTURE0));
                 t.bind();
 
-// texture works on EMSCRIPTEN, not on DESKTOP
-                //TODO:  write own opengl texture wrapper!!!!!
+                // texture works on EMSCRIPTEN, not on DESKTOP
+                // TODO:  write own opengl texture wrapper!!!!!
 
                 _vao->with([this]
                     {
@@ -218,8 +218,8 @@ int main(int argc, char** argv)
     auto c_handle(sdl::make_global_context("test game", 1000, 600));
     auto& c(*c_handle);
 
-    auto toriel_image(c.make_image("files/toriel.png"));
-    auto toriel_texture(c.make_texture(*toriel_image));
+    auto toriel_image(c.make_surface("files/toriel.png"));
+    auto toriel_texture(sdl::make_gltexture2d(*toriel_image));
 
     sdl::sprite_renderer sr;
 
@@ -238,7 +238,8 @@ int main(int argc, char** argv)
 
     c.draw_fn() = [&]
     {
-        sr.draw_sprite(*toriel_texture, glm::vec2{c.mouse_x(), c.mouse_y()},
+        //for(auto i = 0; i < 1000; ++i)
+        sr.draw_sprite(*toriel_texture, glm::vec2{20, 20},
             glm::vec2{100, 200}, 0.f);
     };
 

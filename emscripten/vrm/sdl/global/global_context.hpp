@@ -16,7 +16,7 @@ namespace vrm
     {
         namespace impl
         {
-            context* global_context;
+            impl::context* global_context;
             void run_global_context_loop() { global_context->run(); }
         }
 
@@ -24,7 +24,7 @@ namespace vrm
         auto make_global_context(Ts&&... xs)
         {
             assert(impl::global_context == nullptr);
-            auto uptr(std::make_unique<context>(FWD(xs)...));
+            auto uptr(std::make_unique<impl::context>(FWD(xs)...));
             impl::global_context = uptr.get();
             return uptr;
         }

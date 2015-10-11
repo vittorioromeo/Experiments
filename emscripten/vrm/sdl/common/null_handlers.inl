@@ -6,7 +6,8 @@
 #pragma once
 
 #include <vrm/sdl/common/typedefs.hpp>
-#include <vrm/sdl/common/key.hpp>
+#include <vrm/sdl/common/kkey.hpp>
+#include <vrm/sdl/common/mbtn.hpp>
 #include <vrm/sdl/common/null_handlers.hpp>
 
 namespace vrm

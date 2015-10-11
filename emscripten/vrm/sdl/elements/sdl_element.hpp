@@ -22,10 +22,12 @@ namespace vrm
 
                 void check_error() noexcept
                 {
+#ifndef NDEBUG
                     if(_ptr != nullptr) return;
 
                     impl::log_sdl_error(impl::error_title_for<T>());
                     std::terminate();
+#endif
                 }
 
             public:
@@ -40,19 +42,19 @@ namespace vrm
                 sdl_element(sdl_element&&) = default;
                 sdl_element& operator=(sdl_element&&) = default;
 
-                auto ptr() noexcept
-                {
-                    // assert(_ptr != nullptr);
-                    return _ptr;
-                }
-                auto ptr() const noexcept
-                {
-                    // assert(_ptr != nullptr);
-                    return _ptr;
-                }
+                auto ptr() noexcept { return _ptr; }
+                auto ptr() const noexcept { return _ptr; }
 
-                auto& get() noexcept { return *ptr(); }
-                const auto& get() const noexcept { return *ptr(); }
+                auto& get() noexcept
+                {
+                    assert(_ptr != nullptr);
+                    return *ptr();
+                }
+                const auto& get() const noexcept
+                {
+                    assert(_ptr != nullptr);
+                    return *ptr();
+                }
 
                 operator T*() noexcept { return ptr(); }
             };

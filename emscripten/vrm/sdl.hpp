@@ -5,12 +5,13 @@
 
 #pragma once
 
+#include <vrm/sdl/internal.hpp>
 #include <vrm/sdl/dependencies.hpp>
 #include <vrm/sdl/math.hpp>
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/utils.hpp>
 #include <vrm/sdl/resource.hpp>
 #include <vrm/sdl/elements.hpp>
+#include <vrm/sdl/gl.hpp>
 #include <vrm/sdl/context.hpp>
 #include <vrm/sdl/global.hpp>
-#include <vrm/sdl/gl.hpp>

@@ -5,16 +5,15 @@
 
 #pragma once
 
-#include <vrm/sdl/math.hpp>
-#include <vrm/sdl/common.hpp>
 #include <vrm/sdl/elements/sdl_element.hpp>
 #include <vrm/sdl/elements/space_data.hpp>
-#include <vrm/sdl/elements/texture.hpp>
 
 namespace vrm
 {
     namespace sdl
     {
+        class texture;
+
         class sprite
         {
         private:
@@ -23,7 +22,7 @@ namespace vrm
 
         public:
             sprite() = default;
-            sprite(texture& t) noexcept : _texture{&t} {}
+            sprite(texture& t) noexcept;
 
             sprite(const sprite& s) = default;
             sprite& operator=(const sprite& s) = default;
@@ -31,28 +30,25 @@ namespace vrm
             sprite(sprite&& s) = default;
             sprite& operator=(sprite&& s) = default;
 
-            void texture(texture& t) noexcept { _texture = &t; }
-            auto valid_texture() const noexcept { return _texture != nullptr; }
+            void texture(texture& t) noexcept;
+            auto valid_texture() const noexcept;
 
-            auto& texture() noexcept { return *_texture; }
-            const auto& texture() const noexcept { return *_texture; }
+            auto& texture() noexcept;
+            const auto& texture() const noexcept;
 
-            auto& pos() noexcept { return _sd.pos(); }
-            const auto& pos() const noexcept { return _sd.pos(); }
+            auto& pos() noexcept;
+            const auto& pos() const noexcept;
 
-            auto& scale() noexcept { return _sd.scale(); }
-            const auto& scale() const noexcept { return _sd.scale(); }
+            auto& scale() noexcept;
+            const auto& scale() const noexcept;
 
-            auto& origin() noexcept { return _sd.origin(); }
-            const auto& origin() const noexcept { return _sd.origin(); }
+            auto& origin() noexcept;
+            const auto& origin() const noexcept;
 
-            auto& radians() noexcept { return _sd.radians(); }
-            const auto& radians() const noexcept { return _sd.radians(); }
+            auto& radians() noexcept;
+            const auto& radians() const noexcept;
 
-            void set_origin_to_center() noexcept
-            {
-                origin() = texture().size() / 2.f;
-            }
+            void set_origin_to_center() noexcept;
         };
     }
 }

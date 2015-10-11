@@ -1,6 +1,7 @@
 #!/bin/zsh
 
 nohup python3 -m http.server 8080 &
+sudo rm -R /usr/local/include/vrm/sdl/*
 sudo cp -R ./vrm/ /usr/local/include/
 
 /usr/lib/emscripten/em++ -s USE_SDL=2 -s USE_SDL_IMAGE=2 -s USE_SDL_TTF=2 -s USE_LIBPNG=1 -s DEMANGLE_SUPPORT=1 \

@@ -16,6 +16,10 @@
 
 #else
 
-#define VRM_SDL_GLCHECK(...) (__VA_ARGS__)
+#define VRM_SDL_GLCHECK(...) \
+    do                       \
+    {                        \
+        __VA_ARGS__;         \
+    } while(false)
 
 #endif

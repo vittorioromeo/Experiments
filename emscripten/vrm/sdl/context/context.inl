@@ -16,227 +16,239 @@ namespace vrm
 {
     namespace sdl
     {
-        auto& context::on_key_up() noexcept { return _on_key_up; }
-        auto& context::on_key_down() noexcept { return _on_key_down; }
-
-        auto& context::on_btn_up() noexcept { return _on_btn_up; }
-        auto& context::on_btn_down() noexcept { return _on_btn_down; }
-
-        auto& context::update_fn() noexcept { return _update_fn; }
-        auto& context::draw_fn() noexcept { return _draw_fn; }
-
-        void context::run_events()
+        namespace impl
         {
-            while(SDL_PollEvent(&_event))
+            auto& context::on_key_up() noexcept { return _on_key_up; }
+            auto& context::on_key_down() noexcept { return _on_key_down; }
+
+            auto& context::on_btn_up() noexcept { return _on_btn_up; }
+            auto& context::on_btn_down() noexcept { return _on_btn_down; }
+
+            auto& context::update_fn() noexcept { return _update_fn; }
+            auto& context::draw_fn() noexcept { return _draw_fn; }
+
+            void context::run_events()
             {
-                switch(_event.type)
+                while(SDL_PollEvent(&_event))
                 {
-                    case SDL_KEYDOWN:
-                        on_key_down()(
-                            static_cast<kkey>(_event.key.keysym.scancode));
-                        break;
+                    switch(_event.type)
+                    {
+                        case SDL_KEYDOWN:
+                            on_key_down()(
+                                static_cast<kkey>(_event.key.keysym.scancode));
+                            break;
 
-                    case SDL_KEYUP:
-                        on_key_up()(
-                            static_cast<kkey>(_event.key.keysym.scancode));
-                        break;
+                        case SDL_KEYUP:
+                            on_key_up()(
+                                static_cast<kkey>(_event.key.keysym.scancode));
+                            break;
 
-                    case SDL_MOUSEBUTTONDOWN:
-                        on_btn_down()(static_cast<mbtn>(_event.button.button));
-                        break;
+                        case SDL_MOUSEBUTTONDOWN:
+                            on_btn_down()(
+                                static_cast<mbtn>(_event.button.button));
+                            break;
 
-                    case SDL_MOUSEBUTTONUP:
-                        on_btn_up()(static_cast<mbtn>(_event.button.button));
-                        break;
+                        case SDL_MOUSEBUTTONUP:
+                            on_btn_up()(
+                                static_cast<mbtn>(_event.button.button));
+                            break;
 
-                    case SDL_MOUSEMOTION:
-                        _input_state.mouse_x(_event.motion.x);
-                        _input_state.mouse_y(_event.motion.y);
-                        break;
+                        case SDL_MOUSEMOTION:
+                            _input_state.mouse_x(_event.motion.x);
+                            _input_state.mouse_y(_event.motion.y);
+                            break;
 
-                    case SDL_QUIT: std::terminate(); break;
-                    case SDL_WINDOWEVENT: break;
-                    case SDL_FINGERDOWN: break;
-                    case SDL_FINGERUP: break;
-                    case SDL_FINGERMOTION: break;
+                        case SDL_QUIT: std::terminate(); break;
+                        case SDL_WINDOWEVENT: break;
+                        case SDL_FINGERDOWN: break;
+                        case SDL_FINGERUP: break;
+                        case SDL_FINGERMOTION: break;
+                    }
                 }
             }
-        }
 
-        void context::run_update() { update_fn()(1.f); }
-        void context::run_draw()
-        {
-            //_renderer->clear();
-            //_renderer->clear_texture(*_texture, 0, 0, 0, 255);
-
-            //_renderer->target(nullptr);
-            //_renderer->draw(*_texture);
-
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-                    GL_STENCIL_BUFFER_BIT);
-
-            draw_fn()();
-
-            //_renderer->present();
-            SDL_GL_SwapWindow(*_window);
-        }
-
-        context::context(
-            const std::string& title, std::size_t width, std::size_t height)
-            : _width{width}, _height{height}, _window{title, width, height},
-              _glcontext{*_window}, _renderer{*_window},
-              _texture{*_renderer, width, height, SDL_TEXTUREACCESS_STREAMING}
-        {
-            // glewExperimental = GL_TRUE;
-            // glewInit();
-
-            if(TTF_Init() != 0)
+            void context::run_update() { update_fn()(1.f); }
+            void context::run_draw()
             {
-                impl::log_sdl_error("ttf_init");
-                std::terminate();
+                //_renderer->clear();
+                //_renderer->clear_texture(*_texture, 0, 0, 0, 255);
+
+                //_renderer->target(nullptr);
+                //_renderer->draw(*_texture);
+
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+                        GL_STENCIL_BUFFER_BIT);
+
+                draw_fn()();
+
+                //_renderer->present();
+                SDL_GL_SwapWindow(*_window);
             }
 
-            on_key_down() = [this](auto k)
+            context::context(
+                const std::string& title, std::size_t width, std::size_t height)
+                : _width{width}, _height{height}, _window{title, width, height},
+                  _glcontext{*_window} //, _renderer{*_window}
+            // _texture{*_renderer, width, height, SDL_TEXTUREACCESS_STREAMING}
             {
-                _input_state.key(k, true);
-            };
+                // glewExperimental = GL_TRUE;
+                // glewInit();
 
-            on_key_up() = [this](auto k)
-            {
-                _input_state.key(k, false);
-            };
-
-            on_btn_down() = [this](auto b)
-            {
-                _input_state.btn(b, true);
-            };
-
-            on_btn_up() = [this](auto b)
-            {
-                _input_state.btn(b, false);
-            };
-        }
-
-
-
-        void context::run()
-        {
-            auto time_dur([](auto&& f)
+                if(TTF_Init() != 0)
                 {
-                    auto ms_start(hr_clock::now());
-                    f();
+                    impl::log_sdl_error("ttf_init");
+                    std::terminate();
+                }
 
-                    return hr_clock::now() - ms_start;
-                });
-
-            run_events();
-
-            _update_duration = time_dur([this]
+                on_key_down() = [this](auto k)
                 {
-                    run_update();
-                });
-            _draw_duration = time_dur([this]
+                    _input_state.key(k, true);
+                };
+
+                on_key_up() = [this](auto k)
                 {
-                    run_draw();
-                });
-        }
+                    _input_state.key(k, false);
+                };
 
-        // auto& screen() noexcept { return _screen; }
-        // const auto& screen() const noexcept { return _screen; }
+                on_btn_down() = [this](auto b)
+                {
+                    _input_state.btn(b, true);
+                };
 
-        const auto& context::update_duration() const noexcept
-        {
-            return _update_duration;
-        }
-        const auto& context::draw_duration() const noexcept
-        {
-            return _draw_duration;
-        }
-        auto context::total_duration() const noexcept
-        {
-            return update_duration() + draw_duration();
-        }
-
-        auto context::update_ms() const noexcept
-        {
-            return std::chrono::duration_cast<std::chrono::milliseconds>(
-                       update_duration())
-                .count();
-        }
-        auto context::draw_ms() const noexcept
-        {
-            return std::chrono::duration_cast<std::chrono::milliseconds>(
-                       draw_duration())
-                .count();
-        }
-        auto context::total_ms() const noexcept
-        {
-            return std::chrono::duration_cast<std::chrono::milliseconds>(
-                       total_duration())
-                .count();
-        }
-
-        auto context::fps() const noexcept
-        {
-            constexpr float seconds_ft_ratio{60.f};
-            // return seconds_ft_ratio / total_ms();
-            return static_cast<int>(((1.f / total_ms()) * 1000.f));
-        }
-
-        auto context::mouse_x() const noexcept
-        {
-            return _input_state.mouse_x();
-        }
-        auto context::mouse_y() const noexcept
-        {
-            return _input_state.mouse_y();
-        }
-        auto context::mouse_pos() const noexcept
-        {
-            return _input_state.mouse_pos();
-        }
-
-        auto context::key(kkey k) const noexcept { return _input_state.key(k); }
-        auto context::btn(mbtn b) const noexcept { return _input_state.btn(b); }
-
-        template <typename... Ts>
-        auto context::make_image(Ts&&... xs) noexcept
-        {
-            return impl::unique_surface(FWD(xs)...);
-        }
-
-        template <typename... Ts>
-        auto context::make_texture(Ts&&... xs) noexcept
-        {
-            return impl::unique_texture(*_renderer, FWD(xs)...);
-        }
+                on_btn_up() = [this](auto b)
+                {
+                    _input_state.btn(b, false);
+                };
+            }
 
 
-        auto context::make_sprite() noexcept { return sprite{}; }
-        auto context::make_sprite(texture& t) noexcept { return sprite{t}; }
 
-        auto context::make_ttffont(const std::string& path, sz_t font_size)
-        {
-            return impl::unique_ttffont(path, font_size);
-        }
+            void context::run()
+            {
+                auto time_dur([](auto&& f)
+                    {
+                        auto ms_start(hr_clock::now());
+                        f();
 
-        auto context::make_ttftext_texture(
-            ttffont& f, const std::string& s, SDL_Color color)
-        {
-            auto temp(make_image(TTF_RenderText_Blended(f, s.c_str(), color)));
-            auto result(make_texture(*temp));
-            return result;
-        }
+                        return hr_clock::now() - ms_start;
+                    });
 
-        void context::draw(texture& t, const vec2f& pos) noexcept
-        {
-            _renderer->draw(t, pos);
-        }
-        void context::draw(sprite& s) noexcept { _renderer->draw(s); }
+                run_events();
 
-        void context::title(const std::string& s) noexcept
-        {
-            _window->title(s);
+                _update_duration = time_dur([this]
+                    {
+                        run_update();
+                    });
+                _draw_duration = time_dur([this]
+                    {
+                        run_draw();
+                    });
+            }
+
+            // auto& screen() noexcept { return _screen; }
+            // const auto& screen() const noexcept { return _screen; }
+
+            const auto& context::update_duration() const noexcept
+            {
+                return _update_duration;
+            }
+            const auto& context::draw_duration() const noexcept
+            {
+                return _draw_duration;
+            }
+            auto context::total_duration() const noexcept
+            {
+                return update_duration() + draw_duration();
+            }
+
+            auto context::update_ms() const noexcept
+            {
+                return std::chrono::duration_cast<std::chrono::milliseconds>(
+                           update_duration())
+                    .count();
+            }
+            auto context::draw_ms() const noexcept
+            {
+                return std::chrono::duration_cast<std::chrono::milliseconds>(
+                           draw_duration())
+                    .count();
+            }
+            auto context::total_ms() const noexcept
+            {
+                return std::chrono::duration_cast<std::chrono::milliseconds>(
+                           total_duration())
+                    .count();
+            }
+
+            auto context::fps() const noexcept
+            {
+                constexpr float seconds_ft_ratio{60.f};
+                // return seconds_ft_ratio / total_ms();
+                return static_cast<int>(((1.f / total_ms()) * 1000.f));
+            }
+
+            auto context::mouse_x() const noexcept
+            {
+                return _input_state.mouse_x();
+            }
+            auto context::mouse_y() const noexcept
+            {
+                return _input_state.mouse_y();
+            }
+            auto context::mouse_pos() const noexcept
+            {
+                return _input_state.mouse_pos();
+            }
+
+            auto context::key(kkey k) const noexcept
+            {
+                return _input_state.key(k);
+            }
+            auto context::btn(mbtn b) const noexcept
+            {
+                return _input_state.btn(b);
+            }
+
+            template <typename... Ts>
+            auto context::make_surface(Ts&&... xs) noexcept
+            {
+                return impl::unique_surface(FWD(xs)...);
+            }
+
+            /*template <typename... Ts>
+            auto context::make_texture(Ts&&... xs) noexcept
+            {
+                return impl::unique_texture(*_renderer, FWD(xs)...);
+            }
+
+
+            auto context::make_sprite() noexcept { return sprite{}; }
+            auto context::make_sprite(texture& t) noexcept { return sprite{t}; }
+
+            auto context::make_ttffont(const std::string& path, sz_t font_size)
+            {
+                return impl::unique_ttffont(path, font_size);
+            }
+
+            auto context::make_ttftext_texture(
+                ttffont& f, const std::string& s, SDL_Color color)
+            {
+                auto temp(make_image(TTF_RenderText_Blended(f, s.c_str(),
+            color)));
+                auto result(make_texture(*temp));
+                return result;
+            }
+
+            void context::draw(texture& t, const vec2f& pos) noexcept
+            {
+                _renderer->draw(t, pos);
+            }
+            void context::draw(sprite& s) noexcept { _renderer->draw(s); }
+    */
+            void context::title(const std::string& s) noexcept
+            {
+                _window->title(s);
+            }
         }
     }
 }

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#ifndef __EMSCRIPTEN__
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -23,3 +25,5 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/color_space.hpp>
 #include <glm/gtx/string_cast.hpp>
+
+#endif

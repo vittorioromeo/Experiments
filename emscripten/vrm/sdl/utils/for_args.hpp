@@ -10,7 +10,8 @@ namespace vrm
     namespace sdl
     {
         template <typename TF, typename... Ts>
-        void for_args(TF&& fn, Ts&&... xs)
+        void for_args(TF&& fn, Ts&&... xs) noexcept(
+            noexcept((void)((int[]){(fn(FWD(xs)), 0)...})))
         {
             using swallow = int[];
             return (void)swallow{(fn(FWD(xs)), 0)...};

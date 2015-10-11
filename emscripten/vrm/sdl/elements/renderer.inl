@@ -49,7 +49,7 @@ namespace vrm
         {
             SDL_SetRenderTarget(*this, nullptr);
         }
-
+/*
         void renderer::clear_texture(
             texture& t, int r, int g, int b, int a) noexcept
         {
@@ -67,10 +67,10 @@ namespace vrm
         void renderer::draw(texture& t, const vec2f& pos) noexcept
         {
             SDL_Rect dst;
-            dst.x = pos.x();
-            dst.y = pos.y();
-            dst.w = t.size().x();
-            dst.h = t.size().y();
+            dst.x = pos.x;
+            dst.y = pos.y;
+            dst.w = t.size().x;
+            dst.h = t.size().y;
 
             SDL_RenderCopy(*this, t, nullptr, &dst);
         }
@@ -84,16 +84,16 @@ namespace vrm
         {
             assert(s.valid_texture());
 
-            auto scaled_origin(make_vec2(s.origin().x() * s.scale().x(),
-                s.origin().y() * s.scale().y()));
+            auto scaled_origin(make_vec2(
+                s.origin().x * s.scale().x, s.origin().y * s.scale().y));
 
             SDL_Rect dst;
-            dst.x = s.pos().x() - scaled_origin.x();
-            dst.y = s.pos().y() - scaled_origin.y();
-            dst.w = s.texture().size().x() * s.scale().x();
-            dst.h = s.texture().size().y() * s.scale().y();
+            dst.x = s.pos().x - scaled_origin.x;
+            dst.y = s.pos().y - scaled_origin.y;
+            dst.w = s.texture().size().x * s.scale().x;
+            dst.h = s.texture().size().y * s.scale().y;
 
-            SDL_Point center{(int)scaled_origin.x(), (int)scaled_origin.y()};
+            SDL_Point center{(int)scaled_origin.x, (int)scaled_origin.y};
 
             SDL_RenderCopyEx(*this, s.texture(), nullptr, &dst,
                 to_deg(s.radians()), &center, SDL_FLIP_NONE);
@@ -103,5 +103,6 @@ namespace vrm
 
             // draw(s.texture(), s.pos() - s.origin());
         }
+        */
     }
 }

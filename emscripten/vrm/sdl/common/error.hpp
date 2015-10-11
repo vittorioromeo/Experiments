@@ -6,7 +6,7 @@
 #pragma once
 
 #include <iostream>
-#include <vrm/sdl/common/dependencies.hpp>
+#include <vrm/sdl/dependencies.hpp>
 
 namespace vrm
 {
@@ -57,10 +57,10 @@ namespace vrm
                 return "ttffont";
             };
 
-            void log_sdl_error(const std::string& title = "")
+            void log_sdl_error(const char* title = "unknown") noexcept
             {
-                if(!title.empty()) std::cout << "[" << title << "] ";
-                std::cout << "error: " << SDL_GetError() << std::endl;
+                std::cout << "[" << title << "] "
+                          << "sdl error: " << SDL_GetError() << std::endl;
             }
         }
     }

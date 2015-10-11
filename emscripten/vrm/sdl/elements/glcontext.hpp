@@ -6,6 +6,7 @@
 #pragma once
 
 #include <vrm/sdl/math.hpp>
+#include <vrm/sdl/dependencies.hpp>
 #include <vrm/sdl/common.hpp>
 
 namespace vrm
