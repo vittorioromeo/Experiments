@@ -17,197 +17,169 @@ namespace vrm
 {
     namespace sdl
     {
+        auto make_2d_projection(float width, float height)
+        {
+            return glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
+        }
 
-        const char* sprite_vertex_glsl = R"(
-    attribute vec4 vd; 
-    // vec2 tex_coords;
-    
-    uniform mat4 model;
-    uniform mat4 view;
-    uniform mat4 projection;
+        namespace impl
+        {
+            auto make_sprite_renderer_program()
+            {
+                constexpr auto v_sh_path("vrm/sdl/glsl/sprite.vert");
+                constexpr auto f_sh_path("vrm/sdl/glsl/sprite.frag");
 
-    varying vec2 var_tex_coords;
+                auto v_sh(make_shader_from_file<shader_t::vertex>(v_sh_path));
+                auto f_sh(make_shader_from_file<shader_t::fragment>(f_sh_path));
 
-    void main()
-    {
-        var_tex_coords = vd.zw;
-        gl_Position = projection * view * model * vec4(vd.xy, 0.0, 1.0);
-        // gl_Position = projection * vec4(position.xy, 0.0, 1.0);
-        // gl_Position = vec4(position.xy, 0.0, 1.0);
-    })";
-
-        const char* sprite_fragment_glsl = R"(
-    precision mediump float;
-
-    uniform sampler2D uf_tex;
-    varying vec2 var_tex_coords;
-
-    void main()
-    {      
-       // gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);        
-        gl_FragColor = texture2D(uf_tex, var_tex_coords);
-    })";
+                return make_program(*v_sh, *f_sh);
+            }
+        }
 
         struct sprite_renderer
         {
-            program _program;
+            program _program{impl::make_sprite_renderer_program()};
             sdl::impl::unique_vao _vao;
 
             glm::mat4 model;
             glm::mat4 view;
             glm::mat4 projection;
 
-            std::vector<float> vertices{0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-                1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+            sdl::uniform uf_model;
+            sdl::uniform uf_view;
+            sdl::uniform uf_projection;
+            sdl::uniform uf_tex;
 
-                0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-                1.0f, 0.0f};
+            std::vector<float> vertices_old{
+                0.0f, 1.0f, // 0.xy
+                0.0f, 1.0f, // 0.zw
 
+                1.0f, 0.0f, // 1.xy
+                1.0f, 0.0f, // 1.zw
+
+                0.0f, 0.0f, // 2.xy
+                0.0f, 0.0f, // 2.zw
+
+                0.0f, 1.0f, // 3.xy
+                0.0f, 1.0f, // 3.zw
+
+                1.0f, 1.0f, // 4.xy
+                1.0f, 1.0f, // 4.zw
+
+                1.0f, 0.0f, // 5.xy
+                1.0f, 0.0f  // 5.zw
+            };
+
+            std::vector<float> vertices{
+                -1.f, -1.f, // sw
+                -1.f, -1.f, // sw
+
+                -1.f, 1.f, // nw
+                -1.f, 1.f, // nw
+
+                1.f, -1.f, // ne
+                1.f, -1.f, // ne
+
+                1.f, -1.f, // se
+                1.f, -1.f, // se
+            };
+
+            std::vector<GLubyte> indices{
+                0, 1, 2, // first triangle
+                0, 2, 3  // second triangle
+            };
 
             sprite_renderer()
             {
-                auto v_sh = make_shader(GL_VERTEX_SHADER, &sprite_vertex_glsl);
-                auto f_sh =
-                    make_shader(GL_FRAGMENT_SHADER, &sprite_fragment_glsl);
-
-                _program = make_program(*v_sh, *f_sh);
-
-                projection =
-                    glm::ortho(0.0f, 1000.0f, 600.0f, 0.0f, -1.0f, 1.0f);
-
+                projection = make_2d_projection(1000.f, 600.f);
                 init_render_data();
             }
 
-            void init_render_data()
+            void init_render_data() noexcept
             {
-                auto use_vertex_attribute = [this](
-                    const auto& name, auto type, auto n_values, auto offset)
-                {
-                    auto a(_program.get_attribute(name));
-
-                    // std::cout << "enabling " << name << ": " << a.location()
-                    // <<"\n";
-
-                    a.enable();
-                    // a.vertex_attrib_pointer(n_values, type, true,
-                    // sizeof(float), (void*)offset);
-                    // glVertexAttribPointer(a.location(), 2, GL_FLOAT,
-                    // GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-                };
-
-
+                // TODO: required?
                 _program.use();
 
-                // glGenVertexArrays(1, &this->quadVAO);
                 _vao = make_vao(1);
 
-
-                // glGenBuffers(1, &VBO);
-                auto vbo = sdl::make_vbo<GL_ARRAY_BUFFER>(1);
+                auto vbo = sdl::make_vbo<buffer_target::array>(1);
                 vbo->with([&, this]
                     {
-                        // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-                        //
-
-                        vbo->buffer_data(
-                            GL_STATIC_DRAW, vertices.data(), vertices.size());
-                        // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices),
-                        // vertices, GL_STATIC_DRAW);
-                        // VRM_SDL_GLCHECK(glBufferData(GL_ARRAY_BUFFER,
-                        // sizeof(vertices), vertices, GL_STATIC_DRAW));
-
+                        vbo->buffer_data<buffer_usage::static_draw>(vertices);
 
                         _vao->with([&, this]
                             {
-                                // glBindVertexArray(this->quadVAO);
-
-                                // Enable pos attribute
-                                // use_vertex_attribute(
-                                //    "position", GL_FLOAT, 2, 0);
-
-                                VRM_SDL_GLCHECK(glEnableVertexAttribArray(0));
-
-                                VRM_SDL_GLCHECK(glVertexAttribPointer(0, 4,
-                                    GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat),
-                                    (GLvoid*)0));
-
-                                // use_vertex_attribute("tex_coords", GL_FLOAT,
-                                // 2,
-                                //  sizeof(float) * 2);
-
-                                // VRM_SDL_GLCHECK(glEnableVertexAttribArray(1));
-
-                                // VRM_SDL_GLCHECK(glVertexAttribPointer(1, 2,
-                                //     GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat),
-                                //    (GLvoid*)(2 * sizeof(GLfloat))));
+                                _program.nth_attribute(0)
+                                    .enable()
+                                    .vertex_attrib_pointer_float(4, false, 0);
                             });
                     });
 
+                auto vbo2 = sdl::make_vbo<buffer_target::element_array>(1);
+                vbo2->with([&, this]
+                    {
+                        vbo2->buffer_data<buffer_usage::static_draw>(indices);
+                    });
 
-                // _program.use();
-                // glEnableVertexAttribArray(0);
-                // glVertexAttribPointer(
-                // 0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-                // glBindBuffer(GL_ARRAY_BUFFER, 0);
-                // glBindVertexArray(0);
+                // Set model/view/projection uniform matrices.
+                uf_model = _program.get_uniform("model");
+                uf_view = _program.get_uniform("view");
+                uf_projection = _program.get_uniform("projection");
+                uf_tex = _program.get_uniform("uf_tex");
             }
 
-            void draw_sprite(impl::gltexture2d& t, const glm::vec2& position,
-                const glm::vec2& size, float radians)
-            {
-                _program.use();
+            void use() { _program.use(); }
 
+            void draw_sprite(impl::gltexture2d& t, const glm::vec2& position,
+                const glm::vec2& origin, const glm::vec2& size,
+                float radians) noexcept
+            {
+                // Reset `model` to identity matrix.
                 model = glm::mat4{};
 
+                // Tranformation order:
+                // 1) Scale.
+                // 2) Rotate.
+                // 3) Translate.
 
+                // They will occur in the opposite order below.
+
+                // Translate to `position`.
                 model = glm::translate(model, glm::vec3(position, 0.0f));
 
-                model = glm::translate(
-                    model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f));
-
+                // Rotate around origin.
                 model =
                     glm::rotate(model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
 
+                // Set origin to the center of the quad.
+                model = glm::translate(model, glm::vec3(-origin, 0.0f));
+
+                // Set origin back to `(0, 0)`.
                 model = glm::translate(
                     model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
 
-                model = glm::scale(model, glm::vec3(size, 1.0f)); // Last scale
+                // Scale to `size`.
+                model = glm::scale(model, glm::vec3(size, 1.0f));
 
-                // printf("%f, %f\n", position.x, position.y);
-                glm::vec4 result =
-                    projection * view * model * glm::vec4(position, 0.f, 1.f);
-                //printf("%f, %f\n\n", result.x, result.y);
+                // Set model/view/projection uniform matrices.
+                uf_model.matrix4fv(model);
+                uf_view.matrix4fv(view);
+                uf_projection.matrix4fv(projection);
 
-                _program.get_uniform("uf_tex").integer(0);
-
-                _program.get_uniform("model").matrix4fv(model);
-                _program.get_uniform("view").matrix4fv(view);
-                _program.get_uniform("projection").matrix4fv(projection);
-
-                VRM_SDL_GLCHECK(glActiveTexture(GL_TEXTURE0));
-                t.bind();
-
-                // texture works on EMSCRIPTEN, not on DESKTOP
-                // TODO:  write own opengl texture wrapper!!!!!
-
-                _vao->with([this]
+                // Activate texture on `GL_TEXTURE0` unit, then bind it.
+                t.with(GL_TEXTURE0, [&, this]
                     {
-                        VRM_SDL_GLCHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
-                        // VRM_SDL_GLCHECK(glDrawArrays(GL_TRIANGLES, 0, 12));
-                        // VRM_SDL_GLCHECK(glDrawArrays(GL_TRIANGLES, 0, 24));
+                        // Set texture unit uniform ID.
+                        uf_tex.integer(0);
+
+                        // Bind VAO, call `glDrawArrays`, unbind VAO.
+                        // _vao->with_draw_arrays<primitive::triangles>(0, 6);
+                        _vao->bind();
+                        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+                        _vao->unbind();
+
+                        // Unbind texture.
                     });
-
-                // this->shader.SetMatrix4("model", model);
-
-                // Render textured quad
-                // this->shader.SetVector3f("spriteColor", color);
-
-                //
-                // texture.Bind();
-
-                // glBindVertexArray(this->quadVAO);
-                // glDrawArrays(GL_TRIANGLES, 0, 6);
-                // glBindVertexArray(0);
             }
         };
     }
@@ -218,29 +190,88 @@ int main(int argc, char** argv)
     auto c_handle(sdl::make_global_context("test game", 1000, 600));
     auto& c(*c_handle);
 
-    auto toriel_image(c.make_surface("files/toriel.png"));
-    auto toriel_texture(sdl::make_gltexture2d(*toriel_image));
+    auto make_texture_from_image([&](const auto& path)
+        {
+            auto s(c.make_surface(path));
+            return sdl::make_gltexture2d(*s);
+        });
+
+    auto toriel_texture(make_texture_from_image("files/toriel.png"));
+    auto fireball_texture(make_texture_from_image("files/fireball.png"));
+    auto soul_texture(make_texture_from_image("files/soul.png"));
 
     sdl::sprite_renderer sr;
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     float timer{10};
+    float rot = 0.f;
 
     c.update_fn() = [&](auto)
     {
-        if(timer-- <= 0)
+        if(c.btn(sdl::mbtn::left))
         {
-            // c.title(std::to_string(c.fps()));
+            c.title(std::to_string(c.fps()));
         }
     };
 
 
     c.draw_fn() = [&]
     {
-        //for(auto i = 0; i < 1000; ++i)
-        sr.draw_sprite(*toriel_texture, glm::vec2{20, 20},
-            glm::vec2{100, 200}, 0.f);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        sr.use();
+
+        ++timer;
+
+        sr.view = glm::translate(sr.view, glm::vec3(500.f, 300.f, 0.f));
+        sr.view = glm::scale(sr.view, glm::vec3(0.995f, 0.995f, 1.f));
+        sr.view = glm::translate(sr.view, glm::vec3(-500.f, -300.f, 0.f));
+
+        for(auto ix = 0; ix < 100; ++ix)
+            for(auto iy = 0; iy < 70; ++iy)
+            {
+                sr.draw_sprite(                                // .
+                    *soul_texture,                             // texture
+                    glm::vec2{10 + ix * 16.f, 10 + iy * 18.f}, // position
+                    glm::vec2{ix - iy % 15 * (timer * 3),
+                        ix + (iy * ix) % 40}, // origin [(0, 0) is center]
+                    glm::vec2{soul_texture->size() *
+                              (((ix + iy) % 4) * 0.85f)}, // size
+                    rot * (((ix * iy) % 5 + 1) * 0.3f)    // radians
+                    );
+            }
+
+        for(auto ix = 0; ix < 70; ++ix)
+            for(auto iy = 0; iy < 50; ++iy)
+            {
+                sr.draw_sprite(                                // .
+                    *fireball_texture,                         // texture
+                    glm::vec2{10 + ix * 24.f, 10 + iy * 24.f}, // position
+                    glm::vec2{ix + iy % 20 * timer,
+                        ix * iy % 30}, // origin [(0, 0) is center]
+                    glm::vec2{fireball_texture->size() *
+                              (((ix + iy) % 3) * 0.85f)}, // size
+                    rot * (((ix + iy) % 4 + 1) * 0.3f)    // radians
+                    );
+            }
+
+
+        for(auto ix = 0; ix < 16; ++ix)
+            for(auto iy = 0; iy < 8; ++iy)
+            {
+                sr.draw_sprite(                                 // .
+                    *toriel_texture,                            // texture
+                    glm::vec2{10 + ix * 70.f, 10 + iy * 150.f}, // position
+                    glm::vec2{(int)timer % 200, (int)timer % 100} *
+                        10.f, // origin [(0, 0) is center]
+                    glm::vec2{toriel_texture->size() *
+                              (((ix + iy) % 3) * 0.95f)}, // size
+                    rot * (((ix + iy) % 4 + 1) * 0.3f)    // radians
+                    );
+            }
+
+        rot += 0.05f;
     };
 
     sdl::run_global_context();

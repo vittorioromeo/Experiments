@@ -35,7 +35,25 @@
 #pragma once
 
 #include <vrm/sdl/common.hpp>
-#include <vrm/sdl/gl/macros.hpp>
+
+#ifndef NDEBUG
+
+#define VRM_SDL_GLCHECK(...)                                                \
+    do                                                                      \
+    {                                                                       \
+        __VA_ARGS__;                                                        \
+        ::vrm::sdl::impl::gl_check_error(__FILE__, __LINE__, #__VA_ARGS__); \
+    } while(false)
+
+#else
+
+#define VRM_SDL_GLCHECK(...) \
+    do                       \
+    {                        \
+        __VA_ARGS__;         \
+    } while(false)
+
+#endif
 
 namespace vrm
 {

@@ -7,6 +7,8 @@
 
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/context.hpp>
+#include <vrm/sdl/gl/check.hpp>
+#include <vrm/sdl/gl/primitive.hpp>
 
 namespace vrm
 {
@@ -21,27 +23,46 @@ namespace vrm
                 vao() = default;
                 vao(GLuint n) noexcept : _n{n} {}
 
-                void generate()
+                void generate() noexcept
                 {
                     VRM_SDL_GLCHECK(glGenVertexArraysOES(_n, &_id));
                 }
-                void deleteVAO()
+                void deleteVAO() noexcept
                 {
                     VRM_SDL_GLCHECK(glDeleteVertexArraysOES(_n, &_id));
                 }
-                void bind()
+                void bind() noexcept
                 {
                     // std::cout << "bound vao " << _id << "\n";
                     VRM_SDL_GLCHECK(glBindVertexArrayOES(_id));
                 }
-                void unbind() { VRM_SDL_GLCHECK(glBindVertexArrayOES(0)); }
+                void unbind() noexcept
+                {
+                    VRM_SDL_GLCHECK(glBindVertexArrayOES(0));
+                }
 
                 template <typename TF>
-                void with(TF&& f)
+                void with(TF&& f) noexcept
                 {
                     bind();
                     f();
                     unbind();
+                }
+
+                template <primitive TP>
+                void draw_arrays(GLint first, GLsizei count) noexcept
+                {
+                    VRM_SDL_GLCHECK(
+                        glDrawArrays(impl::primitive_value<TP>, first, count));
+                }
+
+                template <primitive TP>
+                void with_draw_arrays(GLint first, GLsizei count) noexcept
+                {
+                    with([this, first, count]
+                        {
+                            draw_arrays<TP>(first, count);
+                        });
                 }
             };
 
@@ -57,7 +78,7 @@ namespace vrm
             using unique_vao = unique_resource<impl::vao, gl_vao_deleter>;
         }
 
-        auto make_vao(GLuint n)
+        auto make_vao(GLuint n) noexcept
         {
             impl::vao v{n};
             v.generate();

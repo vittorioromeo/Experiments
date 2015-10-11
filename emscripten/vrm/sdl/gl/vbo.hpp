@@ -7,45 +7,103 @@
 
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/context.hpp>
+#include <vrm/sdl/gl/check.hpp>
 
 namespace vrm
 {
     namespace sdl
     {
+        enum class buffer_target
+        {
+            array,
+            element_array
+        };
+
         namespace impl
         {
-            template <GLenum TTarget>
+            template <buffer_target TV>
+            constexpr GLenum buffer_target_value{GL_ARRAY_BUFFER};
+
+            template <>
+            constexpr GLenum buffer_target_value<buffer_target::element_array>{
+                GL_ELEMENT_ARRAY_BUFFER};
+        }
+
+        enum class buffer_usage
+        {
+            stream_draw,
+            static_draw,
+            dynamic_draw
+        };
+
+        namespace impl
+        {
+            template <buffer_usage TV>
+            constexpr GLenum buffer_usage_value{GL_STREAM_DRAW};
+
+            template <>
+            constexpr GLenum buffer_usage_value<buffer_usage::static_draw>{
+                GL_STATIC_DRAW};
+
+            template <>
+            constexpr GLenum buffer_usage_value<buffer_usage::dynamic_draw>{
+                GL_DYNAMIC_DRAW};
+        }
+
+
+        namespace impl
+        {
+            template <buffer_target TTarget>
             struct vbo
             {
+                static constexpr GLenum target_value{
+                    impl::buffer_target_value<TTarget>};
+
                 GLuint _id, _n;
 
                 vbo() = default;
                 vbo(GLuint n) noexcept : _n{n} {}
 
-                void generate() { VRM_SDL_GLCHECK(glGenBuffers(_n, &_id)); }
-                void deleteVBO() { VRM_SDL_GLCHECK(glDeleteBuffers(_n, &_id)); }
-                void bind()
+                void generate() noexcept
+                {
+                    VRM_SDL_GLCHECK(glGenBuffers(_n, &_id));
+                }
+                void deleteVBO() noexcept
+                {
+                    VRM_SDL_GLCHECK(glDeleteBuffers(_n, &_id));
+                }
+                void bind() noexcept
                 {
                     // std::cout << "bound vbo " << _id << "\n";
-                    VRM_SDL_GLCHECK(glBindBuffer(TTarget, _id));
+                    VRM_SDL_GLCHECK(glBindBuffer(target_value, _id));
                 }
-                void unbind() { VRM_SDL_GLCHECK(glBindBuffer(TTarget, 0)); }
+                void unbind() noexcept
+                {
+                    VRM_SDL_GLCHECK(glBindBuffer(target_value, 0));
+                }
 
-                template <typename T>
-                void buffer_data(GLenum usage, T* data, sz_t count)
+                template <buffer_usage TUsage, typename T>
+                void buffer_data(T* data, sz_t count) noexcept
                 {
                     VRM_SDL_GLCHECK(
-                        glBufferData(TTarget, count * sizeof(T), data, usage));
+                        glBufferData(target_value, count * sizeof(T), data,
+                            impl::buffer_usage_value<TUsage>));
                 }
 
-                template <typename T, sz_t TN>
-                void buffer_data(GLenum usage, T(&arr)[TN])
+                template <buffer_usage TUsage, typename T, sz_t TN>
+                void buffer_data(T(&arr)[TN]) noexcept
                 {
-                    buffer_data(usage, &arr[0], TN);
+                    buffer_data<TUsage>(&arr[0], TN);
+                }
+
+                template <buffer_usage TUsage, typename T>
+                void buffer_data(const std::vector<T>& vec) noexcept
+                {
+                    buffer_data<TUsage>(vec.data(), vec.size());
                 }
 
                 template <typename TF>
-                void with(TF&& f)
+                void with(TF&& f) noexcept
                 {
                     bind();
                     f();
@@ -63,13 +121,13 @@ namespace vrm
                 }
             };
 
-            template <GLenum TTarget>
+            template <buffer_target TTarget>
             using unique_vbo =
                 unique_resource<impl::vbo<TTarget>, gl_vbo_deleter>;
         }
 
-        template <GLenum TTarget>
-        auto make_vbo(GLuint n)
+        template <buffer_target TTarget>
+        auto make_vbo(GLuint n) noexcept
         {
             impl::vbo<TTarget> v{n};
             v.generate();

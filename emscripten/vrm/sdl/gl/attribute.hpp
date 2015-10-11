@@ -7,7 +7,7 @@
 
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/context.hpp>
-#include <vrm/sdl/gl/macros.hpp>
+#include <vrm/sdl/gl/check.hpp>
 #include <vrm/sdl/gl/shader.hpp>
 
 namespace vrm
@@ -20,25 +20,39 @@ namespace vrm
             GLuint _location;
 
         public:
+            attribute() = default;
             attribute(GLuint location) noexcept : _location{location} {}
 
-            void enable() noexcept
+            auto& enable() noexcept
             {
                 VRM_SDL_GLCHECK(glEnableVertexAttribArray(_location));
-            }
-            void disable() noexcept
-            {
-                VRM_SDL_GLCHECK(glDisableVertexAttribArray(_location));
+                return *this;
             }
 
-            void vertex_attrib_pointer(sz_t n_components, GLenum type,
+            auto& disable() noexcept
+            {
+                VRM_SDL_GLCHECK(glDisableVertexAttribArray(_location));
+                return *this;
+            }
+
+            auto& vertex_attrib_pointer(sz_t n_components, GLenum type,
                 bool normalized = true, sz_t stride = 0,
-                const GLvoid* first_element = nullptr)
+                const GLvoid* first_element = nullptr) noexcept
             {
                 assert(n_components > 0 && n_components < 5);
 
                 VRM_SDL_GLCHECK(glVertexAttribPointer(_location, n_components,
                     type, normalized, stride, first_element));
+
+                return *this;
+            }
+
+            auto& vertex_attrib_pointer_float(sz_t n_components,
+                bool normalized = true,
+                const GLvoid* first_element = nullptr) noexcept
+            {
+                return vertex_attrib_pointer(n_components, GL_FLOAT, normalized,
+                    sizeof(float) * n_components, first_element);
             }
 
             auto location() const noexcept { return _location; }
@@ -50,6 +64,7 @@ namespace vrm
             GLuint _location;
 
         public:
+            uniform() = default;
             uniform(GLuint location) noexcept : _location{location} {}
 
             void matrix4fv(sz_t count, bool transpose, const GLfloat* value)
@@ -63,7 +78,10 @@ namespace vrm
                 matrix4fv(1, false, glm::value_ptr(m));
             }
 
-            void integer(int x) noexcept { VRM_SDL_GLCHECK(glUniform1i(_location, x)); }
+            void integer(int x) noexcept
+            {
+                VRM_SDL_GLCHECK(glUniform1i(_location, x));
+            }
 
 
             auto location() const noexcept { return _location; }

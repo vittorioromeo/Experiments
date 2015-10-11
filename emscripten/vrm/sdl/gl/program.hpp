@@ -7,6 +7,7 @@
 
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/context.hpp>
+#include <vrm/sdl/gl/check.hpp>
 #include <vrm/sdl/gl/shader.hpp>
 #include <vrm/sdl/gl/attribute.hpp>
 
@@ -50,28 +51,32 @@ namespace vrm
 
             void use() noexcept { glUseProgram(*id); }
 
-            auto get_attribute(const std::string& a_name) const noexcept
+            auto nth_attribute(GLuint location) const noexcept
             {
-                GLuint location;
-
-                VRM_SDL_GLCHECK(
-                    location = glGetAttribLocation(*id, a_name.c_str()););
-
                 assert(location != GL_INVALID_OPERATION);
-
                 return attribute{location};
             }
 
-            auto get_uniform(const std::string& a_name) const noexcept
+            auto nth_uniform(GLuint location) const noexcept
+            {
+                assert(location != GL_INVALID_OPERATION);
+                return uniform{location};
+            }
+
+            auto get_attribute(const char* name) const noexcept
             {
                 GLuint location;
+                VRM_SDL_GLCHECK(location = glGetAttribLocation(*id, name));
 
-                VRM_SDL_GLCHECK(
-                    location = glGetUniformLocation(*id, a_name.c_str()););
+                return nth_attribute(location);
+            }
 
-                assert(location != GL_INVALID_OPERATION);
+            auto get_uniform(const char* name) const noexcept
+            {
+                GLuint location;
+                VRM_SDL_GLCHECK(location = glGetUniformLocation(*id, name));
 
-                return uniform{location};
+                return nth_uniform(location);
             }
         };
 
@@ -79,7 +84,7 @@ namespace vrm
         auto make_program(TShaders&&... mShaders) noexcept
         {
             GLuint id;
-            VRM_SDL_GLCHECK(id = glCreateProgram(););
+            VRM_SDL_GLCHECK(id = glCreateProgram());
 
             impl::unique_program res{id};
             program p{std::move(res)};
@@ -87,102 +92,6 @@ namespace vrm
             p.attach_and_link(FWD(mShaders)...);
 
             return p;
-        }
-
-        namespace impl
-        {
-            class gltexture2d
-            {
-            private:
-                GLuint _id;
-
-                GLuint _width{0}, _height{0};
-
-                // GLuint _internal_format{GL_RGB};
-                // GLuint _image_format{GL_RGB};
-
-                // GLuint _wrap_s{GL_REPEAT};
-                // GLuint _wrap_t{GL_REPEAT};
-                //GLuint _filter_min{GL_LINEAR};
-               // GLuint _filter_max{GL_LINEAR};
-
-            public:
-                gltexture2d() { VRM_SDL_GLCHECK(glGenTextures(1, &_id)); }
-
-                void generate(
-                    GLuint mode, GLuint width, GLuint height, const void* data)
-                {
-                    _width = width;
-                    _height = height;
-
-                    bind();
-
-                    VRM_SDL_GLCHECK(glTexImage2D(GL_TEXTURE_2D, 0, mode, width,
-                        height, 0, mode, GL_UNSIGNED_BYTE, data));
-
-                    VRM_SDL_GLCHECK(glTexParameteri(
-                        GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-
-                    VRM_SDL_GLCHECK(glTexParameteri(
-                        GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-
-                    VRM_SDL_GLCHECK(glTexParameteri(
-                        GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-
-                    VRM_SDL_GLCHECK(glTexParameteri(
-                        GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
-                    unbind();
-                }
-
-                void bind()
-                {
-                    VRM_SDL_GLCHECK(glBindTexture(GL_TEXTURE_2D, _id));
-                }
-                void unbind()
-                {
-                    VRM_SDL_GLCHECK(glBindTexture(GL_TEXTURE_2D, 0));
-                }
-
-                template <typename TF>
-                void with(TF&& f)
-                {
-                    bind();
-                    f();
-                    unbind();
-                }
-
-                void deletetx() { VRM_SDL_GLCHECK(glDeleteTextures(1, &_id)); }
-            };
-
-            struct gltexture2d_deleter
-            {
-                void operator()(gltexture2d& t) noexcept { t.deletetx(); }
-            };
-
-            using unique_gltexture2d =
-                unique_resource<impl::gltexture2d, gltexture2d_deleter>;
-        }
-
-        auto next_pow2(int x)
-        {
-            return std::pow(2, std::ceil(std::log(x) / std::log(2)));
-        }
-
-        auto make_gltexture2d(surface& s)
-        {
-            impl::gltexture2d t;
-
-            auto mode(GL_RGB);
-
-            if(s.format()->BytesPerPixel == 4)
-            {
-                mode = GL_RGBA;
-            }
-
-            t.generate(mode, s.width(), s.height(), s.pixels());
-
-            return impl::unique_gltexture2d{t};
         }
     }
 }
