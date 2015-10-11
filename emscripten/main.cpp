@@ -280,7 +280,7 @@ int main(int argc, char** argv)
         // e._sprite = c.make_sprite(*soul_texture);
         // e._sprite.set_origin_to_center();
 
-        e._update_fn = [&](auto& x, auto)
+        e._update_fn = [&](auto& x, auto step)
         {
             constexpr float speed{5.f};
             sdl::vec2f input;
@@ -295,7 +295,7 @@ int main(int argc, char** argv)
             else if(c.key(sdl::kkey::down))
                 input.y = 1;
 
-            x._pos += input * speed;
+            x._pos += input * (speed * step);
         };
 
         e._draw_fn = [&](auto& x)
@@ -310,17 +310,20 @@ int main(int argc, char** argv)
     {
         entity e;
         e._pos = pos;
+        e._radians = static_cast<float>(rand() % 6280) / 1000.f;
         e._origin = glm::vec2{0, 0};
         e._texture = *fireball_texture;
         e._size = glm::vec2{fireball_texture->size()};
         e._hitbox_radius = 3.f;
 
-
-        e._update_fn = [&, vel, speed, life = 100.f ](auto& x, auto) mutable
+        e._update_fn = [&, vel, speed, life = 100.f, dir = rand() % 2 ](
+            auto& x, auto step) mutable
         {
-            x._pos += vel * speed;
+            x._pos += vel * (speed * step);
+            x._radians += dir ? 0.2 * step : -0.2 * step;
 
-            if(life-- <= 0.f) x.alive = false;
+            life -= step * 0.3f;
+            if(life <= 0.f) x.alive = false;
         };
 
         e._draw_fn = [&](auto& x)
@@ -340,11 +343,14 @@ int main(int argc, char** argv)
         e._size = glm::vec2{toriel_texture->size()};
         e._hitbox_radius = 30.f;
 
-        e._update_fn = [&](auto& x, auto)
+        e._update_fn = [&, timer = 25.f ](auto& x, auto step) mutable
         {
-            if((rand() % 100) > 30)
+            timer -= step;
+            if(timer <= 0.f)
             {
-                for(int i = 0; i < 30; ++i)
+                timer = 25.f;
+
+                for(int i = 0; i < 15; ++i)
                     if(entities.size() < max_entities)
                         entities.emplace_back(make_fireball(x._pos,
                             sdl::make_vec2(-2.f + (rand() % 500) / 100.f, 2.f),
@@ -363,10 +369,10 @@ int main(int argc, char** argv)
     entities.emplace_back(make_toriel(sdl::make_vec2(500.f, 100.f)));
     entities.emplace_back(make_soul(sdl::make_vec2(500.f, 500.f)));
 
-    c.update_fn() = [&](auto ft)
+    c.update_fn() = [&](auto step)
     {
+        for(auto& e : entities) e._update_fn(e, step);
 
-        for(auto& e : entities) e._update_fn(e, ft);
         entities.erase(std::remove_if(std::begin(entities), std::end(entities),
                            [](auto& e)
                            {
@@ -374,20 +380,29 @@ int main(int argc, char** argv)
                            }),
             std::end(entities));
 
+        if(c.key(sdl::kkey::q)) c.fps_limit += step;
+        if(c.key(sdl::kkey::e)) c.fps_limit -= step;
 
-        if(c.key(sdl::kkey::escape)) sdl::stop_global_context();
+        if(c.key(sdl::kkey::escape))
+        {
+            sdl::stop_global_context();
+        }
 
-         if(rand() % 100 < 30)
-            c.title(std::to_string(c.fps()));
+        if(rand() % 100 < 30)
+        {
+            c.title(std::to_string(c.fps_limit) + " | " + std::to_string(c._static_timer._loops) +
+                    " ||| " + std::to_string(c.fps()) + " | " +
+                    std::to_string(c.real_ms()) + " | " +
+                    std::to_string(c.update_ms()));
+        }
+
+        // std::cout << c.real_ms() << "\n";
     };
 
     c.draw_fn() = [&]
     {
-        
-  
         sr.use();
         for(auto& e : entities) e._draw_fn(e);
-
     };
 
     sdl::run_global_context();
@@ -395,6 +410,7 @@ int main(int argc, char** argv)
     return 0;
 }
 
+/*
 int main_stress(int argc, char** argv)
 {
     auto c_handle(sdl::make_global_context("test game", 1000, 600));
@@ -487,3 +503,4 @@ int main_stress(int argc, char** argv)
     sdl::run_global_context();
     return 0;
 }
+*/

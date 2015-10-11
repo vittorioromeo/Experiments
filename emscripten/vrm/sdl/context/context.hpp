@@ -19,9 +19,42 @@ namespace vrm
     {
         namespace impl
         {
+            class static_timer
+            {
+                // TODO:
+            public:
+                ft _step, _time_slice, _time{0};
+                float _max_loops, _loops{0};
+
+            public:
+                static_timer(ft step = 1.f, ft time_slice = 16.f,
+                    float max_loops = 50.f) noexcept : _step{step},
+                                                       _time_slice{time_slice},
+                                                       _max_loops{max_loops}
+                {
+                }
+
+                template <typename TF>
+                void run(ft frame_time, TF&& f)
+                {
+                    _loops = 0;
+                    _time += frame_time;
+
+                    while(_time >= _time_slice && _loops < _max_loops)
+                    {
+                        f(_step);
+                        _time -= _time_slice;
+                        ++_loops;
+                    }
+
+                    //  std::cout << "loops: " << _loops << "\n";
+                }
+            };
+
             class context
             {
-            private:
+                // TODO:
+            public:
                 const sz_t _width;
                 const sz_t _height;
 
@@ -29,6 +62,8 @@ namespace vrm
                 unique_glcontext _glcontext;
 
                 SDL_Event _event;
+
+                static_timer _static_timer;
 
                 key_event_handler _on_key_down{null_key_event_handler()};
                 key_event_handler _on_key_up{null_key_event_handler()};
@@ -44,6 +79,8 @@ namespace vrm
                 hr_duration _total_duration;
                 hr_duration _real_duration;
 
+                double test_now;
+
                 input_state _input_state;
 
                 auto& on_key_up() noexcept;
@@ -58,13 +95,17 @@ namespace vrm
 
             private:
                 void run_events();
-                void run_update();
+                void run_update(ft step);
                 void run_draw();
 
                 template <typename T>
                 auto ms_from_duration(const T& duration) const noexcept;
 
             public:
+                float fps_limit{60.0};
+
+                float ms_limit() const noexcept { return 1000.f / fps_limit; }
+
                 context(const std::string& title, std::size_t width,
                     std::size_t height);
 

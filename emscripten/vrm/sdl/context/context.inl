@@ -68,7 +68,7 @@ namespace vrm
                 }
             }
 
-            void context::run_update() { update_fn()(1.f); }
+            void context::run_update(ft step) { update_fn()(step); }
             void context::run_draw()
             {
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
@@ -129,50 +129,10 @@ namespace vrm
             }
 
 
-
-            void context::run()
-            {
-                auto time_dur([](auto&& f)
-                    {
-                        auto ms_start(hr_clock::now());
-                        f();
-
-                        return hr_clock::now() - ms_start;
-                    });
-
-                _real_duration = time_dur([&, this]
-                    {
-                        _total_duration = time_dur([&, this]
-                            {
-                                run_events();
-
-                                _update_duration = time_dur([this]
-                                    {
-                                        run_update();
-                                    });
-
-                                _draw_duration = time_dur([this]
-                                    {
-                                        run_draw();
-                                    });
-                            });
-
-                        constexpr auto fps_limit(144.f);
-                        constexpr auto ms_limit(
-                            ms_float_duration(1000.f / fps_limit));
-
-                        if(_total_duration < ms_limit)
-                        {
-                            std::this_thread::sleep_for(
-                                ms_limit - _total_duration);
-                        }
-                    });
-            }
-
             template <typename T>
             auto context::ms_from_duration(const T& duration) const noexcept
             {
-                return std::chrono::duration_cast<ms_float_duration>(duration)
+                return std::chrono::duration_cast<ms_double_duration>(duration)
                     .count();
             }
 
@@ -192,6 +152,61 @@ namespace vrm
             {
                 return ms_from_duration(real_duration());
             }
+
+            void context::run()
+            {
+                auto time_dur([](auto&& f)
+                    {
+                        auto ms_start(hr_clock::now());
+                        f();
+
+                        return hr_clock::now() - ms_start;
+                    });
+
+                //  auto diff = emscripten_get_now() - test_now;
+
+
+                _real_duration = time_dur([&, this]
+                    {
+                        _total_duration = time_dur([&, this]
+                            {
+                                run_events();
+
+                                _update_duration = time_dur([&, this]
+                                    {
+                                        _static_timer.run(real_ms(),
+                                            [&, this](auto step)
+                                            {
+                                                run_update(step);
+                                            });
+                                    });
+
+                                _draw_duration = time_dur([this]
+                                    {
+                                        run_draw();
+                                    });
+                            });
+
+
+                    
+
+                        if(total_ms() < ms_limit())
+                        {
+                            auto delay_ms(ms_limit() - total_ms());
+                            SDL_Delay(std::round(delay_ms));
+                        }
+
+                        /*if(diff < ms_limit)
+                        {
+                            auto delay_ms(ms_limit - diff);
+                            SDL_Delay(std::round(delay_ms));
+                        }*/
+                    });
+
+                // test_now = emscripten_get_now();
+            }
+
+
 
             auto context::fps() const noexcept
             {

@@ -18,6 +18,7 @@ namespace vrm
         using hr_duration = typename hr_clock::duration;
 
         using ms_float_duration = std::chrono::duration<float, std::milli>;
+        using ms_double_duration = std::chrono::duration<double, std::milli>;
 
         using sz_t = std::size_t;
         using ft = float;
