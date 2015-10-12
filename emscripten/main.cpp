@@ -141,7 +141,8 @@ namespace vrm
             sdl::uniform _u_color;
             sdl::uniform _u_hue;
 
-            texture_cache<impl::get_valid_texture_unit_count(500)> _texture_cache;
+            texture_cache<impl::get_valid_texture_unit_count(500)>
+                _texture_cache;
 
             float _vertices[16]{
                 0.f, 1.f, // sw
@@ -260,7 +261,7 @@ namespace vrm
                 _u_hue.floating(hue);
 
                 // Assumes the VBOs, VAO, and texture unit are bound.
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+                _vao->draw_elements<primitive::triangles>(GL_UNSIGNED_BYTE, 6);
             }
 
             void draw_sprite(const sprite_data& d) noexcept

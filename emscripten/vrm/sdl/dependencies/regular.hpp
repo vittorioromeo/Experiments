@@ -11,9 +11,6 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 
-// #include <GL/glew.h> 
-// #include <GL/glut.h>
-
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL2/SDL_opengl.h>
 

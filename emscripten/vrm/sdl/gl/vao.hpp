@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <vrm/sdl/dependencies.hpp>
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/context.hpp>
 #include <vrm/sdl/gl/check.hpp>
@@ -57,11 +58,28 @@ namespace vrm
                 }
 
                 template <primitive TP>
-                void with_draw_arrays(GLint first, GLsizei count) noexcept
+                void draw_elements(
+                    GLenum index_type, GLsizei count, sz_t offset = 0) noexcept
                 {
-                    with([this, first, count]
+                    VRM_SDL_GLCHECK(glDrawElements(impl::primitive_value<TP>,
+                        count, index_type, (void*)offset));
+                }
+
+                template <primitive TP, typename... Ts>
+                void with_draw_arrays(Ts&&... xs) noexcept
+                {
+                    with([this, &xs...]
                         {
-                            draw_arrays<TP>(first, count);
+                            draw_arrays<TP>(FWD(xs)...);
+                        });
+                }
+
+                template <primitive TP, typename... Ts>
+                void with_draw_elements(Ts&&... xs) noexcept
+                {
+                    with([this, &xs...]
+                        {
+                            draw_elements<TP>(FWD(xs)...);
                         });
                 }
             };
