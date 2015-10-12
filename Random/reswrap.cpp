@@ -2,15 +2,25 @@
 #include <memory>
 
 #define FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
+#define TYPE_W(...) typename decltype(__VA_ARGS__)::type
+
+template <typename T>
+struct type_w
+{
+    using type = T;
+};
+
 
 namespace legacy
 {
     using file_id = int;
     using vao_id = int;
 
+    file_id null_file() { return 0; }
     file_id create_file() { return 10; }
     void delete_file(file_id x) { (void)x; }
 
+    vao_id null_vao() { return 0; }
     void create_vao(vao_id* x) { *x = 10; }
     void delete_vao(vao_id x) { (void)x; }
 }
@@ -47,7 +57,7 @@ namespace interface
 
     struct file
     {
-        handle::file _handle;
+        handle::file _handle{legacy::null_file()};
 
         file() = default;
         file(handle::file handle) : _handle{handle} {}
@@ -58,7 +68,7 @@ namespace interface
 
     struct vao
     {
-        handle::vao _handle;
+        handle::vao _handle{legacy::null_vao()};
 
         vao() = default;
         vao(handle::vao handle) : _handle{handle} {}
@@ -70,7 +80,7 @@ namespace interface
     template <typename T>
     struct heap_pointer
     {
-        handle::heap_pointer<T> _handle;
+        handle::heap_pointer<T> _handle{nullptr};
 
         heap_pointer() = default;
         heap_pointer(handle::heap_pointer<T> handle) : _handle{handle} {}
@@ -85,10 +95,25 @@ namespace interface
 
 namespace behavior
 {
-    struct file
+    namespace impl
     {
+        template <typename THandle, typename TInterface,
+            bool TPropagatePtrOperators>
+        struct behavior_data
+        {
+            using handle_type = THandle;
+            using interface_type = TInterface;
 
+            type_w<handle_type> _tw_handle;
+            type_w<interface_type> _tw_interface;
 
+            static constexpr bool _propagate_ptr_operators{
+                TPropagatePtrOperators};
+        };
+    }
+
+    struct file : impl::behavior_data<handle::file, interface::file, false>
+    {
         auto null_handle() { return handle::file{0}; }
 
         auto init() { return handle::file{legacy::create_file()}; }
@@ -109,6 +134,10 @@ namespace behavior
 
     struct vao
     {
+        static constexpr bool propagate_ptr_operators{false};
+        using handle_type = handle::vao;
+        using interface_type = interface::vao;
+
         auto null_handle() { return handle::vao{0}; }
 
         auto init()
@@ -133,18 +162,23 @@ namespace behavior
     };
 
     template <typename T>
-    struct heap_pointer
+    struct heap_pointer : behavior::impl::behavior_data<handle::heap_pointer<T>,
+                              interface::heap_pointer<T>, true>
     {
+
         auto null_handle() { return nullptr; }
 
 
+        // template<typename...Ts>
+        // auto init(Ts&&... xs) { return handle::heap_pointer<T>{new
+        // T(FWD(xs)...)}; }
 
-        auto init() { return handle::heap_pointer<T>{new T}; }
+        auto init(T* p) { return handle::heap_pointer<T>{p}; }
 
         template <typename TI>
         void deinit(TI& f)
         {
-            // if(f != nullptr)
+            // if(f._handle != nullptr)
             delete f._handle;
         }
 
@@ -154,31 +188,6 @@ namespace behavior
             f._handle = null_handle();
         }
     };
-}
-
-namespace bind
-{
-    namespace impl
-    {
-        template <typename THandle, typename TInterface, typename TBehavior,
-            bool TPropagatePtrOperators = false>
-        struct resource_bind
-        {
-            static constexpr bool propagate_ptr_operators{
-                TPropagatePtrOperators};
-
-            using handle_type = THandle;
-            using interface_type = TInterface;
-            using behavior_type = TBehavior;
-        };
-    }
-
-    using file =
-        impl::resource_bind<handle::file, interface::file, behavior::file>;
-
-    template <typename T>
-    using heap_pointer = impl::resource_bind<handle::heap_pointer<T>,
-        interface::heap_pointer<T>, behavior::heap_pointer<T>, true>;
 }
 
 namespace resource
@@ -194,7 +203,7 @@ namespace resource
             template <typename T>
             auto& operator()(T&& resource)
             {
-                return *resource.interface;
+                return *resource._interface;
             }
         };
 
@@ -204,52 +213,52 @@ namespace resource
             template <typename T>
             auto& operator()(T&& resource)
             {
-                return resource.interface;
+                return resource._interface;
             }
         };
 
-        template <typename TBind>
+        template <typename TBehavior>
         class resource_base
         {
             template <bool>
             friend struct ptr_operator_propagator;
 
         protected:
-            using bind_type = TBind;
+            using behavior_type = TBehavior;
+            using handle_type = typename behavior_type::handle_type;
+            using interface_type = typename behavior_type::interface_type;
 
-            using handle_type = typename bind_type::handle_type;
-            using interface_type = typename bind_type::interface_type;
-            using behavior_type = typename bind_type::behavior_type;
-
-            using propagator =
-                ptr_operator_propagator<bind_type::propagate_ptr_operators>;
+            using propagator = ptr_operator_propagator<
+                behavior_type::_propagate_ptr_operators>;
 
         protected:
-            // handle_type handle;
-            behavior_type behavior;
-            interface_type interface;
+            // handle_type _handle;
+            behavior_type _behavior;
+            interface_type _interface;
 
         protected:
-            // void init() { interface = interface_type(behavior.init()); }
-            void deinit() { behavior.deinit(interface); }
+            // void init() { _behavior = interface_type(behavior.init()); }
+            void deinit() { _behavior.deinit(_interface); }
 
         public:
+            resource_base() : _interface(_behavior.null_handle()) {}
+
             template <typename... Ts>
             resource_base(Ts&&... xs)
-                : interface(behavior.init(FWD(xs)...))
+                : _interface(_behavior.init(FWD(xs)...))
             {
             }
 
             resource_base(resource_base&& x)
-                : behavior(std::move(x.behavior)),
-                  interface(std::move(x.interface))
+                : _behavior(std::move(x._behavior)),
+                  _interface(std::move(x._interface))
             {
             }
 
             resource_base& operator=(resource_base&& x)
             {
-                behavior = std::move(x.behavior);
-                interface = std::move(x.interface);
+                _behavior = std::move(x._behavior);
+                _interface = std::move(x._interface);
                 return *this;
             }
 
@@ -261,14 +270,16 @@ namespace resource
         };
     }
 
-    template <typename TBind>
-    struct unique : public impl::resource_base<TBind>
+    template <typename TBehavior>
+    struct unique : public impl::resource_base<TBehavior>
     {
     private:
-        using base_type = impl::resource_base<TBind>;
+        using base_type = impl::resource_base<TBehavior>;
         using interface_type = typename base_type::interface_type;
 
     public:
+        unique() = default;
+
         template <typename... Ts>
         unique(Ts&&... xs)
             : base_type(FWD(xs)...)
@@ -289,7 +300,7 @@ namespace resource
         unique& operator=(unique&& s) noexcept
         {
             reset();
-            base_type::operator=(s);
+            base_type::operator=(static_cast<base_type&&>(s));
 
             // this->interface = std::move(s.interface);
             s.release();
@@ -306,10 +317,10 @@ namespace resource
         void reset(interface_type&& i)
         {
             reset();
-            this->interface = std::move(i);
+            this->_interface = std::move(i);
         }
 
-        void release() { this->behavior.release(this->interface); }
+        void release() { this->_behavior.release(this->_interface); }
     };
 
     /*template <typename TBind>
@@ -348,7 +359,7 @@ struct test
 };
 
 
-struct test_behavior
+struct test_behavior : behavior::impl::behavior_data<test_handle, test, false>
 {
     auto null_handle() { return test_handle{}; }
 
@@ -366,11 +377,9 @@ struct test_behavior
 };
 
 template <typename T>
-using my_unique_ptr = resource::unique<bind::heap_pointer<T>>;
+using my_unique_ptr = resource::unique<behavior::heap_pointer<T>>;
 
-using test_bind = bind::impl::resource_bind<test_handle, test, test_behavior>;
-
-using my_unique_test = resource::unique<test_bind>;
+using my_unique_test = resource::unique<test_behavior>;
 
 int main()
 {
@@ -404,15 +413,24 @@ int main()
         std::unique_ptr<test> t{new test{3}};
         std::cout << t->v << "\n";
         std::cout << (*t).v << "\n";
+
+        std::unique_ptr<test> t2;
+        t2 = std::move(t);
+        std::cout << t2->v << "\n";
+        std::cout << (*t2).v << "\n";
     }
 
     // "Unique resource" (with pointer propagation) heap-allocation.
     {
         // TODO
-        my_unique_ptr<test> t; //{new test};
-        t->v = 4;
+        my_unique_ptr<test> t{new test{4}};
         std::cout << t->v << "\n";
         std::cout << (*t).v << "\n";
+
+        my_unique_ptr<test> t2;
+        t2 = std::move(t);
+        std::cout << t2->v << "\n";
+        std::cout << (*t2).v << "\n";
     }
 
 
@@ -431,3 +449,148 @@ int main()
 
     return 0;
 }
+
+template <typename... Ts>
+void glGenVertexArrays(Ts...)
+{
+}
+
+template <typename... Ts>
+void glDeleteVertexArrays(Ts...)
+{
+}
+
+/*
+using vao_handle = int;
+constexpr vao_handle null_vao_handle{0};
+
+struct my_vao_interface
+{
+    vao_handle _vao{null_vao_handle};
+
+    my_vao_interface(vao_handle vao) : _vao{vao} {}
+
+    void bind() { }
+    void unbind() { }
+};
+
+struct my_vao_behavior
+{
+    vao_handle init()
+    {
+        vao_handle vh;
+        glGenVertexArrays(1, &vh);
+        return vh;
+    }
+
+    void deinit(my_vao_interface& i)
+    {
+        glDeleteVertexArrays(1, &i._vao);
+    }
+
+    void release(my_vao_interface& i)
+    {
+        i._vao = null_vao_handle;
+    }
+};
+*/
+
+
+using vao_handle = int;
+constexpr vao_handle null_vao_handle{0};
+
+template <typename... Ts>
+vao_handle getGlGenVertexArrays(Ts...)
+{
+    return {};
+}
+
+struct my_vao_interface
+{
+    vao_handle _vao{null_vao_handle};
+
+    my_vao_interface(vao_handle vao) : _vao{vao} {}
+
+    void bind() {}
+    void unbind() {}
+};
+
+template <typename THandle, THandle TNullHandle, typename TFInit,
+    typename TFDeinit, typename TFGetter>
+struct generic_value_behavior
+{
+    template <typename... Ts>
+    auto init(Ts&&... xs)
+    {
+        return TFInit{}(FWD(xs)...);
+    }
+
+    template <typename TInterface>
+    void deinit(TInterface& i)
+    {
+        TFDeinit{}(TFGetter{}(i));
+    }
+
+    template <typename TInterface>
+    void release(TInterface& i)
+    {
+        TFGetter{}(i) = TNullHandle;
+    }
+};
+
+template <typename THandle, THandle TNullHandle, typename TFInit,
+    typename TFDeinit, typename TFGetter>
+constexpr auto make_generic_value_behavior(TFInit&&, TFDeinit&&, TFGetter&&)
+{
+    return generic_value_behavior<THandle, TNullHandle, TFInit, TFDeinit,
+        TFGetter>{};
+}
+
+/*
+struct my_vao_behavior
+{
+    auto init()
+    {
+        return getGlGenVertexArrays(1);
+    }
+
+    void deinit(my_vao_interface& i)
+    {
+        glDeleteVertexArrays(1, &i._vao);
+    }
+
+    void release(my_vao_interface& i)
+    {
+        i._vao = null_vao_handle;
+    }
+};
+*/
+
+static auto vao_behavior_variable =                           //.
+    make_generic_value_behavior<vao_handle, null_vao_handle>( // .
+        [](auto&&... xs)
+        {
+            return getGlGenVertexArrays(FWD(xs)...);
+        },
+        [](auto& h)
+        {
+            glDeleteVertexArrays(1, &h);
+        },
+        [](auto& i) -> auto&
+        {
+            return i._vao;
+        });
+
+using my_vao_behavior = decltype(vao_behavior_variable);
+
+void desired_main() {}
+
+// vlog: cppcon trip report (talks, experience, photos)
+//       upcoming dive into c++ (twitter for code review)
+//       undertale
+
+// dicp: use case example (ptr*, file*, vao_id (same semantics, different
+// syntax))
+//       manually-made wrapper
+//       unique_ptr
+//       ...
