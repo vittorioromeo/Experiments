@@ -210,3 +210,14 @@ asanlogs
 /Random/haskell/test.hi
 /Random/haskell/test.hs
 /Random/haskell/test.x
+/emscripten/nohup.out
+/testgl/Glitter
+/emscripten/main.data
+/emscripten/main.html
+/emscripten/main.js
+/emscripten/main.html.mem
+/emscripten/main.x
+/emscripten/test_ex.data
+/emscripten/test_ex.html
+/emscripten/test_ex.js
+/emscripten/test_ex.x
