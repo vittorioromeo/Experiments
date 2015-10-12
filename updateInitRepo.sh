@@ -1,13 +1,3 @@
-cp ./SSVUtils/init-repository.sh ./git-ws/
-cp ./SSVUtils/init-repository.sh ./LD27/
-cp ./SSVUtils/init-repository.sh ./SSVAutoUpdater/
-cp ./SSVUtils/init-repository.sh ./SSVBloodshed/
-cp ./SSVUtils/init-repository.sh ./SSVEntitySystem/
-cp ./SSVUtils/init-repository.sh ./SSVNewRogue/
-cp ./SSVUtils/init-repository.sh ./SSVOpenHexagon/
-cp ./SSVUtils/init-repository.sh ./SSVRPGSystem/
-cp ./SSVUtils/init-repository.sh ./SSVSCollision/
-cp ./SSVUtils/init-repository.sh ./SSVStart/
-cp ./SSVUtils/init-repository.sh ./SSVUtilsJson/
-cp ./SSVUtils/init-repository.sh ./TestUDPChat/
-cp ./SSVUtils/init-repository.sh ./WEBVittorioRomeo2/
+#!/bin/bash
+
+find -maxdepth 2 -name "init-repository.sh"
