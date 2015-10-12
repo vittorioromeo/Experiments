@@ -240,6 +240,19 @@ namespace resource
             {
             }
 
+            resource_base(resource_base&& x)
+                : behavior(std::move(x.behavior)),
+                  interface(std::move(x.interface))
+            {
+            }
+
+            resource_base& operator=(resource_base&& x)
+            {
+                behavior = std::move(x.behavior);
+                interface = std::move(x.interface);
+                return *this;
+            }
+
             decltype(auto) operator-> () { return &propagator{}(*this); }
             decltype(auto) operator-> () const { return &propagator{}(*this); }
 
@@ -267,7 +280,7 @@ namespace resource
         unique(const unique&) = delete;
         unique& operator=(const unique&) = delete;
 
-        unique(unique&& s) noexcept : base_type::interface{std::move(s.interface)}
+        unique(unique&& s) noexcept : base_type{static_cast<base_type&&>(s)}
         {
             // reset();
             s.release();
@@ -276,9 +289,9 @@ namespace resource
         unique& operator=(unique&& s) noexcept
         {
             reset();
+            base_type::operator=(s);
 
-            this->interface = std::move(s.interface);
-
+            // this->interface = std::move(s.interface);
             s.release();
             return *this;
         }
@@ -299,7 +312,7 @@ namespace resource
         void release() { this->behavior.release(this->interface); }
     };
 
-    template <typename TBind>
+    /*template <typename TBind>
     struct shared : public impl::resource_base<TBind>
     {
         shared() {}
@@ -316,7 +329,7 @@ namespace resource
     struct atomic_shared
     {
         // ...
-    };
+    };*/
 }
 
 struct test_handle
