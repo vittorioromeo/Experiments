@@ -24,7 +24,7 @@ namespace handle
 
 namespace interface
 {
-    namespace impl
+    /*namespace impl
     {
         template <typename THandle>
         struct interface_base
@@ -41,28 +41,32 @@ namespace interface
             auto handle() { return _handle; }
             auto handle() const { return _handle; }
         };
-    }
+    }*/
 
-    struct file : public impl::interface_base<handle::file>
+    struct file 
     {
+        handle::file _handle;
         void write() { std::cout << "wrote to file\n"; }
         void read() { std::cout << "read from file\n"; }
     };
 
-    struct vao : public impl::interface_base<handle::vao>
+    struct vao 
     {
+        handle::vao _handle;
         void bind() { std::cout << "vao bound\n"; }
         void unbind() { std::cout << "vao unbound\n"; }
     };
 
     template <typename T>
-    struct heap_pointer : public impl::interface_base<handle::heap_pointer<T>>
+    struct heap_pointer
     {
-        auto operator-> () { return this->handle(); }
-        auto operator-> () const { return this->handle(); }
+        handle::heap_pointer<T> _handle;
 
-        auto& operator*() { return *this->handle(); }
-        const auto& operator*() const { return *this->handle(); }
+        auto operator-> () { return _handle; }
+        auto operator-> () const { return _handle; }
+
+        auto& operator*() { return *_handle; }
+        const auto& operator*() const { return *_handle; }
     };
 }
 
@@ -224,7 +228,7 @@ struct test_handle
 {
 };
 
-struct test : public interface::impl::interface_base<test_handle>
+struct test 
 {
     int v;
 };
