@@ -1,6 +1,8 @@
 #include <iostream>
 #include <memory>
 
+#define FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
+
 namespace legacy
 {
     using file_id = int;
@@ -43,16 +45,24 @@ namespace interface
         };
     }*/
 
-    struct file 
+    struct file
     {
         handle::file _handle;
+
+        file() = default;
+        file(handle::file handle) : _handle{handle} {}
+
         void write() { std::cout << "wrote to file\n"; }
         void read() { std::cout << "read from file\n"; }
     };
 
-    struct vao 
+    struct vao
     {
         handle::vao _handle;
+
+        vao() = default;
+        vao(handle::vao handle) : _handle{handle} {}
+
         void bind() { std::cout << "vao bound\n"; }
         void unbind() { std::cout << "vao unbound\n"; }
     };
@@ -61,6 +71,9 @@ namespace interface
     struct heap_pointer
     {
         handle::heap_pointer<T> _handle;
+
+        heap_pointer() = default;
+        heap_pointer(handle::heap_pointer<T> handle) : _handle{handle} {}
 
         auto operator-> () { return _handle; }
         auto operator-> () const { return _handle; }
@@ -74,16 +87,30 @@ namespace behavior
 {
     struct file
     {
+
+
+        auto null_handle() { return handle::file{0}; }
+
         auto init() { return handle::file{legacy::create_file()}; }
-        void deinit(handle::file f)
+
+        template <typename T>
+        void deinit(T& f)
         {
             // if(f.id != 0)
-            legacy::delete_file(f);
+            legacy::delete_file(f._handle);
+        }
+
+        template <typename TI>
+        void release(TI& f)
+        {
+            f._handle = null_handle();
         }
     };
 
     struct vao
     {
+        auto null_handle() { return handle::vao{0}; }
+
         auto init()
         {
             handle::vao result;
@@ -91,22 +118,40 @@ namespace behavior
             return result;
         }
 
-        void deinit(handle::file f)
+        template <typename T>
+        void deinit(T& f)
         {
             // if(f.id != 0)
-            legacy::delete_vao(f);
+            legacy::delete_vao(f._handle);
+        }
+
+        template <typename TI>
+        void release(TI& f)
+        {
+            f._handle = null_handle();
         }
     };
 
     template <typename T>
     struct heap_pointer
     {
+        auto null_handle() { return nullptr; }
+
+
+
         auto init() { return handle::heap_pointer<T>{new T}; }
 
-        void deinit(handle::heap_pointer<T> f)
+        template <typename TI>
+        void deinit(TI& f)
         {
             // if(f != nullptr)
-            delete f;
+            delete f._handle;
+        }
+
+        template <typename TI>
+        void release(TI& f)
+        {
+            f._handle = null_handle();
         }
     };
 }
@@ -179,16 +224,22 @@ namespace resource
             using propagator =
                 ptr_operator_propagator<bind_type::propagate_ptr_operators>;
 
-        private:
+        protected:
             // handle_type handle;
-            interface_type interface;
             behavior_type behavior;
+            interface_type interface;
 
         protected:
-            void init() { interface.set_handle(behavior.init()); }
-            void deinit() {}
+            // void init() { interface = interface_type(behavior.init()); }
+            void deinit() { behavior.deinit(interface); }
 
         public:
+            template <typename... Ts>
+            resource_base(Ts&&... xs)
+                : interface(behavior.init(FWD(xs)...))
+            {
+            }
+
             decltype(auto) operator-> () { return &propagator{}(*this); }
             decltype(auto) operator-> () const { return &propagator{}(*this); }
 
@@ -200,8 +251,52 @@ namespace resource
     template <typename TBind>
     struct unique : public impl::resource_base<TBind>
     {
-        unique() { this->init(); }
-        ~unique() { this->deinit(); }
+    private:
+        using base_type = impl::resource_base<TBind>;
+        using interface_type = typename base_type::interface_type;
+
+    public:
+        template <typename... Ts>
+        unique(Ts&&... xs)
+            : base_type(FWD(xs)...)
+        {
+        }
+
+        ~unique() { reset(); }
+
+        unique(const unique&) = delete;
+        unique& operator=(const unique&) = delete;
+
+        unique(unique&& s) noexcept : base_type::interface{std::move(s.interface)}
+        {
+            // reset();
+            s.release();
+        }
+
+        unique& operator=(unique&& s) noexcept
+        {
+            reset();
+
+            this->interface = std::move(s.interface);
+
+            s.release();
+            return *this;
+        }
+
+
+        void reset()
+        {
+            this->deinit();
+            release();
+        }
+
+        void reset(interface_type&& i)
+        {
+            reset();
+            this->interface = std::move(i);
+        }
+
+        void release() { this->behavior.release(this->interface); }
     };
 
     template <typename TBind>
@@ -228,16 +323,33 @@ struct test_handle
 {
 };
 
-struct test 
+struct test
 {
+    test() = default;
+    test(int x) : v{x} {}
+    test(test_handle) {}
+
+    ~test() { std::cout << "test dtor\n\n"; }
+
     int v;
 };
 
 
 struct test_behavior
 {
+    auto null_handle() { return test_handle{}; }
+
     auto init() { return test_handle{}; }
-    void uninit() {}
+
+    template <typename T>
+    void deinit(T&)
+    {
+    }
+
+    template <typename T>
+    void release(T&)
+    {
+    }
 };
 
 template <typename T>
@@ -254,12 +366,14 @@ int main()
     {
         test t{0};
         std::cout << t.v << "\n";
+        std::cout << t.v << "\n";
     }
 
     // "Unique resource" RAII.
     {
         // TODO
         my_unique_test t;
+        t->v = 1;
         std::cout << (*t).v << "\n";
         std::cout << t->v << "\n";
     }
