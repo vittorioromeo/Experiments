@@ -9,6 +9,7 @@ sudo cp -R ./vrm/ /usr/local/include/
     --shell-file /usr/lib/emscripten/src/shell_minimal.html \
     --preload-file ./files/ \
     --preload-file ./vrm/sdl/glsl/ \
+    --profiling \
     -std=c++14 "${@:2}" \
     -o "$1".html ./"$1".cpp \
 && (vblank_mode=0 __GL_SYNC_TO_VBLANK=0 chromium --disable-gpu-vsync http://localhost:8080/"$1".html)

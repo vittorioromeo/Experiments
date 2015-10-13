@@ -9,5 +9,7 @@
 #include <vrm/sdl/elements.hpp>
 
 #include <vrm/sdl/context/unique_sdl_resources.hpp>
+#include <vrm/sdl/context/context_settings.hpp>
+#include <vrm/sdl/context/static_timer.hpp>
 #include <vrm/sdl/context/context.hpp>
 #include <vrm/sdl/context/context.inl>

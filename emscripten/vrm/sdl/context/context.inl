@@ -231,17 +231,23 @@ namespace vrm
 
                                 _update_duration = time_dur([&, this]
                                     {
-                                       // _prev_state = _current_state;
+                                        // _prev_state = _current_state;
 
-                                         
+
 
                                         _static_timer.run(real_ms(),
                                             [&, this](auto step)
                                             {
                                                 // run_update(step);
                                                 _prev_state = _current_state;
-                                                _current_state = update_fn()(_current_state, step);
-                                                // _predicted_state = update_fn()(_current_state, step);
+
+                                                _current_state =
+                                                    std::move(this->update_fn()(
+                                                        _current_state, step));
+
+                                                // _predicted_state =
+                                                // update_fn()(_current_state,
+                                                // step);
                                             });
                                     });
 
@@ -255,24 +261,25 @@ namespace vrm
 */
                                         // Precise method which guarantees v =
                                         // v1 when t = 1.
-                                       /* auto lerp = [](
-                                            float v0, float v1, float t)
-                                        {
-                                            return (1 - t) * v0 + t * v1;
-                                        };*/
+                                        /* auto lerp = [](
+                                             float v0, float v1, float t)
+                                         {
+                                             return (1 - t) * v0 + t * v1;
+                                         };*/
 
                                         // run_draw();
 
-                                        
-                                        auto interpolated_state(_interpolate_fn(
-                                            _prev_state, _current_state,
-                                            _static_timer.interp_t()));
+
+                                        _interpolated_state =
+                                            std::move(this->_interpolate_fn(
+                                                _prev_state, _current_state,
+                                                _static_timer.interp_t()));
 
                                         glClear(GL_COLOR_BUFFER_BIT |
                                                 GL_DEPTH_BUFFER_BIT |
                                                 GL_STENCIL_BUFFER_BIT);
 
-                                        draw_fn()(interpolated_state);
+                                        draw_fn()(_interpolated_state);
 
                                         SDL_GL_SwapWindow(*_window);
                                     });
@@ -372,7 +379,7 @@ namespace vrm
             template <typename TSettings>
             void context<TSettings>::title(const std::string& s) noexcept
             {
-                _window->title(s);
+                this->_window->title(s);
             }
         }
     }

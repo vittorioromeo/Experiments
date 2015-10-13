@@ -305,8 +305,6 @@ public:
     sparse_int_set(const sparse_int_set& rhs)
         : _dense(rhs._dense), _sparse(rhs._sparse), _size(rhs._size)
     {
-        _dense.resize(TSize);
-        _sparse.resize(TSize);
     }
 
     sparse_int_set& operator=(const sparse_int_set& rhs)
@@ -314,9 +312,6 @@ public:
         _dense = rhs._dense;
         _sparse = rhs._sparse;
         _size = rhs._size;
-
-        _dense.resize(TSize);
-        _sparse.resize(TSize);
 
         return *this;
     }
@@ -335,8 +330,11 @@ public:
         assert(x < TSize);
         if(has(x)) return false;
 
-        _dense[_size++] = x;
-        _sparse[x] = _size - 1;
+        assert(_size < TSize);
+        _dense[_size] = x;
+
+        _sparse[x] = _size;
+        ++_size;
 
         return true;
     }
@@ -347,17 +345,19 @@ public:
         if(!has(x)) return false;
 
         auto ptr(_sparse[x]);
-        auto last(_dense[_size - 1]);
+        assert(_size > 0);
 
-        //assert(back_ptr() != nullptr);
+        assert(has(_dense[_size - 1]));
+        auto last(_dense[_size - 1]);
         assert(ptr != null_value);
 
-        if(ptr != last)
+        if(_dense[ptr] != last)
         {
-            ptr = last;
+            _dense[ptr] = last;
             _sparse[last] = ptr;
         }
 
+        assert(has(x));
         _sparse[x] = null_value;
 
         assert(_size > 0);
@@ -380,11 +380,19 @@ public:
         erase(back());
     }
 
-    auto back() const noexcept { return _dense[_size - 1]; }
+    auto back() const noexcept
+    {
+        assert(_size > 0);
+
+        assert(has(_dense[_size - 1]));
+        return _dense[_size - 1];
+    }
 
     template <typename TF>
     void for_each(TF&& f) const noexcept
     {
+        assert(_size <= TSize);
+
         for(decltype(_size) i(0); i < _size; ++i)
         {
             assert(has(_dense[i]));
@@ -395,6 +403,7 @@ public:
     auto operator[](std::size_t i) const noexcept
     {
         assert(i < _size);
+
         assert(has(_dense[i]));
         return _dense[i];
     }
@@ -404,22 +413,26 @@ public:
 
 constexpr sdl::sz_t my_max_entities{50000};
 
+enum class e_type : int
+{
+    soul = 0,
+    fireball = 1,
+    toriel = 2
+};
+
+constexpr int e_type_count{3};
+
 struct my_game_entity
 {
-    int type;
+    e_type type;
     glm::vec2 _pos, _origin, _size;
     float _radians{0.f}, _opacity{1.f};
-    int _texture_id;
     float _hitbox_radius;
     bool alive{false};
 
     glm::vec2 vel;
     float speed, hue{0.f}, curve, life;
     int dir;
-
-    // sdl::impl::gltexture2d _texture;
-    // std::function<void(void*, my_game_entity&, sdl::ft)> _update_fn;
-    // std::function<void(const my_game_entity&)> _draw_fn;
 
     my_game_entity() = default;
 
@@ -436,14 +449,13 @@ struct my_game_state
     using my_intset = sparse_int_set<std::size_t, my_max_entities>;
     using entity_type = my_game_entity;
 
-    std::array<entity_type, my_max_entities> _entities;
+    std::vector<entity_type> _entities;
     my_intset _free, _alive;
-
-    // std::vector<sdl::sz_t> _free_indices;
     sdl::sz_t _soul_idx;
 
     my_game_state()
     {
+        _entities.resize(my_max_entities);
         for(sdl::sz_t i(0); i < my_max_entities; ++i) _free.add(i);
     }
 
@@ -463,10 +475,16 @@ struct my_game_state
 
         auto& res(_entities[fi]);
         res = e;
+
+        assert(!res.alive);
         res.alive = true;
 
+
+
+        assert(!_alive.has(fi));
         _alive.add(fi);
         assert(!_free.has(fi));
+        assert(_alive.has(fi));
 
         return fi;
     }
@@ -491,47 +509,38 @@ struct my_game_state
 
     void reclaim()
     {
-        //  0 1 2 3
-        // |x|x| | |
-
         auto to_erase_begin(_free.size());
 
-        //  int debug_found{0};
 
-        _alive.for_each([this /*, &debug_found*/](auto i)
+        _alive.for_each([this](auto i)
             {
                 if(!_entities[i].alive)
                 {
-                    //++debug_found;
-
+                    assert(_alive.has(i));
                     assert(!_free.has(i));
+
                     _free.add(i);
 
-                    //  std::cout << "added: " << i << "\n";
+                    assert(_free.has(i));
+                    assert(_alive.has(i));
                 }
             });
 
-        // _free_indices.clear();
 
         for(auto i(to_erase_begin); i < _free.size(); ++i)
         {
-            // std::cout << "removing: " << _free[i] << "\n";
 
             assert(_alive.has(_free[i]));
+
             _alive.erase(_free[i]);
+
+            assert(!_alive.has(_free[i]));
         }
-
-        // if(debug_found)
-        //  std::cout << "(" << debug_found << ")    " << to_erase_begin
-        //          << " -> " << _free.size() << "\n";
-
-        // std::cout << _alive.size() << " / " << _free.size() << "\n";
     }
 
 
     auto& soul() noexcept { return _entities[_soul_idx]; }
 };
-
 
 
 template <typename TContext>
@@ -544,8 +553,159 @@ struct my_game
     TContext _context;
     sdl::sprite_renderer sr;
 
+    std::array<sdl::impl::unique_gltexture2d, e_type_count> _texture_array;
+
+    auto& texture(e_type type) noexcept
+    {
+        return _texture_array[static_cast<int>(type)];
+    }
+
+
+    auto make_texture_from_image(const std::string& path)
+    {
+        auto s(_context.make_surface(path));
+        return sdl::make_gltexture2d(*s);
+    }
+
+    auto make_soul(sdl::vec2f pos)
+    {
+        entity_type e;
+        e.type = e_type::soul;
+        e._pos = pos;
+        e._origin = glm::vec2{0, 0};
+
+        e._size = glm::vec2{texture(e_type::soul)->size()};
+        e._hitbox_radius = 3.f;
+
+        return e;
+    };
+
+    auto soul_update()
+    {
+        return [this](auto& x, auto&, auto step)
+        {
+            constexpr float speed{5.f};
+            sdl::vec2f input;
+
+            if(_context.key(sdl::kkey::left))
+                input.x = -1;
+            else if(_context.key(sdl::kkey::right))
+                input.x = 1;
+
+            if(_context.key(sdl::kkey::up))
+                input.y = -1;
+            else if(_context.key(sdl::kkey::down))
+                input.y = 1;
+
+            x._pos += input * (speed * step);
+        };
+    }
+
+
+
+    auto make_fireball(sdl::vec2f pos, sdl::vec2f vel, float speed)
+    {
+        entity_type e;
+        e.type = e_type::fireball;
+        e._pos = pos;
+        e._radians = static_cast<float>(rand() % 6280) / 1000.f;
+        e._origin = glm::vec2{0, 0};
+
+        e._size =
+            glm::vec2{texture(e_type::fireball)->size()} * rndf(0.9f, 1.2f);
+        e._hitbox_radius = 3.f;
+        e._opacity = 0.f;
+        e.vel = vel;
+        e.speed = speed;
+        e.hue = rndf(-0.6f, 0.1f);
+        e.curve = rndf(-1.f, 1.f);
+        e.dir = rand() % 2;
+        e.life = 100.f;
+
+        return e;
+    };
+
+    auto fireball_update()
+    {
+        return [this](auto& x, auto&, auto step)
+        {
+            x._pos += x.vel * (x.speed * step);
+            // x._radians += dir ? 0.2 * step : -0.2 * step;
+            x._radians += 0.01f * step;
+
+            x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
+
+            if(std::abs(x.curve) > 0.01)
+            {
+                x.curve *= 0.5f;
+            }
+
+            x.life -= step * 0.3f;
+
+            if(x.life <= 0.f) x.alive = false;
+            if(x.life <= 10.f) x._opacity -= step * 0.2f;
+
+            if(x._opacity <= 1.f) x._opacity += step * 0.1f;
+        };
+    }
+
+    auto sprite_draw(const entity_type& x)
+    {
+        sr.draw_sprite(*texture(x.type), x._pos, x._origin, x._size, x._radians,
+            glm::vec4{1.f, 1.f, 1.f, x._opacity}, x.hue);
+    }
+
+    auto make_toriel(game_state_type& state, sdl::vec2f pos)
+    {
+        entity_type e;
+        e.type = e_type::toriel;
+        e._pos = pos;
+        e._origin = glm::vec2{0, 0};
+        e._size = glm::vec2{texture(e_type::toriel)->size()};
+        e._hitbox_radius = 30.f;
+
+
+        return e;
+    };
+
+    auto toriel_update()
+    {
+        return [ this, timer = 1.f ](auto& x, auto& state, auto step) mutable
+        {
+            timer -= step;
+            if(timer <= 0.f)
+            {
+                timer = 1.f;
+
+                for(int i = 0; i < 100; ++i)
+                {
+                    if(!state._free.empty())
+                    {
+                        auto angle(rndf(0.f, sdl::tau));
+                        auto speed(rndf(0.1f, 3.f));
+                        auto unit_vec(
+                            glm::vec2(std::cos(angle), std::sin(angle)));
+                        auto vel(unit_vec * speed);
+
+                        state.add(this->make_fireball(
+                            x._pos + unit_vec * rndf(55.f, 90.f), vel,
+                            1.f + (rand() % 100) / 80.f));
+                    }
+                }
+            }
+        };
+    }
+
+
     my_game(TContext&& context) : _context(FWD(context))
     {
+        texture(e_type::soul) = make_texture_from_image("files/soul.png");
+
+        texture(e_type::fireball) =
+            make_texture_from_image("files/fireball.png");
+
+        texture(e_type::toriel) = make_texture_from_image("files/toriel.png");
+
         {
             auto& state(_context.current_state());
             auto& entities(state._entities);
@@ -565,24 +725,22 @@ struct my_game
             const auto& entities(state._entities);
             auto& soul(state.soul());
 
-            // my_game_state new_state(_state);
-
             state.for_alive([this, &state, step](auto& e)
                 {
                     // std::cout << "update\n";
                     // e._update_fn(this, e, step);
 
-                    if(e.type == 0)
+                    if(e.type == e_type::soul)
                     {
-                        soul_update()(e, state, step);
+                        this->soul_update()(e, state, step);
                     }
-                    else if(e.type == 1)
+                    else if(e.type == e_type::fireball)
                     {
-                        fireball_update()(e, state, step);
+                        this->fireball_update()(e, state, step);
                     }
-                    else if(e.type == 2)
+                    else if(e.type == e_type::toriel)
                     {
-                        toriel_update()(e, state, step);
+                        this->toriel_update()(e, state, step);
                     }
 
                     // std::cout << "check\n";
@@ -640,23 +798,17 @@ struct my_game
         _context.draw_fn() = [&, this](const auto& state)
         {
             // const auto& entities(state._entities);
-
             sr.use();
             state.for_alive([this](const auto& e)
                 {
-                    if(e.type == 0)
-                        soul_draw()(e);
-                    else if(e.type == 1)
-                        fireball_draw()(e);
-                    else if(e.type == 2)
-                        toriel_draw()(e);
+                    this->sprite_draw(e);
                 });
         };
 
         _context.interpolate_fn() = [&, this](
             const auto& s0, const auto& s1, float t)
         {
-            return s0;
+            //return game_state_type{s1};
 
             // std::cout << t << "\n";
             auto interpolated(game_state_type{s1});
@@ -699,194 +851,19 @@ struct my_game
             return interpolated;
         };
     }
-
-    auto& texture(int type)
-    {
-        if(type == 0) return *soul_texture;
-        if(type == 1) return *fireball_texture;
-        // if(type == 2)
-        return *toriel_texture;
-
-        // return *soul_texture;
-    }
-
-    auto make_texture_from_image(const std::string& path)
-    {
-        auto s(_context.make_surface(path));
-        return sdl::make_gltexture2d(*s);
-    }
-
-    sdl::impl::unique_gltexture2d toriel_texture =
-        make_texture_from_image("files/toriel.png");
-
-    sdl::impl::unique_gltexture2d soul_texture =
-        make_texture_from_image("files/soul.png");
-
-    sdl::impl::unique_gltexture2d fireball_texture =
-        make_texture_from_image("files/fireball.png");
-
-    auto make_soul(sdl::vec2f pos)
-    {
-        entity_type e;
-        e.type = 0;
-        e._pos = pos;
-        e._origin = glm::vec2{0, 0};
-        e._texture_id = soul_texture->location();
-        e._size = glm::vec2{soul_texture->size()};
-        e._hitbox_radius = 3.f;
-
-        return e;
-    };
-
-    auto soul_update()
-    {
-        return [this](auto& x, auto&, auto step)
-        {
-            // std::cout << x._pos.x << "\n";
-
-            constexpr float speed{5.f};
-            sdl::vec2f input;
-
-            if(_context.key(sdl::kkey::left))
-                input.x = -1;
-            else if(_context.key(sdl::kkey::right))
-                input.x = 1;
-
-            if(_context.key(sdl::kkey::up))
-                input.y = -1;
-            else if(_context.key(sdl::kkey::down))
-                input.y = 1;
-
-            x._pos += input * (speed * step);
-        };
-    }
-
-    auto soul_draw()
-    {
-        return [this](const auto& x)
-        {
-            // std::cout << "soul draw\n";
-            sr.draw_sprite(
-                texture(x.type), x._pos, x._origin, x._size, x._radians);
-        };
-    }
-
-
-
-    auto make_fireball(sdl::vec2f pos, sdl::vec2f vel, float speed)
-    {
-        entity_type e;
-        e.type = 1;
-        e._pos = pos;
-        e._radians = static_cast<float>(rand() % 6280) / 1000.f;
-        e._origin = glm::vec2{0, 0};
-        e._texture_id = fireball_texture->location();
-        e._size = glm::vec2{fireball_texture->size()} * rndf(0.9f, 1.2f);
-        e._hitbox_radius = 3.f;
-        e._opacity = 0.f;
-        e.vel = vel;
-        e.speed = speed;
-        e.hue = rndf(-0.6f, 0.1f);
-        e.curve = rndf(-1.f, 1.f);
-        e.dir = rand() % 2;
-        e.life = 100.f;
-
-        return e;
-    };
-
-    auto fireball_update()
-    {
-        return [this](auto& x, auto&, auto step)
-        {
-            x._pos += x.vel * (x.speed * step);
-            // x._radians += dir ? 0.2 * step : -0.2 * step;
-            x._radians += 0.01f * step;
-
-            x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
-
-            if(std::abs(x.curve) > 0.01)
-            {
-                x.curve *= 0.5f;
-            }
-
-            x.life -= step * 0.3f;
-
-            if(x.life <= 0.f) x.alive = false;
-            if(x.life <= 10.f) x._opacity -= step * 0.2f;
-
-            if(x._opacity <= 1.f) x._opacity += step * 0.1f;
-        };
-    }
-
-    auto fireball_draw()
-    {
-        return [this](const auto& x) mutable
-        {
-            sr.draw_sprite(texture(x.type), x._pos, x._origin, x._size,
-                x._radians, glm::vec4{1.f, 0.f, 0.f, x._opacity}, x.hue);
-        };
-    }
-
-    auto make_toriel(game_state_type& state, sdl::vec2f pos)
-    {
-        entity_type e;
-        e.type = 2;
-        e._pos = pos;
-        e._origin = glm::vec2{0, 0};
-        e._texture_id = toriel_texture->location();
-        e._size = glm::vec2{toriel_texture->size()};
-        e._hitbox_radius = 30.f;
-
-
-        return e;
-    };
-
-    auto toriel_update()
-    {
-        return [ this, timer = 1.f ](auto& x, auto& state, auto step) mutable
-        {
-            timer -= step;
-            if(timer <= 0.f)
-            {
-                timer = 1.f;
-
-                for(int i = 0; i < 50; ++i)
-                {
-                    if(!state._free.empty())
-                    {
-                        auto angle(rndf(0.f, sdl::tau));
-                        auto speed(rndf(0.1f, 3.f));
-                        auto unit_vec(
-                            glm::vec2(std::cos(angle), std::sin(angle)));
-                        auto vel(unit_vec * speed);
-
-                        state.add(
-                            make_fireball(x._pos + unit_vec * rndf(55.f, 90.f),
-                                vel, 1.f + (rand() % 100) / 80.f));
-                    }
-                }
-            }
-        };
-    }
-
-    auto toriel_draw()
-    {
-        return [this](const auto& x)
-        {
-
-            sr.draw_sprite(
-                texture(x.type), x._pos, x._origin, x._size, x._radians);
-        };
-    }
 };
 
 using my_context_settings = sdl::context_settings<my_game_state>;
 
 int main()
 {
-    std::cout << sizeof(my_game_entity) << "\n";
-    std::cout << sizeof(sparse_int_set<std::size_t, 50000>) << "\n";
-    std::cout << sizeof(sparse_int_set<int8_t, 50000>) << "\n";
+#define COUT_SIZE(...)                                                      \
+    std::cout << "sizeof(" << #__VA_ARGS__ << ") = " << sizeof(__VA_ARGS__) \
+              << "\n"
+
+    COUT_SIZE(my_game_entity);
+    COUT_SIZE(std::array<my_game_entity, my_max_entities>);
+    COUT_SIZE(sparse_int_set<std::size_t, my_max_entities>);
 
     auto c_handle(
         sdl::make_global_context<my_context_settings>("test game", 1000, 600));
