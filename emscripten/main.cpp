@@ -289,26 +289,37 @@ template <typename T, std::size_t TSize>
 class sparse_int_set
 {
 private:
-    std::array<T, TSize> _dense;
-    std::array<T*, TSize> _sparse;
+    static constexpr std::size_t null_value{TSize + 1};
+    std::vector<T> _dense;
+    std::vector<std::size_t> _sparse;
     std::size_t _size;
 
-    auto back_ptr() noexcept
-    {
-        assert(_size > 0);
-        return &_dense[_size - 1];
-    }
-    auto back_ptr() const noexcept
-    {
-        assert(_size > 0);
-        return &_dense[_size - 1];
-    }
-
 public:
-    sparse_int_set() noexcept { clear(); }
+    sparse_int_set() noexcept
+    {
+        _dense.resize(TSize);
+        _sparse.resize(TSize);
+        clear();
+    }
 
-    sparse_int_set(const sparse_int_set&) = default;
-    sparse_int_set& operator=(const sparse_int_set&) = default;
+    sparse_int_set(const sparse_int_set& rhs)
+        : _dense(rhs._dense), _sparse(rhs._sparse), _size(rhs._size)
+    {
+        _dense.resize(TSize);
+        _sparse.resize(TSize);
+    }
+
+    sparse_int_set& operator=(const sparse_int_set& rhs)
+    {
+        _dense = rhs._dense;
+        _sparse = rhs._sparse;
+        _size = rhs._size;
+
+        _dense.resize(TSize);
+        _sparse.resize(TSize);
+
+        return *this;
+    }
 
     sparse_int_set(sparse_int_set&&) = default;
     sparse_int_set& operator=(sparse_int_set&&) = default;
@@ -316,7 +327,7 @@ public:
     bool has(const T& x) const noexcept
     {
         assert(x < TSize);
-        return _sparse[x] != nullptr;
+        return _sparse[x] != null_value;
     }
 
     bool add(const T& x) noexcept
@@ -325,11 +336,10 @@ public:
         if(has(x)) return false;
 
         _dense[_size++] = x;
-        _sparse[x] = &_dense[_size - 1];
+        _sparse[x] = _size - 1;
 
         return true;
     }
-
 
     bool erase(const T& x) noexcept
     {
@@ -337,15 +347,18 @@ public:
         if(!has(x)) return false;
 
         auto ptr(_sparse[x]);
-        const auto& last(*back_ptr());
+        auto last(_dense[_size - 1]);
 
-        if(*ptr != last)
+        //assert(back_ptr() != nullptr);
+        assert(ptr != null_value);
+
+        if(ptr != last)
         {
-            *ptr = last;
+            ptr = last;
             _sparse[last] = ptr;
         }
 
-        _sparse[x] = nullptr;
+        _sparse[x] = null_value;
 
         assert(_size > 0);
         --_size;
@@ -355,7 +368,7 @@ public:
 
     void clear() noexcept
     {
-        for(auto& p : _sparse) p = nullptr;
+        for(auto& p : _sparse) p = null_value;
         _size = 0;
     }
 
@@ -367,7 +380,7 @@ public:
         erase(back());
     }
 
-    auto back() const noexcept { return *back_ptr(); }
+    auto back() const noexcept { return _dense[_size - 1]; }
 
     template <typename TF>
     void for_each(TF&& f) const noexcept
@@ -389,7 +402,7 @@ public:
     auto size() const noexcept { return _size; }
 };
 
-constexpr sdl::sz_t my_max_entities{5000};
+constexpr sdl::sz_t my_max_entities{50000};
 
 struct my_game_entity
 {
@@ -494,7 +507,7 @@ struct my_game_state
                     assert(!_free.has(i));
                     _free.add(i);
 
-                   //  std::cout << "added: " << i << "\n";
+                    //  std::cout << "added: " << i << "\n";
                 }
             });
 
@@ -506,7 +519,6 @@ struct my_game_state
 
             assert(_alive.has(_free[i]));
             _alive.erase(_free[i]);
-
         }
 
         // if(debug_found)
@@ -561,11 +573,17 @@ struct my_game
                     // e._update_fn(this, e, step);
 
                     if(e.type == 0)
+                    {
                         soul_update()(e, state, step);
+                    }
                     else if(e.type == 1)
+                    {
                         fireball_update()(e, state, step);
+                    }
                     else if(e.type == 2)
+                    {
                         toriel_update()(e, state, step);
+                    }
 
                     // std::cout << "check\n";
                     /*
@@ -778,7 +796,7 @@ struct my_game
 
     auto fireball_update()
     {
-        return [this](auto& x, auto&, auto step) mutable
+        return [this](auto& x, auto&, auto step)
         {
             x._pos += x.vel * (x.speed * step);
             // x._radians += dir ? 0.2 * step : -0.2 * step;
@@ -874,7 +892,7 @@ int main()
         sdl::make_global_context<my_context_settings>("test game", 1000, 600));
 
     auto& c(*c_handle);
-    my_game<decltype(c)> game{c};
+    auto game(std::make_unique<my_game<decltype(c)>>(c));
     sdl::run_global_context();
 
     return 0;
