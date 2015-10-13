@@ -451,13 +451,13 @@ struct my_game_state
     using my_intset = sparse_int_set<std::size_t, my_max_entities>;
     using entity_type = my_game_entity;
 
-    std::vector<entity_type> _entities;
+    std::array<entity_type, my_max_entities> _entities;
     my_intset _free, _alive;
     sdl::sz_t _soul_idx;
 
     my_game_state()
     {
-        _entities.resize(my_max_entities);
+        // _entities.resize(my_max_entities);
         for(sdl::sz_t i(0); i < my_max_entities; ++i) _free.add(i);
     }
 
