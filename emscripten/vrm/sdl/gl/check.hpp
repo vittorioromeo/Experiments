@@ -117,6 +117,9 @@ namespace vrm
                           << "\nExpression:\n   " << expression
                           << "\nError description:\n   " << error << "\n   "
                           << description << "\n" << std::endl;
+
+                int temp;
+                std::cin >> temp;
             }
         }
     }

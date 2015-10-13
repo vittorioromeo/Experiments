@@ -11,6 +11,27 @@
 #include <random>
 #include <vrm/sdl.hpp>
 
+// batch_size = 2
+// vertex_count = 2 * 4 = 8
+// indices_count = 2 * 6 = 12
+
+// batch_______________________________    batch_______________________________
+// 0---------------   1----------------|   2---------------   3---------------|
+//
+//                                         0    1    2    3    4   5    6    7
+// 0    1    2    3    4    5    6    7    8    9    10   11   12  13   14   15
+// v0_0 v0_1 v0_2 v0_3 v1_0 v1_1 v1_2 v1_3 v2_0 v2_1 v2_2 v2_3 v3_0 v3_1 v3_2
+// v3_3
+
+// 0 1 2 0 2 3         4 5 6 4 6 7         0 1 2 0 2 3         4 5 6 4 6 7
+
+// i+0 i+1 i+2 i+0 i+2 i+3
+// i+=4
+// i+0 i+1 i+2 i+0 i+2 i+3
+// i+=4
+// 4 > vertex_count? yes -> reset i
+// i+0 i+1 i+2 i+0 i+2 i+3
+
 namespace sdl = vrm::sdl;
 
 namespace vrm
@@ -24,15 +45,26 @@ namespace vrm
 
         namespace impl
         {
+            auto make_program_from_file(
+                const char* vert_path, const char* frag_path)
+            {
+                auto v_sh(make_shader_from_file<shader_t::vertex>(vert_path));
+                auto f_sh(make_shader_from_file<shader_t::fragment>(frag_path));
+                return make_program(*v_sh, *f_sh);
+            }
+
             auto make_sprite_renderer_program()
             {
                 constexpr auto v_sh_path("vrm/sdl/glsl/sprite.vert");
                 constexpr auto f_sh_path("vrm/sdl/glsl/sprite.frag");
+                return make_program_from_file(v_sh_path, f_sh_path);
+            }
 
-                auto v_sh(make_shader_from_file<shader_t::vertex>(v_sh_path));
-                auto f_sh(make_shader_from_file<shader_t::fragment>(f_sh_path));
-
-                return make_program(*v_sh, *f_sh);
+            auto make_batched_sprite_renderer_program()
+            {
+                constexpr auto v_sh_path("vrm/sdl/glsl/batched_sprite.vert");
+                constexpr auto f_sh_path("vrm/sdl/glsl/batched_sprite.frag");
+                return make_program_from_file(v_sh_path, f_sh_path);
             }
         }
 
@@ -169,6 +201,8 @@ namespace vrm
                 init_render_data();
             }
 
+            void do_it() {}
+
             void init_render_data() noexcept
             {
                 // TODO: required?
@@ -270,7 +304,464 @@ namespace vrm
                     d._radians, d._color, d._hue);
             }
         };
-    };
+    }
+
+    namespace sdl
+    {
+        struct bsr_vertex
+        {
+            glm::mat4 _projection_view_model;
+            glm::vec4 _pos_tex_coords;
+            glm::vec4 _color;
+            float _hue;
+        };
+
+        struct batched_sprite_renderer
+        {
+            program _program{impl::make_batched_sprite_renderer_program()};
+            sdl::impl::unique_vao _vao;
+
+            sdl::impl::unique_vbo<buffer_target::array> _vbo0;
+            sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
+
+            // glm::mat4 _model;
+            glm::mat4 _view;
+            glm::mat4 _projection;
+
+            sdl::attribute _a_projection_view_model;
+            sdl::attribute _a_pos_tex_coords;
+            sdl::attribute _a_color;
+            sdl::attribute _a_hue;
+
+            sdl::uniform _u_texture;
+
+            /*
+            sdl::uniform _u_projection_view_model;
+            sdl::uniform _u_color;
+            sdl::uniform _u_hue;
+            */
+
+            /*
+            texture_cache<impl::get_valid_texture_unit_count(500)>
+                _texture_cache;
+            */
+
+            std::vector<bsr_vertex> _data;
+            std::vector<GLuint> _indices;
+            GLuint lasti = 0;
+            // int added = 0;
+
+            /*
+            float _vertices[16]{
+                0.f, 1.f, // sw
+                0.f, 1.f, // sw
+
+                0.f, 0.f, // ne
+                0.f, 0.f, // ne
+
+                1.f, 0.f, // nw
+                1.f, 0.f, // nw
+
+                1.f, 1.f, // se
+                1.f, 1.f, // se
+            };
+
+            GLubyte _indices[6]{
+                0, 1, 2, // first triangle
+                0, 2, 3  // second triangle
+            };
+            */
+
+            batched_sprite_renderer()
+            {
+                _projection = make_2d_projection(1000.f, 600.f);
+                init_render_data();
+            }
+
+            void init_render_data() noexcept
+            {
+                // TODO: required?
+                _program.use();
+
+                _vao = make_vao(1);
+                _vbo0 = sdl::make_vbo<buffer_target::array>(1);
+                _vbo1 = sdl::make_vbo<buffer_target::element_array>(1);
+
+                /*
+                _vbo0->with([&, this]
+                    {
+                        _vbo0->buffer_data<buffer_usage::static_draw>(
+                            _vertices);
+
+                        _vao->with([&, this]
+                            {
+                                _program.nth_attribute(0)
+                                    .enable()
+                                    .vertex_attrib_pointer_float(4, false, 0);
+                            });
+                    });
+
+                _vbo1->with([&, this]
+                    {
+                        _vbo1->buffer_data<buffer_usage::static_draw>(_indices);
+                    });
+                */
+
+                _a_projection_view_model =
+                    _program.get_attribute("a_projection_view_model");
+
+                _a_pos_tex_coords = _program.get_attribute("a_pos_tex_coords");
+                _a_color = _program.get_attribute("a_color");
+                _a_hue = _program.get_attribute("a_hue");
+
+                std::cout << _a_projection_view_model.location() << "\n";
+                std::cout << _a_pos_tex_coords.location() << "\n";
+                std::cout << _a_color.location() << "\n";
+                std::cout << _a_hue.location() << "\n";
+
+                // int temp;
+                // std::cin >> temp;
+
+
+                _u_texture = _program.get_uniform("u_texture");
+
+                /*
+                glm::mat4 _projection_view_model;
+                glm::vec4 _pos_tex_coords;
+                glm::vec4 _color;
+                float _hue;
+                */
+            }
+
+            void use()
+            {
+                _program.use();
+
+                _vao->bind();
+                _vbo0->bind();
+                _vbo1->bind();
+
+                constexpr auto pvm_stride_0(
+                    sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4) +
+                    sizeof(float) + (sizeof(glm::vec4) * 0));
+
+                constexpr auto pvm_stride_1(
+                    sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4) +
+                    sizeof(float) + (sizeof(glm::vec4) * 1));
+
+                constexpr auto pvm_stride_2(
+                    sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4) +
+                    sizeof(float) + (sizeof(glm::vec4) * 2));
+
+                constexpr auto pvm_stride_3(
+                    sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4) +
+                    sizeof(float) + (sizeof(glm::vec4) * 3));
+
+                constexpr auto pvm_first_0(sizeof(glm::vec4) * 0);
+                constexpr auto pvm_first_1(sizeof(glm::vec4) * 1);
+                constexpr auto pvm_first_2(sizeof(glm::vec4) * 2);
+                constexpr auto pvm_first_3(sizeof(glm::vec4) * 3);
+
+                constexpr auto ptc_stride(sizeof(glm::vec4) +
+                                          sizeof(glm::vec4) + sizeof(float) +
+                                          sizeof(glm::mat4));
+
+                constexpr auto color_stride(sizeof(glm::vec4) + sizeof(float) +
+                                            sizeof(glm::mat4) +
+                                            sizeof(glm::vec4));
+
+                constexpr auto hue_stride(sizeof(float) + sizeof(glm::mat4) +
+                                          sizeof(glm::vec4) +
+                                          sizeof(glm::vec4));
+
+                auto pvm_vap(
+                    [this](auto& pvma, auto offset, auto stride, auto first)
+                    {
+                        pvma.vertex_attrib_pointer(offset, 4, GL_FLOAT, true,
+                            stride, (const void*)first);
+                    });
+
+                // Set attribute layout.
+                //_vao->with([&, this]
+                //{
+                _a_projection_view_model.enable(4);
+                pvm_vap(_a_projection_view_model, 0, 100, pvm_first_0);
+                pvm_vap(_a_projection_view_model, 1, 100, pvm_first_1);
+                pvm_vap(_a_projection_view_model, 2, 100, pvm_first_2);
+                pvm_vap(_a_projection_view_model, 3, 100, pvm_first_3);
+
+                _a_pos_tex_coords.enable().vertex_attrib_pointer(4, GL_FLOAT,
+                    true, ptc_stride, (const void*)sizeof(glm::mat4));
+
+                _a_color.enable().vertex_attrib_pointer(4, GL_FLOAT, true,
+                    color_stride,
+                    (const void*)(sizeof(glm::mat4) + sizeof(glm::vec4)));
+
+                _a_hue.enable().vertex_attrib_pointer(1, GL_FLOAT, true,
+                    hue_stride,
+                    (const void*)(sizeof(glm::mat4) + sizeof(glm::vec4) +
+                                                          sizeof(glm::vec4)));
+
+                /*
+                                        vertex_attrib_pointer(layout_offset,
+                   sz_t n_components,
+                                            GLenum type, bool normalized
+                   = true,
+                                            sz_t stride = 0,
+                                            const GLvoid* first_element
+                   = nullptr)
+                                            */
+                // });
+
+
+
+                // _texture_cache.clear();
+            }
+
+
+
+            void enqueue_v(bsr_vertex&& v) { _data.emplace_back(v); }
+
+            static constexpr sz_t batch_size{1};
+
+            static constexpr sz_t vertex_count{batch_size * 4};
+
+            static constexpr sz_t indices_count{batch_size * 6};
+
+            static constexpr sz_t vertex_bytes{
+                vertex_count * sizeof(bsr_vertex)};
+
+            static constexpr sz_t indices_bytes{
+                indices_count * sizeof(GLuint)};
+
+
+            template <typename... Ts>
+            void enqueue_i(Ts... xs)
+            {
+                sdl::for_args(
+                    [this](auto i)
+                    {
+                        _indices.emplace_back(lasti + i);
+                      //  std::cout << lasti + i << ", ";
+                    },
+                    xs...);
+
+                ///std::cout << "\n";
+            }
+
+
+            void draw_sprite(const impl::gltexture2d& t,
+                const glm::vec2& position, const glm::vec2& origin,
+                const glm::vec2& size, float radians, const glm::vec4& color,
+                float hue) noexcept
+            {
+                // Reset `model` to identity matrix.
+                glm::mat4 _model;
+
+                // Tranformation order:
+                // 1) Scale.
+                // 2) Rotate.
+                // 3) Translate.
+
+                // They will occur in the opposite order below.
+
+                // Translate to `position`.
+                _model = glm::translate(_model, glm::vec3(position, 0.0f));
+
+                // Rotate around origin.
+                _model =
+                    glm::rotate(_model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
+
+                // Set origin to the center of the quad.
+                _model = glm::translate(_model, glm::vec3(-origin, 0.0f));
+
+                // Set origin back to `(0, 0)`.
+                _model = glm::translate(
+                    _model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
+
+                // Scale to `size`.
+                _model = glm::scale(_model, glm::vec3(size, 1.0f));
+
+                /*
+                glm::mat4 _projection_view_model;
+                glm::vec4 _pos_tex_coords;
+                glm::vec4 _color;
+                float _hue;
+
+                0.f, 1.f, // sw
+                0.f, 1.f, // sw
+
+                0.f, 0.f, // ne
+                0.f, 0.f, // ne
+
+                1.f, 0.f, // nw
+                1.f, 0.f, // nw
+
+                1.f, 1.f, // se
+                1.f, 1.f, // se
+
+                0, 1, 2, // first triangle
+                0, 2, 3  // second triangle
+                */
+
+                glm::mat4 pvm(_projection * _view * _model);
+                // glm::mat4 pvm(_model);
+                glm::vec4 pos_tex_coords_0(0.f, 1.f, 0.f, 1.f);
+                glm::vec4 pos_tex_coords_1(0.f, 0.f, 0.f, 0.f);
+                glm::vec4 pos_tex_coords_2(1.f, 0.f, 1.f, 0.f);
+                glm::vec4 pos_tex_coords_3(1.f, 1.f, 1.f, 1.f);
+
+                _data.emplace_back(
+                    bsr_vertex{pvm, pos_tex_coords_0, color, hue});
+                _data.emplace_back(
+                    bsr_vertex{pvm, pos_tex_coords_1, color, hue});
+                _data.emplace_back(
+                    bsr_vertex{pvm, pos_tex_coords_2, color, hue});
+                //_data.emplace_back(bsr_vertex{pvm, pos_tex_coords_0, color,
+                // hue});
+                //_data.emplace_back(bsr_vertex{pvm, pos_tex_coords_2, color,
+                // hue});
+                _data.emplace_back(
+                    bsr_vertex{pvm, pos_tex_coords_3, color, hue});
+
+
+
+                enqueue_i(0, 1, 2, 0, 2, 3);
+                lasti += 4;
+
+                //++added;
+
+                if(lasti > vertex_count - 3)
+                {
+                    lasti = 0;
+                    //  added = 0;
+                }
+
+                // Set model/view/projection uniform matrices.
+                //_u_projection_view_model.matrix4fv();
+
+                // Gets the texture unit index from the cache and uses it.
+                //_u_texture.integer(_texture_cache.use(t));
+                //_u_color.vec4(color);
+                //_u_hue.floating(hue);
+
+                // Assumes the VBOs, VAO, and texture unit are bound.
+                //_vao->draw_elements<primitive::triangles>(GL_UNSIGNED_BYTE,
+                // 6);
+            }
+
+            void do_it()
+            {
+
+
+
+                _vao->bind();
+                _vbo0->bind();
+                _vbo1->bind();
+                _u_texture.integer(0);
+
+                auto times(_data.size() / vertex_count);
+
+                // std::cout << "times = " << times << "\n\n";
+
+                if(times > 0)
+                {
+                    /*
+                    std::cout << "vertex_count = " << vertex_count << "\n";
+                    std::cout << "indices_count = " << indices_count << "\n";
+
+                    std::cout << "\n";
+
+                    std::cout << "vertex_bytes = " << vertex_bytes << "\n";
+                    std::cout << "indices_bytes = " << indices_bytes << "\n";
+
+                    std::cout << "\n";
+
+                    std::cout << "_data.size() = " << _data.size() << "\n";
+                    std::cout << "_indices.size() = " << _indices.size()
+                              << "\n";
+
+                    std::cout << "\n";
+
+                    std::cout
+                        << "_data bytes = " << sizeof(bsr_vertex) * _data.size()
+                        << "\n";
+                    std::cout << "_indices bytes = "
+                              << sizeof(GLubyte) * _indices.size() << "\n";
+
+                    std::cout << "\n";
+*/
+                    glBufferData(GL_ARRAY_BUFFER, vertex_bytes, nullptr,
+                        GL_DYNAMIC_DRAW);
+
+                    /*
+                                        _indices.clear();
+                                        for(auto i = 0; i < batch_size; ++i)
+                                        {
+                                            auto x = i*4;
+                                            enqueue_i(x + 0, x + 1, x + 2, x +
+                       0, x + 2, x + 3);
+                                        }
+
+                                        for(auto i : _indices)
+                                        {
+                                            std::cout << (int)i << ", ";
+                                        }
+                    */
+                    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_bytes,
+                        nullptr, GL_DYNAMIC_DRAW);
+
+                    // _vbo0->buffer_data<buffer_usage::dynamic_draw>(_data,
+                    // vertex_count, vertex_count);
+                    // _vbo1->buffer_data<buffer_usage::dynamic_draw>(_indices,
+                    // indices_count, indices_count);
+                }
+
+                for(decltype(times) i(0); i < times; ++i)
+                {
+
+
+                    /*
+                    std::cout << "vertex offset = " << vertex_count * i << "\n";
+                    std::cout << "indices offset = " << indices_count * i
+                              << "\n";
+*/
+
+                    // Send `vertex_count` vertices to GPU.
+                    _vbo0->sub_buffer_data(GL_ARRAY_BUFFER, 0,
+                        (GLsizeiptr)vertex_bytes,
+                        (const void*)(_data.data() + vertex_count * i));
+
+                    //_vbo0->buffer_data<buffer_usage::static_draw>(_data,
+                    // vertex_count, vertex_count * i);
+
+                    // Send `indices_count` vertices to GPU.
+                    _vbo1->sub_buffer_data(GL_ELEMENT_ARRAY_BUFFER, 0,
+                        (GLsizeiptr)indices_bytes,
+                        (const void*)(_indices.data() + indices_count * i));
+
+                    // _vbo1->buffer_data<buffer_usage::static_draw>(_indices,
+                    // indices_count, indices_count * i);
+
+                    // std::cout << "\nbuffers filled\n";
+
+                    // glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+                    glDrawElements(
+                        GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
+
+                    // _vao->draw_elements<primitive::triangles>(GL_UNSIGNED_BYTE,
+                    // indices_count);
+
+                    // std::cout << "elements drawn\n\n\n";
+                }
+
+                _data.clear();
+                _indices.clear();
+                lasti = 0;
+                // added = 0;
+            }
+        };
+    }
 }
 
 std::random_device rnd_device;
@@ -415,7 +906,7 @@ public:
     auto size() const noexcept { return _size; }
 };
 
-constexpr sdl::sz_t my_max_entities{50000};
+constexpr sdl::sz_t my_max_entities{8};
 
 enum class e_type : int
 {
@@ -608,7 +1099,8 @@ struct my_game
     using entity_type = typename game_state_type::entity_type;
 
     TContext _context;
-    sdl::sprite_renderer sr;
+    sdl::batched_sprite_renderer sr;
+    // sdl::sprite_renderer sr;
 
     std::array<sdl::impl::unique_gltexture2d, e_type_count> _texture_array;
 
@@ -674,7 +1166,7 @@ struct my_game
         e._opacity = 0.f;
         e.vel = vel;
         e.speed = speed;
-        e.hue = rndf(-0.6f, 0.1f);
+        e.hue = rndf(-0.6f, 1.1f);
         e.curve = rndf(-1.f, 1.f);
         e.dir = rand() % 2;
         e.life = 100.f;
@@ -709,7 +1201,7 @@ struct my_game
     auto sprite_draw(const entity_type& x)
     {
         sr.draw_sprite(*texture(x.type), x._pos, x._origin, x._size, x._radians,
-            glm::vec4{1.f, 1.f, 1.f, x._opacity}, x.hue);
+            glm::vec4{1.f, 0.f, 1.f, x._opacity}, x.hue);
     }
 
     auto make_toriel(game_state_type& state, sdl::vec2f pos)
@@ -835,6 +1327,9 @@ struct my_game
                     this->sprite_draw(e);
                 });
 
+            this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
+            sr.do_it();
+
             //  std::cout << "\n\ndraw end\n";
         };
 
@@ -861,6 +1356,7 @@ struct my_game
                     ei._size = lerp(e0._size, e1._size);
                     ei._radians = e0._radians; // TODO: lerpradians
                     ei._opacity = lerp(e0._opacity, e1._opacity);
+                    ei.hue = e0.hue;
                 });
 
         };

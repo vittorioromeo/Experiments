@@ -82,9 +82,20 @@ namespace vrm
                     VRM_SDL_GLCHECK(glBindBuffer(target_value, 0));
                 }
 
+                template <typename... Ts>
+                void sub_buffer_data(Ts&&... xs)
+                {
+                    VRM_SDL_GLCHECK(glBufferSubData(FWD(xs)...));
+                }
+
                 template <buffer_usage TUsage, typename T>
                 void buffer_data(T* data, sz_t count) noexcept
                 {
+                    /*std::cout << "buffer:\n"
+                              << "\tcount * sizeof(T) = " << count * sizeof(T)
+                              << "\n"
+                              << "\tdata = " << (int)(data) << "\n";*/
+
                     VRM_SDL_GLCHECK(
                         glBufferData(target_value, count * sizeof(T), data,
                             impl::buffer_usage_value<TUsage>));
@@ -97,9 +108,23 @@ namespace vrm
                 }
 
                 template <buffer_usage TUsage, typename T>
+                void buffer_data(const std::vector<T>& vec, sz_t count) noexcept
+                {
+                    buffer_data<TUsage>(vec.data(), count);
+                }
+
+                template <buffer_usage TUsage, typename T>
+                void buffer_data(const std::vector<T>& vec, sz_t count,
+                    sz_t item_offset) noexcept
+                {
+                    buffer_data<TUsage>(
+                        vec.data() + (sizeof(T) * item_offset), count);
+                }
+
+                template <buffer_usage TUsage, typename T>
                 void buffer_data(const std::vector<T>& vec) noexcept
                 {
-                    buffer_data<TUsage>(vec.data(), vec.size());
+                    buffer_data<TUsage>(vec, vec.size());
                 }
 
                 template <typename TF>

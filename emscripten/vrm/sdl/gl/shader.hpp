@@ -52,7 +52,11 @@ namespace vrm
             logString = logBuffer;
 
             if(!logString.empty())
+            {
                 std::cout << "Shader compilation log" << logString << std::endl;
+                int temp;
+                std::cin >> temp;
+            }
 
             return impl::unique_shader{id};
         }

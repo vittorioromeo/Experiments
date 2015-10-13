@@ -23,9 +23,12 @@ namespace vrm
             attribute() = default;
             attribute(GLuint location) noexcept : _location{location} {}
 
-            auto& enable() noexcept
+            auto& enable(int size = 1) noexcept
             {
-                VRM_SDL_GLCHECK(glEnableVertexAttribArray(_location));
+                for(auto i(0); i < size; ++i)
+                {
+                    VRM_SDL_GLCHECK(glEnableVertexAttribArray(_location + i));
+                }
                 return *this;
             }
 
@@ -35,22 +38,39 @@ namespace vrm
                 return *this;
             }
 
-            auto& vertex_attrib_pointer(sz_t n_components, GLenum type,
-                bool normalized = true, sz_t stride = 0,
+
+            auto& vertex_attrib_pointer(sz_t layout_offset, sz_t n_components,
+                GLenum type, bool normalized = true, sz_t stride = 0,
                 const GLvoid* first_element = nullptr) noexcept
             {
                 assert(n_components > 0 && n_components < 5);
 
-                VRM_SDL_GLCHECK(glVertexAttribPointer(_location, n_components,
-                    type, normalized, stride, first_element));
+                /*
+                std::cout << "glVertexAttribPointer("
+                          << _location + layout_offset << ", " << n_components
+                          << ", " << (int)type << ", " << normalized << ", "
+                          << stride << ", " << (long)first_element << ");\n";
+                          */
+
+                VRM_SDL_GLCHECK(glVertexAttribPointer(_location + layout_offset,
+                    n_components, type, normalized, stride, first_element));
 
                 return *this;
+            }
+
+            auto& vertex_attrib_pointer(sz_t n_components, GLenum type,
+                bool normalized = true, sz_t stride = 0,
+                const GLvoid* first_element = nullptr) noexcept
+            {
+                return vertex_attrib_pointer(0, n_components, GL_FLOAT,
+                    normalized, stride, first_element);
             }
 
             auto& vertex_attrib_pointer_float(sz_t n_components,
                 bool normalized = true,
                 const GLvoid* first_element = nullptr) noexcept
             {
+                // return *this;
                 return vertex_attrib_pointer(n_components, GL_FLOAT, normalized,
                     sizeof(float) * n_components, first_element);
             }
