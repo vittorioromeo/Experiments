@@ -290,15 +290,17 @@ class sparse_int_set
 {
 private:
     static constexpr std::size_t null_value{TSize + 1};
-    std::vector<T> _dense;
-    std::vector<std::size_t> _sparse;
+    //std::vector<T> _dense;
+    std::array<T, TSize> _dense;
+    std::array<std::size_t, TSize> _sparse;
+   // std::vector<std::size_t> _sparse;
     std::size_t _size;
 
 public:
     sparse_int_set() noexcept
     {
-        _dense.resize(TSize);
-        _sparse.resize(TSize);
+       // _dense.resize(TSize);
+     //   _sparse.resize(TSize);
         clear();
     }
 
