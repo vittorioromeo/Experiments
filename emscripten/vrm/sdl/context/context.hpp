@@ -17,6 +17,42 @@ namespace vrm
 {
     namespace sdl
     {
+        template <typename TGameState>
+        struct context_settings
+        {
+            using state_type = TGameState;
+            
+            using update_fn_type = std::function<state_type(const state_type&, ft)>;
+            using draw_fn_type = std::function<void(const state_type&)>;
+            using interpolate_fn_type = std::function<state_type(const state_type&, const state_type&, float)>;
+
+            static auto& null_update_fn() noexcept
+            {
+                static update_fn_type result([](const auto& state, auto)
+                    {
+                        return state;
+                    });
+                return result;
+            }
+
+            static auto& null_draw_fn() noexcept
+            {
+                static draw_fn_type result([](const auto&)
+                    {
+                    });
+                return result;
+            }
+
+            static auto& null_interpolate_fn() noexcept
+            {
+                static interpolate_fn_type result([](const auto& state, const auto&, float)
+                    {
+                        return state;
+                    });
+                return result;
+            }
+        };
+
         namespace impl
         {
             class static_timer
@@ -24,10 +60,10 @@ namespace vrm
                 // TODO:
             public:
                 ft _step, _time_slice, _time{0};
-                float _max_loops, _loops{0};
+                float _max_loops, _loops{0}, _interp_t{0};
 
             public:
-                static_timer(ft step = 1.f, ft time_slice = 16.f,
+                static_timer(ft step = 16.f, ft time_slice = 160.f,
                     float max_loops = 50.f) noexcept : _step{step},
                                                        _time_slice{time_slice},
                                                        _max_loops{max_loops}
@@ -47,16 +83,33 @@ namespace vrm
                         ++_loops;
                     }
 
+                    _interp_t = _time / _time_slice;
+                    // std::cout << _interp_t << "\n";
+
                     //  std::cout << "loops: " << _loops << "\n";
                 }
+
+                const auto& interp_t() const noexcept { return _interp_t; }
+                const auto& time_slice() const noexcept { return _time_slice; }
             };
 
+            template <typename TSettings>
             class context
             {
                 // TODO:
             public:
+                using settings_type = TSettings;
+                using state_type = typename settings_type::state_type;
+                using update_fn_type = typename settings_type::update_fn_type;
+                using draw_fn_type = typename settings_type::draw_fn_type;
+                using interpolate_fn_type = typename settings_type::interpolate_fn_type;
+
                 const sz_t _width;
                 const sz_t _height;
+
+                state_type _prev_state;
+                state_type _current_state;
+                state_type _predicted_state;
 
                 unique_window _window;
                 unique_glcontext _glcontext;
@@ -71,8 +124,9 @@ namespace vrm
                 btn_event_handler _on_btn_down{null_btn_event_handler()};
                 btn_event_handler _on_btn_up{null_btn_event_handler()};
 
-                update_fn _update_fn{null_update_fn()};
-                draw_fn _draw_fn{null_draw_fn()};
+                update_fn_type _update_fn{settings_type::null_update_fn()};
+                draw_fn_type _draw_fn{settings_type::null_draw_fn()};
+                interpolate_fn_type _interpolate_fn{settings_type::null_interpolate_fn()};
 
                 hr_duration _update_duration;
                 hr_duration _draw_duration;
@@ -92,6 +146,7 @@ namespace vrm
             public:
                 auto& update_fn() noexcept;
                 auto& draw_fn() noexcept;
+                auto& interpolate_fn() noexcept;
 
             private:
                 void run_events();
@@ -154,6 +209,12 @@ namespace vrm
                 // void draw(sprite& s) noexcept;
 
                 void title(const std::string& s) noexcept;
+
+                auto& current_state() noexcept { return _current_state; }
+                const auto& current_state() const noexcept
+                {
+                    return _current_state;
+                }
             };
         }
     }

@@ -31,7 +31,7 @@ namespace vrm
                     });
                 return result;
             }
-
+/*
             auto& null_update_fn() noexcept
             {
                 static update_fn result([](auto)
@@ -47,6 +47,7 @@ namespace vrm
                     });
                 return result;
             }
+            */
         }
     }
 }

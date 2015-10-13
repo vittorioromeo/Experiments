@@ -12,12 +12,14 @@ namespace vrm
 {
     namespace sdl
     {
-        namespace impl
+        namespace impl  
         {
+            template<typename TSettings>
             class context;
 
             class input_state
             {
+                template <typename TSettings>
                 friend class ::vrm::sdl::impl::context;
 
             private:

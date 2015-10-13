@@ -273,111 +273,373 @@ namespace vrm
     };
 }
 
-int main(int argc, char** argv)
+std::random_device rnd_device;
+std::default_random_engine rnd_gen{rnd_device()};
+
+auto rndf = [](auto min, auto max)
 {
-    std::random_device rnd_device;
-    std::default_random_engine rnd_gen{rnd_device()};
+    using common_min_max_t = std::common_type_t<decltype(min), decltype(max)>;
 
-    auto rndf = [&](auto min, auto max)
+    using dist_t = std::uniform_real_distribution<common_min_max_t>;
+
+    return dist_t(min, max)(rnd_gen);
+};
+
+constexpr sdl::sz_t my_max_entities{10000};
+
+struct my_game_entity
+{
+    int type;
+    glm::vec2 _pos, _origin, _size;
+    float _radians{0.f}, _opacity{1.f};
+    int _texture_id;
+    float _hitbox_radius;
+    bool alive{false};
+
+    glm::vec2 vel;
+    float speed;
+
+    // sdl::impl::gltexture2d _texture;
+    // std::function<void(void*, my_game_entity&, sdl::ft)> _update_fn;
+    // std::function<void(const my_game_entity&)> _draw_fn;
+
+    my_game_entity() = default;
+
+    my_game_entity(const my_game_entity& rhs) = default;
+    my_game_entity& operator=(const my_game_entity& rhs) = default;
+
+    my_game_entity(my_game_entity&& rhs) = default;
+    my_game_entity& operator=(my_game_entity&& rhs) = default;
+};
+
+struct my_game_state
+{
+    using entity_type = my_game_entity;
+
+    std::array<entity_type, my_max_entities> _entities;
+    std::vector<sdl::sz_t> _free_indices;
+    sdl::sz_t _soul_idx;
+
+    my_game_state()
     {
-        using common_min_max_t =
-            std::common_type_t<decltype(min), decltype(max)>;
-
-        using dist_t = std::uniform_real_distribution<common_min_max_t>;
-
-        return dist_t(min, max)(rnd_gen);
-    };
+        for(sdl::sz_t i(0); i < my_max_entities; ++i)
+            _free_indices.emplace_back(i);
+    }
 
 
+    my_game_state(const my_game_state&) = default;
+    my_game_state& operator=(const my_game_state&) = default;
 
-    auto c_handle(sdl::make_global_context("test game", 1000, 600));
-    auto& c(*c_handle);
+    my_game_state(my_game_state&&) = default;
+    my_game_state& operator=(my_game_state&&) = default;
 
-    auto make_texture_from_image([&](const auto& path)
+    auto add(const entity_type& e)
+    {
+        assert(!_free_indices.empty());
+
+        auto free_index(_free_indices.back());
+        _free_indices.pop_back();
+
+        _entities[free_index] = e;
+        _entities[free_index].alive = true;
+
+        return free_index;
+    }
+
+    template <typename TF>
+    void for_alive(TF&& f)
+    {
+        for(sdl::sz_t i(0); i < my_max_entities; ++i)
         {
-            auto s(c.make_surface(path));
-            return sdl::make_gltexture2d(*s);
-        });
+            if(_entities[i].alive)
+            {
+                f(_entities[i]);
+            }
+        }
+    }
+
+    template <typename TF>
+    void for_alive(TF&& f) const
+    {
+        for(sdl::sz_t i(0); i < my_max_entities; ++i)
+        {
+            if(_entities[i].alive)
+            {
+                f(_entities[i]);
+            }
+        }
+    }
+
+    void reclaim()
+    {
+        _free_indices.clear();
+
+        for(sdl::sz_t i(0); i < my_max_entities; ++i)
+        {
+            if(!_entities[i].alive)
+            {
+                _free_indices.emplace_back(i);
+            }
+        }
+    }
 
 
+    auto& soul() noexcept { return _entities[_soul_idx]; }
+};
+
+
+
+template <typename TContext>
+struct my_game
+{
+    using this_type = my_game<TContext>;
+    using game_state_type = my_game_state;
+    using entity_type = typename game_state_type::entity_type;
+
+    TContext _context;
     sdl::sprite_renderer sr;
 
-    auto toriel_texture(make_texture_from_image("files/toriel.png"));
-    auto soul_texture(make_texture_from_image("files/soul.png"));
-    auto fireball_texture(make_texture_from_image("files/fireball.png"));
-
-    struct entity
+    my_game(TContext&& context) : _context(FWD(context))
     {
-        glm::vec2 _pos, _origin, _size;
-        float _radians{0.f}, _opacity{1.f};
-        sdl::impl::gltexture2d _texture;
+        {
+            auto& state(_context.current_state());
+            auto& entities(state._entities);
 
-        float _hitbox_radius;
-        bool alive{true};
-        std::function<void(entity&, sdl::ft)> _update_fn;
-        std::function<void(entity&)> _draw_fn;
-    };
+            state.add(make_toriel(state, sdl::make_vec2(500.f, 100.f)));
+            state._soul_idx =
+                state.add(make_soul(sdl::make_vec2(500.f, 500.f)));
+            // std::cout << state._soul_idx << "\n";
 
-    constexpr sdl::sz_t max_entities{10000};
-    std::vector<entity> entities;
-    entities.reserve(max_entities);
 
-    auto make_soul = [&](auto pos)
+            // auto& soul(entities.back());
+        }
+
+        _context.update_fn() = [&, this](const auto& old_state, auto step)
+        {
+            auto state(old_state);
+            const auto& entities(state._entities);
+            auto& soul(state.soul());
+
+            // my_game_state new_state(_state);
+
+            state.for_alive([this, &state, step](auto& e)
+                {
+                    // std::cout << "update\n";
+                    // e._update_fn(this, e, step);
+
+                    if(e.type == 0)
+                        soul_update()(e, state, step);
+                    else if(e.type == 1)
+                        fireball_update()(e, state, step);
+                    else if(e.type == 2)
+                        toriel_update()(e, state, step);
+
+                    // std::cout << "check\n";
+                    /*
+                    if(&e != &soul)
+                     {
+                         if(glm::distance(soul._pos, e._pos) <
+                             soul._hitbox_radius + e._hitbox_radius)
+                         {
+                             soul.alive = false;
+                         }
+                     }
+                     */
+
+                    // std::cout << "after check\n";
+                });
+
+            // std::cout << "reclaim\n";
+            state.reclaim();
+            // std::cout << "after reclaim\n";
+
+            /*
+            entities.erase(
+                std::remove_if(std::begin(entities), std::end(entities),
+                    [](auto& e)
+                    {
+                        return !e.alive;
+                    }),
+                std::end(entities));
+            */
+
+            if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
+            if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
+
+            if(_context.key(sdl::kkey::escape))
+            {
+                sdl::stop_global_context();
+            }
+
+            if(rand() % 100 < 30)
+            {
+                _context.title(std::to_string(entities.size()) + " ||| " +
+                               std::to_string(_context.fps_limit) + " | " +
+                               std::to_string(_context._static_timer._loops) +
+                               " ||| " + std::to_string(_context.fps()) +
+                               " | " + std::to_string(_context.real_ms()) +
+                               " | " + std::to_string(_context.update_ms()));
+            }
+
+            return state;
+
+            // std::cout << c.real_ms() << "\n";
+        };
+
+        _context.draw_fn() = [&, this](const auto& state)
+        {
+            // const auto& entities(state._entities);
+
+            sr.use();
+            state.for_alive([this](const auto& e)
+                {
+                    if(e.type == 0)
+                        soul_draw()(e);
+                    else if(e.type == 1)
+                        fireball_draw()(e);
+                    else if(e.type == 2)
+                        toriel_draw()(e);
+                });
+        };
+
+        _context.interpolate_fn() = [&, this](
+            const auto& s0, const auto& s1, float t)
+        {
+
+
+            // std::cout << t << "\n";
+            auto interpolated(game_state_type{s1});
+
+            auto lerp = [t](const auto& v0, const auto& v1)
+            {
+                // auto a = v1 - v0;
+                // return a * t * t + v0;
+
+                return (1.f - t) * v0 + t * v1;
+            };
+
+            const auto& s0_entities(s0._entities);
+            const auto& s1_entities(s1._entities);
+
+            // if(s0_entities.size() != s1_entities.size()) return s0;
+
+            auto& in_entities(interpolated._entities);
+
+            for(auto i(0u); i < in_entities.size(); ++i)
+            {
+                if(!in_entities[i].alive) continue;
+
+                const auto& e0(s0_entities[i]);
+                const auto& e1(s1_entities[i]);
+                auto& ei(in_entities[i]);
+
+                ei._pos = lerp(e0._pos, e1._pos);
+
+                // std::cout << "(" << t << ") " << e0._pos.x << " -> " <<
+                // ei._pos.x << " -> " << e1._pos.x << "\n";
+
+                ei._origin = lerp(e0._origin, e1._origin);
+                ei._size = lerp(e0._size, e1._size);
+                ei._radians = lerp(e0._radians, e1._radians);
+                ei._opacity = lerp(e0._opacity, e1._opacity);
+            }
+
+            return interpolated;
+        };
+    }
+
+    auto& texture(int location) { return *soul_texture; }
+
+    auto make_texture_from_image(const std::string& path)
     {
-        entity e;
+        auto s(_context.make_surface(path));
+        return sdl::make_gltexture2d(*s);
+    }
+
+    sdl::impl::unique_gltexture2d toriel_texture =
+        make_texture_from_image("files/toriel.png");
+
+    sdl::impl::unique_gltexture2d soul_texture =
+        make_texture_from_image("files/soul.png");
+
+    sdl::impl::unique_gltexture2d fireball_texture =
+        make_texture_from_image("files/fireball.png");
+
+    auto make_soul(sdl::vec2f pos)
+    {
+        entity_type e;
+        e.type = 0;
         e._pos = pos;
         e._origin = glm::vec2{0, 0};
-        e._texture = *soul_texture;
+        e._texture_id = soul_texture->location();
         e._size = glm::vec2{soul_texture->size()};
-
         e._hitbox_radius = 3.f;
-        // e._sprite = c.make_sprite(*soul_texture);
-        // e._sprite.set_origin_to_center();
-
-        e._update_fn = [&](auto& x, auto step)
-        {
-            constexpr float speed{5.f};
-            sdl::vec2f input;
-
-            if(c.key(sdl::kkey::left))
-                input.x = -1;
-            else if(c.key(sdl::kkey::right))
-                input.x = 1;
-
-            if(c.key(sdl::kkey::up))
-                input.y = -1;
-            else if(c.key(sdl::kkey::down))
-                input.y = 1;
-
-            x._pos += input * (speed * step);
-        };
-
-        e._draw_fn = [&](auto& x)
-        {
-            sr.draw_sprite(x._texture, x._pos, x._origin, x._size, x._radians);
-        };
 
         return e;
     };
 
-    auto make_fireball = [&](auto pos, auto vel, auto speed)
+    auto soul_update()
     {
-        entity e;
+        return [this](auto& x, auto&, auto step)
+        {
+            // std::cout << x._pos.x << "\n";
+
+            constexpr float speed{5.f};
+            sdl::vec2f input;
+
+            if(_context.key(sdl::kkey::left))
+                input.x = -1;
+            else if(_context.key(sdl::kkey::right))
+                input.x = 1;
+
+            if(_context.key(sdl::kkey::up))
+                input.y = -1;
+            else if(_context.key(sdl::kkey::down))
+                input.y = 1;
+
+            x._pos += input * (speed * step);
+        };
+    }
+
+    auto soul_draw()
+    {
+        return [this](const auto& x)
+        {
+            // std::cout << "soul draw\n";
+            sr.draw_sprite(
+                texture(x._texture_id), x._pos, x._origin, x._size, x._radians);
+        };
+    }
+
+
+
+    auto make_fireball(sdl::vec2f pos, sdl::vec2f vel, float speed)
+    {
+        entity_type e;
+        e.type = 1;
         e._pos = pos;
         e._radians = static_cast<float>(rand() % 6280) / 1000.f;
         e._origin = glm::vec2{0, 0};
-        e._texture = *fireball_texture;
+        e._texture_id = fireball_texture->location();
         e._size = glm::vec2{fireball_texture->size()} * rndf(0.9f, 1.2f);
         e._hitbox_radius = 3.f;
         e._opacity = 0.f;
+        e.vel = vel;
+        e.speed = speed;
 
-        e._update_fn = [&, vel, speed, life = 100.f, dir = rand() % 2, curve = rndf(-1.f, 1.f) ](
-            auto& x, auto step) mutable
+        return e;
+    };
+
+    auto fireball_update()
+    {
+        return
+            [ this, life = 100.f, dir = rand() % 2, curve = rndf(-1.f, 1.f) ](
+                auto& x, auto&, auto step) mutable
         {
-            x._pos += vel * (speed * step);
+            x._pos += x.vel * (x.speed * step);
             x._radians += dir ? 0.2 * step : -0.2 * step;
 
-            vel = glm::rotate(vel, curve);
+            x.vel = glm::rotate(x.vel, curve);
 
             if(std::abs(curve) > 0.01)
             {
@@ -391,35 +653,43 @@ int main(int argc, char** argv)
 
             if(x._opacity <= 1.f) x._opacity += step * 0.1f;
         };
+    }
 
-        e._draw_fn = [&, hue = rndf(-0.6f, 0.1f) ](auto& x) mutable
+    auto fireball_draw()
+    {
+        return [&, hue = rndf(-0.6f, 0.1f) ](const auto& x) mutable
         {
-            sr.draw_sprite(x._texture, x._pos, x._origin, x._size, x._radians,
-                glm::vec4{1.f, 0.f, 0.f, x._opacity}, hue);
+            sr.draw_sprite(texture(x._texture_id), x._pos, x._origin, x._size,
+                x._radians, glm::vec4{1.f, 0.f, 0.f, x._opacity}, hue);
         };
+    }
+
+    auto make_toriel(game_state_type& state, sdl::vec2f pos)
+    {
+        entity_type e;
+        e.type = 2;
+        e._pos = pos;
+        e._origin = glm::vec2{0, 0};
+        e._texture_id = toriel_texture->location();
+        e._size = glm::vec2{toriel_texture->size()};
+        e._hitbox_radius = 30.f;
+
 
         return e;
     };
 
-    auto make_toriel = [&](auto pos)
+    auto toriel_update()
     {
-        entity e;
-        e._pos = pos;
-        e._origin = glm::vec2{0, 0};
-        e._texture = *toriel_texture;
-        e._size = glm::vec2{toriel_texture->size()};
-        e._hitbox_radius = 30.f;
-
-        e._update_fn = [&, timer = 25.f ](auto& x, auto step) mutable
+        return [ this, timer = 1.f ](auto& x, auto& state, auto step) mutable
         {
             timer -= step;
             if(timer <= 0.f)
             {
-                timer = 25.f;
+                timer = 1.f;
 
-                for(int i = 0; i < 80; ++i)
+                for(int i = 0; i < 10; ++i)
                 {
-                    if(entities.size() < max_entities)
+
                     {
                         auto angle(rndf(0.f, sdl::tau));
                         auto speed(rndf(0.1f, 3.f));
@@ -427,79 +697,35 @@ int main(int argc, char** argv)
                             glm::vec2(std::cos(angle), std::sin(angle)));
                         auto vel(unit_vec * speed);
 
-                        entities.emplace_back(
+                        state.add(
                             make_fireball(x._pos + unit_vec * rndf(55.f, 90.f),
                                 vel, 1.f + (rand() % 100) / 80.f));
                     }
                 }
             }
         };
+    }
 
-        e._draw_fn = [&](auto& x)
+    auto toriel_draw()
+    {
+        return [this](const auto& x)
         {
-            sr.draw_sprite(x._texture, x._pos, x._origin, x._size, x._radians);
+
+            sr.draw_sprite(
+                texture(x._texture_id), x._pos, x._origin, x._size, x._radians);
         };
+    }
+};
 
-        return e;
-    };
+using my_context_settings = sdl::context_settings<my_game_state>;
 
-    entities.emplace_back(make_toriel(sdl::make_vec2(500.f, 100.f)));
-    entities.emplace_back(make_soul(sdl::make_vec2(500.f, 500.f)));
+int main()
+{
+    auto c_handle(
+        sdl::make_global_context<my_context_settings>("test game", 1000, 600));
 
-    auto& soul(entities.back());
-
-    c.update_fn() = [&](auto step)
-    {
-        for(auto& e : entities)
-        {
-            e._update_fn(e, step);
-
-            if(&e != &soul)
-            {
-                if(glm::distance(soul._pos, e._pos) <
-                    soul._hitbox_radius + e._hitbox_radius)
-                {
-                    soul.alive = false;
-                }
-            }
-        }
-
-        entities.erase(std::remove_if(std::begin(entities), std::end(entities),
-                           [](auto& e)
-                           {
-                               return !e.alive;
-                           }),
-            std::end(entities));
-
-        if(c.key(sdl::kkey::q)) c.fps_limit += step;
-        if(c.key(sdl::kkey::e)) c.fps_limit -= step;
-
-        if(c.key(sdl::kkey::escape))
-        {
-            sdl::stop_global_context();
-        }
-
-        if(rand() % 100 < 30)
-        {
-            c.title(std::to_string(entities.size()) + " ||| " +
-                    std::to_string(c.fps_limit) + " | " +
-                    std::to_string(c._static_timer._loops) + " ||| " +
-                    std::to_string(c.fps()) + " | " +
-                    std::to_string(c.real_ms()) + " | " +
-                    std::to_string(c.update_ms()));
-        }
-
-
-
-        // std::cout << c.real_ms() << "\n";
-    };
-
-    c.draw_fn() = [&]
-    {
-        sr.use();
-        for(auto& e : entities) e._draw_fn(e);
-    };
-
+    auto& c(*c_handle);
+    my_game<decltype(c)> game{c};
     sdl::run_global_context();
 
     return 0;

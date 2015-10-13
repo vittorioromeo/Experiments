@@ -19,16 +19,50 @@ namespace vrm
     {
         namespace impl
         {
-            auto& context::on_key_up() noexcept { return _on_key_up; }
-            auto& context::on_key_down() noexcept { return _on_key_down; }
+            template <typename TSettings>
+            auto& context<TSettings>::on_key_up() noexcept
+            {
+                return _on_key_up;
+            }
 
-            auto& context::on_btn_up() noexcept { return _on_btn_up; }
-            auto& context::on_btn_down() noexcept { return _on_btn_down; }
+            template <typename TSettings>
+            auto& context<TSettings>::on_key_down() noexcept
+            {
+                return _on_key_down;
+            }
 
-            auto& context::update_fn() noexcept { return _update_fn; }
-            auto& context::draw_fn() noexcept { return _draw_fn; }
+            template <typename TSettings>
+            auto& context<TSettings>::on_btn_up() noexcept
+            {
+                return _on_btn_up;
+            }
 
-            void context::run_events()
+            template <typename TSettings>
+            auto& context<TSettings>::on_btn_down() noexcept
+            {
+                return _on_btn_down;
+            }
+
+            template <typename TSettings>
+            auto& context<TSettings>::update_fn() noexcept
+            {
+                return _update_fn;
+            }
+
+            template <typename TSettings>
+            auto& context<TSettings>::draw_fn() noexcept
+            {
+                return _draw_fn;
+            }
+
+            template <typename TSettings>
+            auto& context<TSettings>::interpolate_fn() noexcept
+            {
+                return _interpolate_fn;
+            }
+
+            template <typename TSettings>
+            void context<TSettings>::run_events()
             {
                 while(SDL_PollEvent(&_event))
                 {
@@ -68,20 +102,27 @@ namespace vrm
                 }
             }
 
-            void context::run_update(ft step) { update_fn()(step); }
-            void context::run_draw()
+            template <typename TSettings>
+            void context<TSettings>::run_update(ft step)
             {
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-                        GL_STENCIL_BUFFER_BIT);
-
-                
-
-                draw_fn()();
-
-                SDL_GL_SwapWindow(*_window);
+                // update_fn()(this->_current_state, step);
             }
 
-            context::context(
+            template <typename TSettings>
+            void context<TSettings>::run_draw()
+            {
+                /* glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+                         GL_STENCIL_BUFFER_BIT);
+
+
+
+                 draw_fn()();
+
+                 SDL_GL_SwapWindow(*_window);*/
+            }
+
+            template <typename TSettings>
+            context<TSettings>::context(
                 const std::string& title, std::size_t width, std::size_t height)
                 : _width{width}, _height{height}, _window{title, width, height},
                   _glcontext{*_window}
@@ -113,49 +154,66 @@ namespace vrm
                 };
             }
 
-            const auto& context::update_duration() const noexcept
+            template <typename TSettings>
+            const auto& context<TSettings>::update_duration() const noexcept
             {
                 return _update_duration;
             }
-            const auto& context::draw_duration() const noexcept
+
+            template <typename TSettings>
+            const auto& context<TSettings>::draw_duration() const noexcept
             {
                 return _draw_duration;
             }
-            const auto& context::total_duration() const noexcept
+
+            template <typename TSettings>
+            const auto& context<TSettings>::total_duration() const noexcept
             {
                 return _total_duration;
             }
-            const auto& context::real_duration() const noexcept
+
+            template <typename TSettings>
+            const auto& context<TSettings>::real_duration() const noexcept
             {
                 return _real_duration;
             }
 
 
+            template <typename TSettings>
             template <typename T>
-            auto context::ms_from_duration(const T& duration) const noexcept
+            auto context<TSettings>::ms_from_duration(const T& duration) const
+                noexcept
             {
                 return std::chrono::duration_cast<ms_double_duration>(duration)
                     .count();
             }
 
-            auto context::update_ms() const noexcept
+            template <typename TSettings>
+            auto context<TSettings>::update_ms() const noexcept
             {
                 return ms_from_duration(update_duration());
             }
-            auto context::draw_ms() const noexcept
+
+            template <typename TSettings>
+            auto context<TSettings>::draw_ms() const noexcept
             {
                 return ms_from_duration(draw_duration());
             }
-            auto context::total_ms() const noexcept
+
+            template <typename TSettings>
+            auto context<TSettings>::total_ms() const noexcept
             {
                 return ms_from_duration(total_duration());
             }
-            auto context::real_ms() const noexcept
+
+            template <typename TSettings>
+            auto context<TSettings>::real_ms() const noexcept
             {
                 return ms_from_duration(real_duration());
             }
 
-            void context::run()
+            template <typename TSettings>
+            void context<TSettings>::run()
             {
                 auto time_dur([](auto&& f)
                     {
@@ -165,9 +223,6 @@ namespace vrm
                         return hr_clock::now() - ms_start;
                     });
 
-                //  auto diff = emscripten_get_now() - test_now;
-
-
                 _real_duration = time_dur([&, this]
                     {
                         _total_duration = time_dur([&, this]
@@ -176,16 +231,50 @@ namespace vrm
 
                                 _update_duration = time_dur([&, this]
                                     {
+                                       // _prev_state = _current_state;
+
+                                         
+
                                         _static_timer.run(real_ms(),
                                             [&, this](auto step)
                                             {
-                                                run_update(step);
+                                                // run_update(step);
+                                                _prev_state = _current_state;
+                                                _current_state = update_fn()(_current_state, step);
+                                                _predicted_state = update_fn()(_current_state, step);
                                             });
                                     });
 
                                 _draw_duration = time_dur([this]
                                     {
-                                        run_draw();
+                                        /*
+                                        const float t = accumulator / timestep;
+                                        GamePhysicsUtils::LerpState(
+                                            interpolatedState, prevState,
+                                            gameState, t);
+*/
+                                        // Precise method which guarantees v =
+                                        // v1 when t = 1.
+                                       /* auto lerp = [](
+                                            float v0, float v1, float t)
+                                        {
+                                            return (1 - t) * v0 + t * v1;
+                                        };*/
+
+                                        // run_draw();
+
+                                        
+                                        auto interpolated_state(_interpolate_fn(
+                                            _prev_state, _current_state,
+                                            _static_timer.interp_t()));
+
+                                        glClear(GL_COLOR_BUFFER_BIT |
+                                                GL_DEPTH_BUFFER_BIT |
+                                                GL_STENCIL_BUFFER_BIT);
+
+                                        draw_fn()(interpolated_state);
+
+                                        SDL_GL_SwapWindow(*_window);
                                     });
                             });
 
@@ -196,20 +285,12 @@ namespace vrm
                             auto delay_ms(ms_limit() - total_ms());
                             SDL_Delay(std::round(delay_ms));
                         }
-
-                        /*if(diff < ms_limit)
-                        {
-                            auto delay_ms(ms_limit - diff);
-                            SDL_Delay(std::round(delay_ms));
-                        }*/
                     });
-
-                // test_now = emscripten_get_now();
             }
 
 
-
-            auto context::fps() const noexcept
+            template <typename TSettings>
+            auto context<TSettings>::fps() const noexcept
             {
                 // constexpr float seconds_ft_ratio{60.f};
                 // return seconds_ft_ratio / total_ms();
@@ -218,50 +299,61 @@ namespace vrm
                 return static_cast<int>(1000.f / real_ms());
             }
 
-            auto context::mouse_x() const noexcept
+            template <typename TSettings>
+            auto context<TSettings>::mouse_x() const noexcept
             {
                 return _input_state.mouse_x();
             }
-            auto context::mouse_y() const noexcept
+
+            template <typename TSettings>
+            auto context<TSettings>::mouse_y() const noexcept
             {
                 return _input_state.mouse_y();
             }
-            auto context::mouse_pos() const noexcept
+
+            template <typename TSettings>
+            auto context<TSettings>::mouse_pos() const noexcept
             {
                 return _input_state.mouse_pos();
             }
 
-            auto context::key(kkey k) const noexcept
+            template <typename TSettings>
+            auto context<TSettings>::key(kkey k) const noexcept
             {
                 return _input_state.key(k);
             }
-            auto context::btn(mbtn b) const noexcept
+
+            template <typename TSettings>
+            auto context<TSettings>::btn(mbtn b) const noexcept
             {
                 return _input_state.btn(b);
             }
 
+            template <typename TSettings>
             template <typename... Ts>
-            auto context::make_surface(Ts&&... xs) noexcept
+            auto context<TSettings>::make_surface(Ts&&... xs) noexcept
             {
                 return unique_surface(FWD(xs)...);
             }
 
             /*template <typename... Ts>
-            auto context::make_texture(Ts&&... xs) noexcept
+            auto context<TSettings>::make_texture(Ts&&... xs) noexcept
             {
                 return unique_texture(*_renderer, FWD(xs)...);
             }
 
 
-            auto context::make_sprite() noexcept { return sprite{}; }
-            auto context::make_sprite(texture& t) noexcept { return sprite{t}; }
+            auto context<TSettings>::make_sprite() noexcept { return sprite{}; }
+            auto context<TSettings>::make_sprite(texture& t) noexcept { return
+            sprite{t}; }
 
-            auto context::make_ttffont(const std::string& path, sz_t font_size)
+            auto context<TSettings>::make_ttffont(const std::string& path, sz_t
+            font_size)
             {
                 return unique_ttffont(path, font_size);
             }
 
-            auto context::make_ttftext_texture(
+            auto context<TSettings>::make_ttftext_texture(
                 ttffont& f, const std::string& s, SDL_Color color)
             {
                 auto temp(make_image(TTF_RenderText_Blended(f, s.c_str(),
@@ -276,7 +368,9 @@ namespace vrm
             }
             void context::draw(sprite& s) noexcept { _renderer->draw(s); }
     */
-            void context::title(const std::string& s) noexcept
+
+            template <typename TSettings>
+            void context<TSettings>::title(const std::string& s) noexcept
             {
                 _window->title(s);
             }

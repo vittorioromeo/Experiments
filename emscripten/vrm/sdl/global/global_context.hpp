@@ -16,16 +16,22 @@ namespace vrm
     {
         namespace impl
         {
-            impl::context* global_context;
-            void run_global_context_loop() { global_context->run(); }
+            std::function<void()> global_context_fn;
+            void run_global_context_loop() noexcept { global_context_fn(); }
         }
 
-        template <typename... Ts>
+        template <typename TSettings, typename... Ts>
         auto make_global_context(Ts&&... xs)
         {
-            assert(impl::global_context == nullptr);
-            auto uptr(std::make_unique<impl::context>(FWD(xs)...));
-            impl::global_context = uptr.get();
+            // assert(impl::global_context == nullptr);
+            auto uptr(std::make_unique<impl::context<TSettings>>(FWD(xs)...));
+            auto ptr(uptr.get());
+
+            impl::global_context_fn = [ptr]
+            {
+                ptr->run();
+            };
+
             return uptr;
         }
 
