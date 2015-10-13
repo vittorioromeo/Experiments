@@ -47,7 +47,7 @@ namespace vrm
                         ++_loops;
                     }
 
-                    _interp_t = _time / _time_slice;            
+                    _interp_t = _time / _time_slice;
                 }
 
                 const auto& interp_t() const noexcept { return _interp_t; }

@@ -23,18 +23,18 @@ namespace vrm
             using state_type = TGameState;
 
             using update_fn_type =
-                std::function<state_type(const state_type&, ft)>;
+                std::function<void(state_type&, ft)>;
 
             using draw_fn_type = std::function<void(const state_type&)>;
 
-            using interpolate_fn_type = std::function<state_type(
-                const state_type&, const state_type&, float)>;
+            using interpolate_fn_type = std::function<void(
+                state_type&, const state_type&, const state_type&, float)>;
 
             static auto& null_update_fn() noexcept
             {
-                static update_fn_type result([](const auto& state, auto)
+                static update_fn_type result([](auto&, auto)
                     {
-                        return state;
+                       // return state;
                     });
                 return result;
             }
@@ -50,9 +50,9 @@ namespace vrm
             static auto& null_interpolate_fn() noexcept
             {
                 static interpolate_fn_type result(
-                    [](const auto& state, const auto&, float)
+                    [](auto&, const auto&, const auto&, float)
                     {
-                        return state;
+                        // return state;
                     });
 
                 return result;

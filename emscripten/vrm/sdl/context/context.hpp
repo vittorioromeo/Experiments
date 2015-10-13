@@ -81,6 +81,8 @@ namespace vrm
                 void run_update(ft step);
                 void run_draw();
 
+                void limit_fps_if_necessary() const noexcept;
+
                 template <typename T>
                 auto ms_from_duration(const T& duration) const noexcept;
 

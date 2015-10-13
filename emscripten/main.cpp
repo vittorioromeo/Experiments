@@ -290,17 +290,19 @@ class sparse_int_set
 {
 private:
     static constexpr std::size_t null_value{TSize + 1};
-    //std::vector<T> _dense;
-    std::array<T, TSize> _dense;
-    std::array<std::size_t, TSize> _sparse;
-   // std::vector<std::size_t> _sparse;
+
+    std::vector<T> _dense;
+    std::vector<std::size_t> _sparse;
     std::size_t _size;
+
+    // std::array<T, TSize> _dense;
+    // std::array<std::size_t, TSize> _sparse;
 
 public:
     sparse_int_set() noexcept
     {
-       // _dense.resize(TSize);
-     //   _sparse.resize(TSize);
+        _dense.resize(TSize);
+        _sparse.resize(TSize);
         clear();
     }
 
@@ -436,13 +438,13 @@ struct my_game_entity
     float speed, hue{0.f}, curve, life;
     int dir;
 
-    my_game_entity() = default;
+    my_game_entity() noexcept {}
 
-    my_game_entity(const my_game_entity& rhs) = default;
-    my_game_entity& operator=(const my_game_entity& rhs) = default;
+    my_game_entity(const my_game_entity& rhs) noexcept = default;
+    my_game_entity& operator=(const my_game_entity& rhs) noexcept = default;
 
-    my_game_entity(my_game_entity&& rhs) = default;
-    my_game_entity& operator=(my_game_entity&& rhs) = default;
+    my_game_entity(my_game_entity&& rhs) noexcept = default;
+    my_game_entity& operator=(my_game_entity&& rhs) noexcept = default;
 };
 
 
@@ -451,22 +453,57 @@ struct my_game_state
     using my_intset = sparse_int_set<std::size_t, my_max_entities>;
     using entity_type = my_game_entity;
 
-    std::array<entity_type, my_max_entities> _entities;
+    // std::array<entity_type, my_max_entities> _entities;
+    std::vector<entity_type> _entities;
     my_intset _free, _alive;
     sdl::sz_t _soul_idx;
 
     my_game_state()
     {
-        // _entities.resize(my_max_entities);
+        _entities.resize(my_max_entities);
         for(sdl::sz_t i(0); i < my_max_entities; ++i) _free.add(i);
     }
 
 
-    my_game_state(const my_game_state&) = default;
-    my_game_state& operator=(const my_game_state&) = default;
+    my_game_state(const my_game_state& rhs)
+        : _entities(rhs._entities), _free(rhs._free), _alive(rhs._alive),
+          _soul_idx(rhs._soul_idx)
+    {
+        // std::cout << "copy ctor :(\n";
+    }
 
-    my_game_state(my_game_state&&) = default;
-    my_game_state& operator=(my_game_state&&) = default;
+    my_game_state& operator=(const my_game_state& rhs)
+    {
+        // std::cout << "copy :(\n";
+
+        _entities = rhs._entities;
+        _free = rhs._free;
+        _alive = rhs._alive;
+        _soul_idx = rhs._soul_idx;
+
+        return *this;
+    }
+
+    my_game_state(my_game_state&& rhs) noexcept
+        : _entities(std::move(rhs._entities)),
+          _free(std::move(rhs._free)),
+          _alive(std::move(rhs._alive)),
+          _soul_idx(std::move(rhs._soul_idx))
+    {
+        //  std::cout << "move ctor!\n";
+    }
+
+    my_game_state& operator=(my_game_state&& rhs) noexcept
+    {
+        // std::cout << "move!\n";
+
+        _entities = std::move(rhs._entities);
+        _free = std::move(rhs._free);
+        _alive = std::move(rhs._alive);
+        _soul_idx = std::move(rhs._soul_idx);
+
+        return *this;
+    }
 
     auto add(const entity_type& e)
     {
@@ -489,6 +526,24 @@ struct my_game_state
         assert(_alive.has(fi));
 
         return fi;
+    }
+
+    template <typename TF>
+    void for_alive_indices(TF&& f)
+    {
+        _alive.for_each([this, &f](auto i)
+            {
+                f(i);
+            });
+    }
+
+    template <typename TF>
+    void for_alive_indices(TF&& f) const
+    {
+        _alive.for_each([this, &f](auto i)
+            {
+                f(i);
+            });
     }
 
     template <typename TF>
@@ -672,27 +727,25 @@ struct my_game
 
     auto toriel_update()
     {
-        return [ this, timer = 1.f ](auto& x, auto& state, auto step) mutable
+        return [this](auto& x, auto& state, auto step)
         {
-            timer -= step;
-            if(timer <= 0.f)
+            x.curve -= step;
+            if(x.curve <= 0.f)
             {
-                timer = 1.f;
+                x.curve = 10.f;
 
-                for(int i = 0; i < 100; ++i)
+                for(int i = 0; i < 1000; ++i)
                 {
-                    if(!state._free.empty())
-                    {
-                        auto angle(rndf(0.f, sdl::tau));
-                        auto speed(rndf(0.1f, 3.f));
-                        auto unit_vec(
-                            glm::vec2(std::cos(angle), std::sin(angle)));
-                        auto vel(unit_vec * speed);
+                    if(state._free.empty()) break;
 
-                        state.add(this->make_fireball(
-                            x._pos + unit_vec * rndf(55.f, 90.f), vel,
-                            1.f + (rand() % 100) / 80.f));
-                    }
+                    auto angle(rndf(0.f, sdl::tau));
+                    auto speed(rndf(0.1f, 3.f));
+                    auto unit_vec(glm::vec2(std::cos(angle), std::sin(angle)));
+                    auto vel(unit_vec * speed);
+
+                    state.add(this->make_fireball(
+                        x._pos + unit_vec * rndf(55.f, 90.f), vel,
+                        1.f + (rand() % 100) / 80.f));
                 }
             }
         };
@@ -715,23 +768,15 @@ struct my_game
             state.add(make_toriel(state, sdl::make_vec2(500.f, 100.f)));
             state._soul_idx =
                 state.add(make_soul(sdl::make_vec2(500.f, 500.f)));
-            // std::cout << state._soul_idx << "\n";
-
-
-            // auto& soul(entities.back());
         }
 
-        _context.update_fn() = [&, this](const auto& old_state, auto step)
+        _context.update_fn() = [&, this](auto& state, auto step)
         {
-            auto state(old_state);
             const auto& entities(state._entities);
             auto& soul(state.soul());
 
             state.for_alive([this, &state, step](auto& e)
                 {
-                    // std::cout << "update\n";
-                    // e._update_fn(this, e, step);
-
                     if(e.type == e_type::soul)
                     {
                         this->soul_update()(e, state, step);
@@ -744,35 +789,9 @@ struct my_game
                     {
                         this->toriel_update()(e, state, step);
                     }
-
-                    // std::cout << "check\n";
-                    /*
-                    if(&e != &soul)
-                     {
-                         if(glm::distance(soul._pos, e._pos) <
-                             soul._hitbox_radius + e._hitbox_radius)
-                         {
-                             soul.alive = false;
-                         }
-                     }
-                     */
-
-                    // std::cout << "after check\n";
                 });
 
-            // std::cout << "reclaim\n";
             state.reclaim();
-            // std::cout << "after reclaim\n";
-
-            /*
-            entities.erase(
-                std::remove_if(std::begin(entities), std::end(entities),
-                    [](auto& e)
-                    {
-                        return !e.alive;
-                    }),
-                std::end(entities));
-            */
 
             if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
             if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
@@ -784,6 +803,20 @@ struct my_game
 
             if(rand() % 100 < 30)
             {
+                auto fps_str(std::to_string(_context.fps()));
+                auto fps_limit_str(
+                    std::to_string(static_cast<int>(_context.fps_limit)));
+                auto update_ms_str(std::to_string(_context.update_ms()));
+                auto draw_ms_str(std::to_string(_context.draw_ms()));
+
+                _context.title("FPS: " + fps_str + "/" + fps_limit_str +
+                               "\tU: " + update_ms_str + "\tD: " + draw_ms_str);
+            }
+
+
+            /*
+            if(rand() % 100 < 30)
+            {
                 _context.title(std::to_string(entities.size()) + " ||| " +
                                std::to_string(_context.fps_limit) + " | " +
                                std::to_string(_context._static_timer._loops) +
@@ -791,66 +824,45 @@ struct my_game
                                " | " + std::to_string(_context.real_ms()) +
                                " | " + std::to_string(_context.update_ms()));
             }
-
-            return state;
-
-            // std::cout << c.real_ms() << "\n";
+            */
         };
 
         _context.draw_fn() = [&, this](const auto& state)
         {
-            // const auto& entities(state._entities);
             sr.use();
             state.for_alive([this](const auto& e)
                 {
                     this->sprite_draw(e);
                 });
+
+            //  std::cout << "\n\ndraw end\n";
         };
 
         _context.interpolate_fn() = [&, this](
-            const auto& s0, const auto& s1, float t)
+            auto& interpolated, const auto& s0, const auto& s1, float t)
         {
-            //return game_state_type{s1};
-
-            // std::cout << t << "\n";
-            auto interpolated(game_state_type{s1});
-
             auto lerp = [t](const auto& v0, const auto& v1)
             {
-                // auto a = v1 - v0;
-                // return a * t * t + v0;
-
                 return (1.f - t) * v0 + t * v1;
             };
 
-            const auto& s0_entities(s0._entities);
-            const auto& s1_entities(s1._entities);
-
-            // if(s0_entities.size() != s1_entities.size()) return s0;
-
             auto& in_entities(interpolated._entities);
 
-            for(auto i(0u); i < in_entities.size(); ++i)
-            {
-                if(!in_entities[i].alive) continue;
+            interpolated._alive = s0._alive;
+            interpolated.for_alive_indices([&](auto i)
+                {
+                    const auto& e0(s0._entities[i]);
+                    const auto& e1(s1._entities[i]);
+                    auto& ei(in_entities[i]);
 
-                const auto& e0(s0_entities[i]);
-                const auto& e1(s1_entities[i]);
-                auto& ei(in_entities[i]);
+                    ei._pos = lerp(e0._pos, e1._pos);
+                    ei.type = e1.type;
+                    ei._origin = lerp(e0._origin, e1._origin);
+                    ei._size = lerp(e0._size, e1._size);
+                    ei._radians = e0._radians; // TODO: lerpradians
+                    ei._opacity = lerp(e0._opacity, e1._opacity);
+                });
 
-                ei._pos = lerp(e0._pos, e1._pos);
-
-                // std::cout << "(" << t << ") " << e0._pos.x << " -> " <<
-                // ei._pos.x << " -> " << e1._pos.x << "\n";
-
-                ei._origin = lerp(e0._origin, e1._origin);
-                ei._size = lerp(e0._size, e1._size);
-                // ei._radians = lerp(e0._radians, e1._radians);
-                ei._radians = e0._radians;
-                ei._opacity = lerp(e0._opacity, e1._opacity);
-            }
-
-            return interpolated;
         };
     }
 };
@@ -876,98 +888,3 @@ int main()
 
     return 0;
 }
-
-/*
-int main_stress(int argc, char** argv)
-{
-    auto c_handle(sdl::make_global_context("test game", 1000, 600));
-    auto& c(*c_handle);
-
-    auto make_texture_from_image([&](const auto& path)
-        {
-            auto s(c.make_surface(path));
-            return sdl::make_gltexture2d(*s);
-        });
-
-    auto toriel_texture(make_texture_from_image("files/toriel.png"));
-    auto fireball_texture(make_texture_from_image("files/fireball.png"));
-    auto soul_texture(make_texture_from_image("files/soul.png"));
-
-    sdl::sprite_renderer sr;
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    float timer{10};
-    float rot = 0.f;
-
-    c.update_fn() = [&](auto)
-    {
-        if(c.btn(sdl::mbtn::left))
-        {
-            c.title(std::to_string(c.fps()));
-        }
-    };
-
-
-    c.draw_fn() = [&]
-    {
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
-        sr.use();
-
-        ++timer;
-
-        sr._view = glm::translate(sr._view, glm::vec3(500.f, 300.f, 0.f));
-        sr._view = glm::scale(sr._view, glm::vec3(0.995f, 0.995f, 1.f));
-        sr._view = glm::translate(sr._view, glm::vec3(-500.f, -300.f, 0.f));
-
-        for(auto ix = 0; ix < 100; ++ix)
-            for(auto iy = 0; iy < 70; ++iy)
-            {
-                sr.draw_sprite(                                // .
-                    *soul_texture,                             // texture
-                    glm::vec2{10 + ix * 16.f, 10 + iy * 18.f}, // position
-                    glm::vec2{ix - iy % 15 * (timer * 3),
-                        ix + (iy * ix) % 40}, // origin [(0, 0) is center]
-                    glm::vec2{soul_texture->size() *
-                              (((ix + iy) % 4) * 0.85f)}, // size
-                    rot * (((ix * iy) % 5 + 1) * 0.3f)    // radians
-                    );
-            }
-
-        for(auto ix = 0; ix < 70; ++ix)
-            for(auto iy = 0; iy < 50; ++iy)
-            {
-                sr.draw_sprite(                                // .
-                    *fireball_texture,                         // texture
-                    glm::vec2{10 + ix * 24.f, 10 + iy * 24.f}, // position
-                    glm::vec2{ix + iy % 20 * timer,
-                        ix * iy % 30}, // origin [(0, 0) is center]
-                    glm::vec2{fireball_texture->size() *
-                              (((ix + iy) % 3) * 0.85f)}, // size
-                    rot * (((ix + iy) % 4 + 1) * 0.3f)    // radians
-                    );
-            }
-
-
-        for(auto ix = 0; ix < 16; ++ix)
-            for(auto iy = 0; iy < 8; ++iy)
-            {
-                sr.draw_sprite(                                 // .
-                    *toriel_texture,                            // texture
-                    glm::vec2{10 + ix * 70.f, 10 + iy * 150.f}, // position
-                    glm::vec2{(int)timer % 200, (int)timer % 100} *
-                        10.f, // origin [(0, 0) is center]
-                    glm::vec2{toriel_texture->size() *
-                              (((ix + iy) % 3) * 0.95f)}, // size
-                    rot * (((ix + iy) % 4 + 1) * 0.3f)    // radians
-                    );
-            }
-
-        rot += 0.05f;
-    };
-
-    sdl::run_global_context();
-    return 0;
-}
-*/

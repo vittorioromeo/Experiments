@@ -105,20 +105,22 @@ namespace vrm
             template <typename TSettings>
             void context<TSettings>::run_update(ft step)
             {
-                // update_fn()(this->_current_state, step);
+                _prev_state = _current_state;
+                this->update_fn()(_current_state, step);
             }
 
             template <typename TSettings>
             void context<TSettings>::run_draw()
             {
-                /* glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-                         GL_STENCIL_BUFFER_BIT);
+                this->_interpolate_fn(_interpolated_state, _prev_state,
+                    _current_state, _static_timer.interp_t());
 
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
+                        GL_STENCIL_BUFFER_BIT);
 
+                draw_fn()(_interpolated_state);
 
-                 draw_fn()();
-
-                 SDL_GL_SwapWindow(*_window);*/
+                SDL_GL_SwapWindow(*_window);
             }
 
             template <typename TSettings>
@@ -231,70 +233,31 @@ namespace vrm
 
                                 _update_duration = time_dur([&, this]
                                     {
-                                        // _prev_state = _current_state;
-
-
-
                                         _static_timer.run(real_ms(),
                                             [&, this](auto step)
                                             {
-                                                // run_update(step);
-                                                _prev_state = _current_state;
-
-                                                _current_state =
-                                                    std::move(this->update_fn()(
-                                                        _current_state, step));
-
-                                                // _predicted_state =
-                                                // update_fn()(_current_state,
-                                                // step);
+                                                this->run_update(step);
                                             });
                                     });
 
                                 _draw_duration = time_dur([this]
                                     {
-                                        /*
-                                        const float t = accumulator / timestep;
-                                        GamePhysicsUtils::LerpState(
-                                            interpolatedState, prevState,
-                                            gameState, t);
-*/
-                                        // Precise method which guarantees v =
-                                        // v1 when t = 1.
-                                        /* auto lerp = [](
-                                             float v0, float v1, float t)
-                                         {
-                                             return (1 - t) * v0 + t * v1;
-                                         };*/
-
-                                        // run_draw();
-
-
-                                        _interpolated_state =
-                                            std::move(this->_interpolate_fn(
-                                                _prev_state, _current_state,
-                                                _static_timer.interp_t()));
-
-                                        glClear(GL_COLOR_BUFFER_BIT |
-                                                GL_DEPTH_BUFFER_BIT |
-                                                GL_STENCIL_BUFFER_BIT);
-
-                                        draw_fn()(_interpolated_state);
-
-                                        SDL_GL_SwapWindow(*_window);
+                                        this->run_draw();
                                     });
                             });
 
-
-
-                        if(total_ms() < ms_limit())
-                        {
-                            auto delay_ms(ms_limit() - total_ms());
-                            SDL_Delay(std::round(delay_ms));
-                        }
+                        limit_fps_if_necessary();
                     });
             }
 
+            template <typename TSettings>
+            void context<TSettings>::limit_fps_if_necessary() const noexcept
+            {
+                if(total_ms() >= ms_limit()) return;
+
+                auto delay_ms(ms_limit() - total_ms());
+                SDL_Delay(std::round(delay_ms));
+            }
 
             template <typename TSettings>
             auto context<TSettings>::fps() const noexcept

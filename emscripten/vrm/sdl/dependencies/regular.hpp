@@ -18,6 +18,11 @@
 #define glBindVertexArrayOES glBindVertexArray
 #define glDeleteVertexArraysOES glDeleteVertexArrays
 
+#define GLM_FORCE_RADIANS
+#define GLM_SWIZZLE
+#define GLM_FORCE_CXX14
+#define GLM_FORCE_INLINE
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/epsilon.hpp>

@@ -17,6 +17,9 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_SWIZZLE
+#define GLM_FORCE_CXX14
+#define GLM_FORCE_INLINE
+
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
 #include <gtc/epsilon.hpp>
