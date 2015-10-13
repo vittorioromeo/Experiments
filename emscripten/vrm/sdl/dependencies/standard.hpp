@@ -16,3 +16,4 @@
 #include <cassert>
 #include <vector>
 #include <type_traits>
+#include <array>

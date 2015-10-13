@@ -285,7 +285,111 @@ auto rndf = [](auto min, auto max)
     return dist_t(min, max)(rnd_gen);
 };
 
-constexpr sdl::sz_t my_max_entities{10000};
+template <typename T, std::size_t TSize>
+class sparse_int_set
+{
+private:
+    std::array<T, TSize> _dense;
+    std::array<T*, TSize> _sparse;
+    std::size_t _size;
+
+    auto back_ptr() noexcept
+    {
+        assert(_size > 0);
+        return &_dense[_size - 1];
+    }
+    auto back_ptr() const noexcept
+    {
+        assert(_size > 0);
+        return &_dense[_size - 1];
+    }
+
+public:
+    sparse_int_set() noexcept { clear(); }
+
+    sparse_int_set(const sparse_int_set&) = default;
+    sparse_int_set& operator=(const sparse_int_set&) = default;
+
+    sparse_int_set(sparse_int_set&&) = default;
+    sparse_int_set& operator=(sparse_int_set&&) = default;
+
+    bool has(const T& x) const noexcept
+    {
+        assert(x < TSize);
+        return _sparse[x] != nullptr;
+    }
+
+    bool add(const T& x) noexcept
+    {
+        assert(x < TSize);
+        if(has(x)) return false;
+
+        _dense[_size++] = x;
+        _sparse[x] = &_dense[_size - 1];
+
+        return true;
+    }
+
+
+    bool erase(const T& x) noexcept
+    {
+        assert(x < TSize);
+        if(!has(x)) return false;
+
+        auto ptr(_sparse[x]);
+        const auto& last(*back_ptr());
+
+        if(*ptr != last)
+        {
+            *ptr = last;
+            _sparse[last] = ptr;
+        }
+
+        _sparse[x] = nullptr;
+
+        assert(_size > 0);
+        --_size;
+
+        return true;
+    }
+
+    void clear() noexcept
+    {
+        for(auto& p : _sparse) p = nullptr;
+        _size = 0;
+    }
+
+    bool empty() const noexcept { return _size == 0; }
+
+    void pop_back() noexcept
+    {
+        assert(_size > 0);
+        erase(back());
+    }
+
+    auto back() const noexcept { return *back_ptr(); }
+
+    template <typename TF>
+    void for_each(TF&& f) const noexcept
+    {
+        for(decltype(_size) i(0); i < _size; ++i)
+        {
+            assert(has(_dense[i]));
+            f(_dense[i]);
+        }
+    }
+
+    auto operator[](std::size_t i) const noexcept
+    {
+        assert(i < _size);
+        assert(has(_dense[i]));
+        return _dense[i];
+    }
+
+    auto size() const noexcept { return _size; }
+};
+
+constexpr sdl::sz_t my_max_entities{5000};
 
 struct my_game_entity
 {
@@ -297,7 +401,8 @@ struct my_game_entity
     bool alive{false};
 
     glm::vec2 vel;
-    float speed;
+    float speed, hue{0.f}, curve, life;
+    int dir;
 
     // sdl::impl::gltexture2d _texture;
     // std::function<void(void*, my_game_entity&, sdl::ft)> _update_fn;
@@ -312,18 +417,21 @@ struct my_game_entity
     my_game_entity& operator=(my_game_entity&& rhs) = default;
 };
 
+
 struct my_game_state
 {
+    using my_intset = sparse_int_set<std::size_t, my_max_entities>;
     using entity_type = my_game_entity;
 
     std::array<entity_type, my_max_entities> _entities;
-    std::vector<sdl::sz_t> _free_indices;
+    my_intset _free, _alive;
+
+    // std::vector<sdl::sz_t> _free_indices;
     sdl::sz_t _soul_idx;
 
     my_game_state()
     {
-        for(sdl::sz_t i(0); i < my_max_entities; ++i)
-            _free_indices.emplace_back(i);
+        for(sdl::sz_t i(0); i < my_max_entities; ++i) _free.add(i);
     }
 
 
@@ -335,52 +443,77 @@ struct my_game_state
 
     auto add(const entity_type& e)
     {
-        assert(!_free_indices.empty());
+        assert(!_free.empty());
 
-        auto free_index(_free_indices.back());
-        _free_indices.pop_back();
+        auto fi(_free.back());
+        _free.pop_back();
 
-        _entities[free_index] = e;
-        _entities[free_index].alive = true;
+        auto& res(_entities[fi]);
+        res = e;
+        res.alive = true;
 
-        return free_index;
+        _alive.add(fi);
+        assert(!_free.has(fi));
+
+        return fi;
     }
 
     template <typename TF>
     void for_alive(TF&& f)
     {
-        for(sdl::sz_t i(0); i < my_max_entities; ++i)
-        {
-            if(_entities[i].alive)
+        _alive.for_each([this, &f](auto i)
             {
                 f(_entities[i]);
-            }
-        }
+            });
     }
 
     template <typename TF>
     void for_alive(TF&& f) const
     {
-        for(sdl::sz_t i(0); i < my_max_entities; ++i)
-        {
-            if(_entities[i].alive)
+        _alive.for_each([this, &f](auto i)
             {
                 f(_entities[i]);
-            }
-        }
+            });
     }
 
     void reclaim()
     {
-        _free_indices.clear();
+        //  0 1 2 3
+        // |x|x| | |
 
-        for(sdl::sz_t i(0); i < my_max_entities; ++i)
-        {
-            if(!_entities[i].alive)
+        auto to_erase_begin(_free.size());
+
+        //  int debug_found{0};
+
+        _alive.for_each([this /*, &debug_found*/](auto i)
             {
-                _free_indices.emplace_back(i);
-            }
+                if(!_entities[i].alive)
+                {
+                    //++debug_found;
+
+                    assert(!_free.has(i));
+                    _free.add(i);
+
+                   //  std::cout << "added: " << i << "\n";
+                }
+            });
+
+        // _free_indices.clear();
+
+        for(auto i(to_erase_begin); i < _free.size(); ++i)
+        {
+            // std::cout << "removing: " << _free[i] << "\n";
+
+            assert(_alive.has(_free[i]));
+            _alive.erase(_free[i]);
+
         }
+
+        // if(debug_found)
+        //  std::cout << "(" << debug_found << ")    " << to_erase_begin
+        //          << " -> " << _free.size() << "\n";
+
+        // std::cout << _alive.size() << " / " << _free.size() << "\n";
     }
 
 
@@ -505,7 +638,7 @@ struct my_game
         _context.interpolate_fn() = [&, this](
             const auto& s0, const auto& s1, float t)
         {
-
+            return s0;
 
             // std::cout << t << "\n";
             auto interpolated(game_state_type{s1});
@@ -540,7 +673,8 @@ struct my_game
 
                 ei._origin = lerp(e0._origin, e1._origin);
                 ei._size = lerp(e0._size, e1._size);
-                ei._radians = lerp(e0._radians, e1._radians);
+                // ei._radians = lerp(e0._radians, e1._radians);
+                ei._radians = e0._radians;
                 ei._opacity = lerp(e0._opacity, e1._opacity);
             }
 
@@ -548,7 +682,15 @@ struct my_game
         };
     }
 
-    auto& texture(int location) { return *soul_texture; }
+    auto& texture(int type)
+    {
+        if(type == 0) return *soul_texture;
+        if(type == 1) return *fireball_texture;
+        // if(type == 2)
+        return *toriel_texture;
+
+        // return *soul_texture;
+    }
 
     auto make_texture_from_image(const std::string& path)
     {
@@ -607,7 +749,7 @@ struct my_game
         {
             // std::cout << "soul draw\n";
             sr.draw_sprite(
-                texture(x._texture_id), x._pos, x._origin, x._size, x._radians);
+                texture(x.type), x._pos, x._origin, x._size, x._radians);
         };
     }
 
@@ -626,30 +768,33 @@ struct my_game
         e._opacity = 0.f;
         e.vel = vel;
         e.speed = speed;
+        e.hue = rndf(-0.6f, 0.1f);
+        e.curve = rndf(-1.f, 1.f);
+        e.dir = rand() % 2;
+        e.life = 100.f;
 
         return e;
     };
 
     auto fireball_update()
     {
-        return
-            [ this, life = 100.f, dir = rand() % 2, curve = rndf(-1.f, 1.f) ](
-                auto& x, auto&, auto step) mutable
+        return [this](auto& x, auto&, auto step) mutable
         {
             x._pos += x.vel * (x.speed * step);
-            x._radians += dir ? 0.2 * step : -0.2 * step;
+            // x._radians += dir ? 0.2 * step : -0.2 * step;
+            x._radians += 0.01f * step;
 
-            x.vel = glm::rotate(x.vel, curve);
+            x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
 
-            if(std::abs(curve) > 0.01)
+            if(std::abs(x.curve) > 0.01)
             {
-                curve *= 0.5f;
+                x.curve *= 0.5f;
             }
 
-            life -= step * 0.3f;
+            x.life -= step * 0.3f;
 
-            if(life <= 0.f) x.alive = false;
-            if(life <= 10.f) x._opacity -= step * 0.2f;
+            if(x.life <= 0.f) x.alive = false;
+            if(x.life <= 10.f) x._opacity -= step * 0.2f;
 
             if(x._opacity <= 1.f) x._opacity += step * 0.1f;
         };
@@ -657,10 +802,10 @@ struct my_game
 
     auto fireball_draw()
     {
-        return [&, hue = rndf(-0.6f, 0.1f) ](const auto& x) mutable
+        return [this](const auto& x) mutable
         {
-            sr.draw_sprite(texture(x._texture_id), x._pos, x._origin, x._size,
-                x._radians, glm::vec4{1.f, 0.f, 0.f, x._opacity}, hue);
+            sr.draw_sprite(texture(x.type), x._pos, x._origin, x._size,
+                x._radians, glm::vec4{1.f, 0.f, 0.f, x._opacity}, x.hue);
         };
     }
 
@@ -687,9 +832,9 @@ struct my_game
             {
                 timer = 1.f;
 
-                for(int i = 0; i < 10; ++i)
+                for(int i = 0; i < 50; ++i)
                 {
-
+                    if(!state._free.empty())
                     {
                         auto angle(rndf(0.f, sdl::tau));
                         auto speed(rndf(0.1f, 3.f));
@@ -712,7 +857,7 @@ struct my_game
         {
 
             sr.draw_sprite(
-                texture(x._texture_id), x._pos, x._origin, x._size, x._radians);
+                texture(x.type), x._pos, x._origin, x._size, x._radians);
         };
     }
 };
@@ -721,6 +866,10 @@ using my_context_settings = sdl::context_settings<my_game_state>;
 
 int main()
 {
+    std::cout << sizeof(my_game_entity) << "\n";
+    std::cout << sizeof(sparse_int_set<std::size_t, 50000>) << "\n";
+    std::cout << sizeof(sparse_int_set<int8_t, 50000>) << "\n";
+
     auto c_handle(
         sdl::make_global_context<my_context_settings>("test game", 1000, 600));
 

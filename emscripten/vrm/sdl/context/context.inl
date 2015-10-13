@@ -241,7 +241,7 @@ namespace vrm
                                                 // run_update(step);
                                                 _prev_state = _current_state;
                                                 _current_state = update_fn()(_current_state, step);
-                                                _predicted_state = update_fn()(_current_state, step);
+                                                // _predicted_state = update_fn()(_current_state, step);
                                             });
                                     });
 

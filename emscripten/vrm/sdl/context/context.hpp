@@ -63,7 +63,7 @@ namespace vrm
                 float _max_loops, _loops{0}, _interp_t{0};
 
             public:
-                static_timer(ft step = 16.f, ft time_slice = 160.f,
+                static_timer(ft step = 1.f, ft time_slice = 16.f,
                     float max_loops = 50.f) noexcept : _step{step},
                                                        _time_slice{time_slice},
                                                        _max_loops{max_loops}
