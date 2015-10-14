@@ -50,5 +50,24 @@ namespace vrm
             constexpr GLenum primitive_value<primitive::triangle_fan>{
                 GL_TRIANGLE_FAN};
         }
+
+        enum class index_type
+        {
+            ui_byte,
+            ui_short,
+            ui_int
+        };
+        
+        namespace impl
+        {
+            template <index_type TP>
+            constexpr GLenum index_type_value{GL_UNSIGNED_BYTE};
+
+            template <>
+            constexpr GLenum index_type_value<index_type::ui_short>{GL_UNSIGNED_SHORT};
+
+            template <>
+            constexpr GLenum index_type_value<index_type::ui_int>{GL_UNSIGNED_INT};
+        }
     }
 }

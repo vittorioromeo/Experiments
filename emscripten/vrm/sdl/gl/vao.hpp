@@ -28,15 +28,18 @@ namespace vrm
                 {
                     VRM_SDL_GLCHECK(glGenVertexArraysOES(_n, &_id));
                 }
+                
                 void deleteVAO() noexcept
                 {
                     VRM_SDL_GLCHECK(glDeleteVertexArraysOES(_n, &_id));
                 }
+                
                 void bind() noexcept
                 {
                     // std::cout << "bound vao " << _id << "\n";
                     VRM_SDL_GLCHECK(glBindVertexArrayOES(_id));
                 }
+
                 void unbind() noexcept
                 {
                     VRM_SDL_GLCHECK(glBindVertexArrayOES(0));
@@ -51,18 +54,18 @@ namespace vrm
                 }
 
                 template <primitive TP>
-                void draw_arrays(GLint first, GLsizei count) noexcept
+                void draw_arrays(GLint first_index, GLsizei index_count) noexcept
                 {
                     VRM_SDL_GLCHECK(
-                        glDrawArrays(impl::primitive_value<TP>, first, count));
+                        glDrawArrays(impl::primitive_value<TP>, first_index, index_count));
                 }
 
-                template <primitive TP>
+                template <primitive TP, index_type TI>
                 void draw_elements(
-                    GLenum index_type, GLsizei count, sz_t offset = 0) noexcept
+                    GLsizei index_count, sz_t vbo_offset_byte = 0) noexcept
                 {
                     VRM_SDL_GLCHECK(glDrawElements(impl::primitive_value<TP>,
-                        count, index_type, (void*)offset));
+                        index_count, impl::index_type_value<TI>, (const void*)vbo_offset_byte));
                 }
 
                 template <primitive TP, typename... Ts>

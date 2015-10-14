@@ -296,7 +296,8 @@ namespace vrm
                 _u_hue.floating(hue);
 
                 // Assumes the VBOs, VAO, and texture unit are bound.
-                _vao->draw_elements<primitive::triangles>(GL_UNSIGNED_BYTE, 6);
+                _vao->draw_elements<primitive::triangles, index_type::ui_byte>(
+                    6);
             }
 
             void draw_sprite(const sprite_data& d) noexcept
@@ -512,10 +513,10 @@ namespace vrm
                     _vbo1->sub_buffer_data_items(
                         _indices, indices_count * i, indices_count);
 
-                    _vao->draw_elements<primitive::triangles>(
-                        GL_UNSIGNED_INT, indices_count, 0);
+                    _vao->draw_elements<primitive::triangles, index_type::ui_int>(
+                        indices_count);
                 }
-                
+
                 {
                     auto remaining_offset_count(times * batch_size);
 
@@ -540,8 +541,8 @@ namespace vrm
                         remaining_offset_count_indices,
                         remaining_indices_count);
 
-                    _vao->draw_elements<primitive::triangles>(
-                        GL_UNSIGNED_INT, remaining_indices_count, 0);
+                    _vao->draw_elements<primitive::triangles,
+                        index_type::ui_int>(remaining_indices_count);
                 }
 
                 _data.clear();
@@ -1119,7 +1120,7 @@ struct my_game
                     this->sprite_draw(e);
                 });
 
-            
+
             sr.do_it();
 
             //  std::cout << "\n\ndraw end\n";
