@@ -68,63 +68,119 @@ namespace vrm
                 {
                     VRM_SDL_GLCHECK(glGenBuffers(_n, &_id));
                 }
+
                 void deleteVBO() noexcept
                 {
                     VRM_SDL_GLCHECK(glDeleteBuffers(_n, &_id));
                 }
+
                 void bind() noexcept
                 {
                     // std::cout << "bound vbo " << _id << "\n";
                     VRM_SDL_GLCHECK(glBindBuffer(target_value, _id));
                 }
+
                 void unbind() noexcept
                 {
                     VRM_SDL_GLCHECK(glBindBuffer(target_value, 0));
                 }
 
-                template <typename... Ts>
-                void sub_buffer_data(Ts&&... xs)
+                void sub_buffer_data(const void* data_ptr,
+                    GLsizeiptr byte_count,
+                    GLintptr vbo_byte_offset = 0) noexcept
                 {
-                    VRM_SDL_GLCHECK(glBufferSubData(FWD(xs)...));
+                    assert(byte_count >= 0);
+                    assert(vbo_byte_offset >= 0);
+
+                    /*
+                    std::cout << "glBufferSubData("
+                              << "target_value=" << target_value
+                              << ", vbo_byte_offset=" << vbo_byte_offset
+                              << ", byte_count=" << byte_count
+                              << ", data_ptr)\n";
+                    */
+
+                    VRM_SDL_GLCHECK(glBufferSubData(
+                        target_value, vbo_byte_offset, byte_count, data_ptr));
+                }
+
+                void sub_buffer_data_bytes(const void* data_ptr,
+                    sz_t byte_count, sz_t vbo_byte_offset = 0) noexcept
+                {
+                    sub_buffer_data(data_ptr, byte_count, vbo_byte_offset);
+                }
+
+                template <typename T>
+                void sub_buffer_data_items(const T* data_ptr, sz_t item_count,
+                    sz_t vbo_byte_offset = 0) noexcept
+                {
+                    sub_buffer_data_bytes(static_cast<const void*>(data_ptr),
+                        item_count * sizeof(T), vbo_byte_offset);
+                }
+
+                template <typename T>
+                void sub_buffer_data_items(const std::vector<T>& vec,
+                    sz_t vector_item_offset, sz_t item_count,
+                    sz_t vbo_byte_offset = 0) noexcept
+                {
+                    sub_buffer_data_items<T>(vec.data() + vector_item_offset,
+                        item_count, vbo_byte_offset);
+                }
+
+                template <buffer_usage TUsage>
+                void buffer_data(
+                    const void* data_ptr, GLsizeiptr byte_count) noexcept
+                {
+                    VRM_SDL_GLCHECK(glBufferData(target_value, byte_count,
+                        data_ptr, impl::buffer_usage_value<TUsage>));
+                }
+
+                template <buffer_usage TUsage>
+                void buffer_data_bytes(
+                    const void* data_ptr, sz_t byte_count) noexcept
+                {
+                    buffer_data<TUsage>(data_ptr, byte_count);
                 }
 
                 template <buffer_usage TUsage, typename T>
-                void buffer_data(T* data, sz_t count) noexcept
+                void buffer_data_items(
+                    const T* data_ptr, sz_t item_count) noexcept
                 {
-                    /*std::cout << "buffer:\n"
-                              << "\tcount * sizeof(T) = " << count * sizeof(T)
-                              << "\n"
-                              << "\tdata = " << (int)(data) << "\n";*/
-
-                    VRM_SDL_GLCHECK(
-                        glBufferData(target_value, count * sizeof(T), data,
-                            impl::buffer_usage_value<TUsage>));
+                    buffer_data_bytes<TUsage>(
+                        static_cast<const void*>(data_ptr),
+                        sizeof(T) * item_count);
                 }
 
                 template <buffer_usage TUsage, typename T, sz_t TN>
-                void buffer_data(T(&arr)[TN]) noexcept
+                void buffer_data_items(T(&arr)[TN]) noexcept
                 {
-                    buffer_data<TUsage>(&arr[0], TN);
+                    buffer_data_items<TUsage, T>(&arr[0], TN);
                 }
 
                 template <buffer_usage TUsage, typename T>
-                void buffer_data(const std::vector<T>& vec, sz_t count) noexcept
+                void buffer_data_items(const std::vector<T>& vec,
+                    sz_t item_count, sz_t item_count_offset = 0) noexcept
                 {
-                    buffer_data<TUsage>(vec.data(), count);
+                    buffer_data_items<TUsage, T>(
+                        vec.data() + item_count_offset, item_count);
                 }
 
                 template <buffer_usage TUsage, typename T>
-                void buffer_data(const std::vector<T>& vec, sz_t count,
-                    sz_t item_offset) noexcept
+                void buffer_data_items(const std::vector<T>& vec) noexcept
                 {
-                    buffer_data<TUsage>(
-                        vec.data() + (sizeof(T) * item_offset), count);
+                    buffer_data_items<TUsage, T>(vec, vec.size());
+                }
+
+                template <buffer_usage TUsage>
+                void allocate_buffer_bytes(sz_t byte_count) noexcept
+                {
+                    buffer_data<TUsage>(nullptr, byte_count);
                 }
 
                 template <buffer_usage TUsage, typename T>
-                void buffer_data(const std::vector<T>& vec) noexcept
+                void allocate_buffer_items(sz_t item_count) noexcept
                 {
-                    buffer_data<TUsage>(vec, vec.size());
+                    allocate_buffer_bytes<TUsage>(sizeof(T) * item_count);
                 }
 
                 template <typename TF>

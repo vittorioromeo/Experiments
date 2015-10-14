@@ -213,7 +213,7 @@ namespace vrm
                 _vbo0 = sdl::make_vbo<buffer_target::array>(1);
                 _vbo0->with([&, this]
                     {
-                        _vbo0->buffer_data<buffer_usage::static_draw>(
+                        _vbo0->buffer_data_items<buffer_usage::static_draw>(
                             _vertices);
 
                         _vao->with([&, this]
@@ -227,7 +227,8 @@ namespace vrm
                 _vbo1 = sdl::make_vbo<buffer_target::element_array>(1);
                 _vbo1->with([&, this]
                     {
-                        _vbo1->buffer_data<buffer_usage::static_draw>(_indices);
+                        _vbo1->buffer_data_items<buffer_usage::static_draw>(
+                            _indices);
                     });
 
                 // Set model/view/projection uniform matrices.
@@ -324,7 +325,6 @@ namespace vrm
             sdl::impl::unique_vbo<buffer_target::array> _vbo0;
             sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
 
-            // glm::mat4 _model;
             glm::mat4 _view;
             glm::mat4 _projection;
 
@@ -335,42 +335,11 @@ namespace vrm
 
             sdl::uniform _u_texture;
 
-            /*
-            sdl::uniform _u_projection_view_model;
-            sdl::uniform _u_color;
-            sdl::uniform _u_hue;
-            */
-
-            /*
-            texture_cache<impl::get_valid_texture_unit_count(500)>
-                _texture_cache;
-            */
+            using gl_index_type = GLuint;
 
             std::vector<bsr_vertex> _data;
-            std::vector<GLuint> _indices;
-            GLuint lasti = 0;
-            // int added = 0;
-
-            /*
-            float _vertices[16]{
-                0.f, 1.f, // sw
-                0.f, 1.f, // sw
-
-                0.f, 0.f, // ne
-                0.f, 0.f, // ne
-
-                1.f, 0.f, // nw
-                1.f, 0.f, // nw
-
-                1.f, 1.f, // se
-                1.f, 1.f, // se
-            };
-
-            GLubyte _indices[6]{
-                0, 1, 2, // first triangle
-                0, 2, 3  // second triangle
-            };
-            */
+            std::vector<gl_index_type> _indices;
+            gl_index_type lasti{0};
 
             batched_sprite_renderer()
             {
@@ -387,26 +356,6 @@ namespace vrm
                 _vbo0 = sdl::make_vbo<buffer_target::array>(1);
                 _vbo1 = sdl::make_vbo<buffer_target::element_array>(1);
 
-                /*
-                _vbo0->with([&, this]
-                    {
-                        _vbo0->buffer_data<buffer_usage::static_draw>(
-                            _vertices);
-
-                        _vao->with([&, this]
-                            {
-                                _program.nth_attribute(0)
-                                    .enable()
-                                    .vertex_attrib_pointer_float(4, false, 0);
-                            });
-                    });
-
-                _vbo1->with([&, this]
-                    {
-                        _vbo1->buffer_data<buffer_usage::static_draw>(_indices);
-                    });
-                */
-
                 _a_projection_view_model =
                     _program.get_attribute("a_projection_view_model");
 
@@ -414,23 +363,7 @@ namespace vrm
                 _a_color = _program.get_attribute("a_color");
                 _a_hue = _program.get_attribute("a_hue");
 
-                std::cout << _a_projection_view_model.location() << "\n";
-                std::cout << _a_pos_tex_coords.location() << "\n";
-                std::cout << _a_color.location() << "\n";
-                std::cout << _a_hue.location() << "\n";
-
-                // int temp;
-                // std::cin >> temp;
-
-
                 _u_texture = _program.get_uniform("u_texture");
-
-                /*
-                glm::mat4 _projection_view_model;
-                glm::vec4 _pos_tex_coords;
-                glm::vec4 _color;
-                float _hue;
-                */
             }
 
             void use()
@@ -441,86 +374,39 @@ namespace vrm
                 _vbo0->bind();
                 _vbo1->bind();
 
-                constexpr auto pvm_stride_0(
-                    sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4) +
-                    sizeof(float) + (sizeof(glm::vec4) * 0));
-
-                constexpr auto pvm_stride_1(
-                    sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4) +
-                    sizeof(float) + (sizeof(glm::vec4) * 1));
-
-                constexpr auto pvm_stride_2(
-                    sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4) +
-                    sizeof(float) + (sizeof(glm::vec4) * 2));
-
-                constexpr auto pvm_stride_3(
-                    sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4) +
-                    sizeof(float) + (sizeof(glm::vec4) * 3));
-
                 constexpr auto pvm_first_0(sizeof(glm::vec4) * 0);
                 constexpr auto pvm_first_1(sizeof(glm::vec4) * 1);
                 constexpr auto pvm_first_2(sizeof(glm::vec4) * 2);
                 constexpr auto pvm_first_3(sizeof(glm::vec4) * 3);
 
-                constexpr auto ptc_stride(sizeof(glm::vec4) +
-                                          sizeof(glm::vec4) + sizeof(float) +
-                                          sizeof(glm::mat4));
+                constexpr auto stride(sizeof(bsr_vertex));
 
-                constexpr auto color_stride(sizeof(glm::vec4) + sizeof(float) +
-                                            sizeof(glm::mat4) +
-                                            sizeof(glm::vec4));
-
-                constexpr auto hue_stride(sizeof(float) + sizeof(glm::mat4) +
-                                          sizeof(glm::vec4) +
-                                          sizeof(glm::vec4));
-
-                auto pvm_vap(
-                    [this](auto& pvma, auto offset, auto stride, auto first)
+                auto pvm_vap([this, &stride](auto offset, auto first)
                     {
-                        pvma.vertex_attrib_pointer(offset, 4, GL_FLOAT, true,
-                            stride, (const void*)first);
+                        _a_projection_view_model.vertex_attrib_pointer(offset,
+                            4, GL_FLOAT, true, stride, (const void*)first);
                     });
 
-                // Set attribute layout.
-                //_vao->with([&, this]
-                //{
                 _a_projection_view_model.enable(4);
-                pvm_vap(_a_projection_view_model, 0, 100, pvm_first_0);
-                pvm_vap(_a_projection_view_model, 1, 100, pvm_first_1);
-                pvm_vap(_a_projection_view_model, 2, 100, pvm_first_2);
-                pvm_vap(_a_projection_view_model, 3, 100, pvm_first_3);
+                pvm_vap(0, pvm_first_0);
+                pvm_vap(1, pvm_first_1);
+                pvm_vap(2, pvm_first_2);
+                pvm_vap(3, pvm_first_3);
 
-                _a_pos_tex_coords.enable().vertex_attrib_pointer(4, GL_FLOAT,
-                    true, ptc_stride, (const void*)sizeof(glm::mat4));
+                _a_pos_tex_coords.enable().vertex_attrib_pointer(
+                    4, GL_FLOAT, true, stride, (const void*)sizeof(glm::mat4));
 
                 _a_color.enable().vertex_attrib_pointer(4, GL_FLOAT, true,
-                    color_stride,
+                    stride,
                     (const void*)(sizeof(glm::mat4) + sizeof(glm::vec4)));
 
-                _a_hue.enable().vertex_attrib_pointer(1, GL_FLOAT, true,
-                    hue_stride,
+                _a_hue.enable().vertex_attrib_pointer(1, GL_FLOAT, true, stride,
                     (const void*)(sizeof(glm::mat4) + sizeof(glm::vec4) +
                                                           sizeof(glm::vec4)));
-
-                /*
-                                        vertex_attrib_pointer(layout_offset,
-                   sz_t n_components,
-                                            GLenum type, bool normalized
-                   = true,
-                                            sz_t stride = 0,
-                                            const GLvoid* first_element
-                   = nullptr)
-                                            */
-                // });
-
-
-
-                // _texture_cache.clear();
             }
 
-
-
             void enqueue_v(bsr_vertex&& v) { _data.emplace_back(v); }
+
 
             static constexpr sz_t batch_size{2048 * 2};
 
@@ -529,7 +415,9 @@ namespace vrm
 
             static constexpr sz_t vertex_bytes{
                 vertex_count * sizeof(bsr_vertex)};
-            static constexpr sz_t indices_bytes{indices_count * sizeof(GLuint)};
+
+            static constexpr sz_t indices_bytes{
+                indices_count * sizeof(gl_index_type)};
 
 
             template <typename... Ts>
@@ -539,11 +427,14 @@ namespace vrm
                     [this](auto i)
                     {
                         _indices.emplace_back(lasti + i);
-                        //  std::cout << lasti + i << ", ";
                     },
                     xs...);
 
-                /// std::cout << "\n";
+                lasti += 4;
+                if(lasti > vertex_count - 3)
+                {
+                    lasti = 0;
+                }
             }
 
 
@@ -552,7 +443,6 @@ namespace vrm
                 const glm::vec2& size, float radians, const glm::vec4& color,
                 float hue) noexcept
             {
-                // Reset `model` to identity matrix.
                 glm::mat4 _model;
 
                 // Tranformation order:
@@ -579,79 +469,22 @@ namespace vrm
                 // Scale to `size`.
                 _model = glm::scale(_model, glm::vec3(size, 1.0f));
 
-                /*
-                glm::mat4 _projection_view_model;
-                glm::vec4 _pos_tex_coords;
-                glm::vec4 _color;
-                float _hue;
-
-                0.f, 1.f, // sw
-                0.f, 1.f, // sw
-
-                0.f, 0.f, // ne
-                0.f, 0.f, // ne
-
-                1.f, 0.f, // nw
-                1.f, 0.f, // nw
-
-                1.f, 1.f, // se
-                1.f, 1.f, // se
-
-                0, 1, 2, // first triangle
-                0, 2, 3  // second triangle
-                */
-
                 glm::mat4 pvm(_projection * _view * _model);
-                // glm::mat4 pvm(_model);
                 glm::vec4 pos_tex_coords_0(0.f, 1.f, 0.f, 1.f);
                 glm::vec4 pos_tex_coords_1(0.f, 0.f, 0.f, 0.f);
                 glm::vec4 pos_tex_coords_2(1.f, 0.f, 1.f, 0.f);
                 glm::vec4 pos_tex_coords_3(1.f, 1.f, 1.f, 1.f);
 
-                _data.emplace_back(
-                    bsr_vertex{pvm, pos_tex_coords_0, color, hue});
-                _data.emplace_back(
-                    bsr_vertex{pvm, pos_tex_coords_1, color, hue});
-                _data.emplace_back(
-                    bsr_vertex{pvm, pos_tex_coords_2, color, hue});
-                //_data.emplace_back(bsr_vertex{pvm, pos_tex_coords_0, color,
-                // hue});
-                //_data.emplace_back(bsr_vertex{pvm, pos_tex_coords_2, color,
-                // hue});
-                _data.emplace_back(
-                    bsr_vertex{pvm, pos_tex_coords_3, color, hue});
-
-
+                enqueue_v(bsr_vertex{pvm, pos_tex_coords_0, color, hue});
+                enqueue_v(bsr_vertex{pvm, pos_tex_coords_1, color, hue});
+                enqueue_v(bsr_vertex{pvm, pos_tex_coords_2, color, hue});
+                enqueue_v(bsr_vertex{pvm, pos_tex_coords_3, color, hue});
 
                 enqueue_i(0, 1, 2, 0, 2, 3);
-                lasti += 4;
-
-                //++added;
-
-                if(lasti > vertex_count - 3)
-                {
-                    lasti = 0;
-                    //  added = 0;
-                }
-
-                // Set model/view/projection uniform matrices.
-                //_u_projection_view_model.matrix4fv();
-
-                // Gets the texture unit index from the cache and uses it.
-                //_u_texture.integer(_texture_cache.use(t));
-                //_u_color.vec4(color);
-                //_u_hue.floating(hue);
-
-                // Assumes the VBOs, VAO, and texture unit are bound.
-                //_vao->draw_elements<primitive::triangles>(GL_UNSIGNED_BYTE,
-                // 6);
             }
 
             void do_it()
             {
-
-
-
                 _vao->bind();
                 _vbo0->bind();
                 _vbo1->bind();
@@ -659,28 +492,30 @@ namespace vrm
 
                 auto times(_data.size() / vertex_count);
 
-                glBufferData(
-                    GL_ARRAY_BUFFER, vertex_bytes, nullptr, GL_DYNAMIC_DRAW);
+                // Allocates enough memory for `vertex_count` `bsr_vertex`.
+                _vbo0->allocate_buffer_items<buffer_usage::dynamic_draw,
+                    bsr_vertex>(vertex_count);
 
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_bytes, nullptr,
-                    GL_DYNAMIC_DRAW);
+                // Allocates enough memory for `indices_count` `gl_index_type`.
+                _vbo1->allocate_buffer_items<buffer_usage::dynamic_draw,
+                    gl_index_type>(indices_count);
 
                 for(decltype(times) i(0); i < times; ++i)
                 {
-                    // Send `vertex_count` vertices to GPU.
-                    _vbo0->sub_buffer_data(GL_ARRAY_BUFFER, 0,
-                        (GLsizeiptr)vertex_bytes,
-                        (const void*)(_data.data() + vertex_count * i));
+                    // Send `vertex_count` vertices to GPU, from
+                    // `_data[vertex_count * i]`.
+                    _vbo0->sub_buffer_data_items(
+                        _data, vertex_count * i, vertex_count);
 
-                    // Send `indices_count` vertices to GPU.
-                    _vbo1->sub_buffer_data(GL_ELEMENT_ARRAY_BUFFER, 0,
-                        (GLsizeiptr)indices_bytes,
-                        (const void*)(_indices.data() + indices_count * i));
+                    // Send `indices_count` vertices to GPU, from
+                    // `_indices[indices_count * i]`.
+                    _vbo1->sub_buffer_data_items(
+                        _indices, indices_count * i, indices_count);
 
-                    glDrawElements(
-                        GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
+                    _vao->draw_elements<primitive::triangles>(
+                        GL_UNSIGNED_INT, indices_count, 0);
                 }
-
+                
                 {
                     auto remaining_offset_count(times * batch_size);
 
@@ -690,36 +525,23 @@ namespace vrm
                     auto remaining_offset_count_indices(
                         remaining_offset_count * 6);
 
-                    auto remaining_offset_vertex(
-                        _data.data() + remaining_offset_count_vertex);
-
-                    auto remaining_offset_indices(
-                        _indices.data() + remaining_offset_count_indices);
-
                     auto remaining_batch_size(_data.size() % batch_size);
 
                     auto remaining_vertex_count(remaining_batch_size * 4);
 
                     auto remaining_indices_count(remaining_batch_size * 6);
 
-                    auto remaining_vertex_bytes(
-                        remaining_vertex_count * sizeof(bsr_vertex));
-
-                    auto remaining_indices_bytes(
-                        remaining_indices_count * sizeof(GLuint));
-
                     // Send `vertex_count` vertices to GPU.
-                    _vbo0->sub_buffer_data(GL_ARRAY_BUFFER, 0,
-                        (GLsizeiptr)remaining_vertex_bytes,
-                        (const void*)(remaining_offset_vertex));
+                    _vbo0->sub_buffer_data_items(_data,
+                        remaining_offset_count_vertex, remaining_vertex_count);
 
                     // Send `indices_count` vertices to GPU.
-                    _vbo1->sub_buffer_data(GL_ELEMENT_ARRAY_BUFFER, 0,
-                        (GLsizeiptr)remaining_indices_bytes,
-                        (const void*)(remaining_offset_indices));
+                    _vbo1->sub_buffer_data_items(_indices,
+                        remaining_offset_count_indices,
+                        remaining_indices_count);
 
-                    glDrawElements(
-                        GL_TRIANGLES, remaining_indices_count, GL_UNSIGNED_INT, 0);
+                    _vao->draw_elements<primitive::triangles>(
+                        GL_UNSIGNED_INT, remaining_indices_count, 0);
                 }
 
                 _data.clear();
@@ -1290,10 +1112,14 @@ struct my_game
             sr.use();
             state.for_alive([this](const auto& e)
                 {
+                    // TODO: slow
+                    this->texture(e.type)->activate_and_bind(GL_TEXTURE0);
+                    // ----------
+
                     this->sprite_draw(e);
                 });
 
-            this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
+            
             sr.do_it();
 
             //  std::cout << "\n\ndraw end\n";
