@@ -68,12 +68,12 @@ namespace vrm
                 {
                     /*
                     std::cout
-                        << "glDrawElements(impl::primitive_value<TP>, "
-                           "index_count= "
+                        << "glDrawElements(index_count= "
                         << index_count
-                        << ", impl::index_type_value<TI>, vbo_offset_byte= "
-                        << vbo_offset_byte << "\n";
+                        << ", vbo_offset_byte= "
+                        << vbo_offset_byte << ")\n";
                     */
+                    
 
                     VRM_SDL_GLCHECK(glDrawElements(impl::primitive_value<TP>,
                         index_count, impl::index_type_value<TI>,
