@@ -1,6 +1,4 @@
 #include <cfenv>
-
-
 #include <stdio.h>
 #include <iostream>
 #include <memory>
@@ -13,27 +11,6 @@
 #include <type_traits>
 #include <random>
 #include <vrm/sdl.hpp>
-
-// batch_size = 2
-// vertex_count = 2 * 4 = 8
-// index_count = 2 * 6 = 12
-
-// batch_______________________________    batch_______________________________
-// 0---------------   1----------------|   2---------------   3---------------|
-//
-//                                         0    1    2    3    4   5    6    7
-// 0    1    2    3    4    5    6    7    8    9    10   11   12  13   14   15
-// v0_0 v0_1 v0_2 v0_3 v1_0 v1_1 v1_2 v1_3 v2_0 v2_1 v2_2 v2_3 v3_0 v3_1 v3_2
-// v3_3
-
-// 0 1 2 0 2 3         4 5 6 4 6 7         0 1 2 0 2 3         4 5 6 4 6 7
-
-// i+0 i+1 i+2 i+0 i+2 i+3
-// i+=4
-// i+0 i+1 i+2 i+0 i+2 i+3
-// i+=4
-// 4 > vertex_count? yes -> reset i
-// i+0 i+1 i+2 i+0 i+2 i+3
 
 namespace sdl = vrm::sdl;
 
@@ -455,7 +432,7 @@ namespace vrm
                 const glm::vec2& position, const glm::vec2& origin,
                 const glm::vec2& size, float radians, const glm::vec4& color,
                 float hue) noexcept
-            {               
+            {
                 auto shear_x = 0.f;
                 auto shear_y = 0.f;
 
@@ -513,7 +490,8 @@ namespace vrm
                     0.f, 0.f, 1.f      // .
                 };
 
-                auto transform(translation * rotation * origining * origining_2 * scaling * shearing_x * shearing_y);
+                auto transform(translation * rotation * origining *
+                               origining_2 * scaling * shearing_x * shearing_y);
 
                 glm::vec3 comp0(transform * pos0);
                 glm::vec3 comp1(transform * pos1);
@@ -1020,7 +998,7 @@ struct my_game
                 x.curve *= 0.5f;
             }
 
-            //x.life -= step * 0.3f;
+            // x.life -= step * 0.3f;
 
             if(x.life <= 0.f) x.alive = false;
             if(x.life <= 10.f) x._opacity -= step * 0.2f;
@@ -1133,8 +1111,9 @@ struct my_game
                 auto update_ms_str(std::to_string(_context.update_ms()));
                 auto draw_ms_str(std::to_string(_context.draw_ms()));
 
-                _context.title(alive_str + " |\tFPS: " + fps_str + "/" + fps_limit_str +
-                               "\tU: " + update_ms_str + "\tD: " + draw_ms_str);
+                _context.title(alive_str + " |\tFPS: " + fps_str + "/" +
+                               fps_limit_str + "\tU: " + update_ms_str +
+                               "\tD: " + draw_ms_str);
             }
 
 
