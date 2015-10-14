@@ -522,17 +522,14 @@ namespace vrm
 
             void enqueue_v(bsr_vertex&& v) { _data.emplace_back(v); }
 
-            static constexpr sz_t batch_size{1};
+            static constexpr sz_t batch_size{2048 * 2};
 
             static constexpr sz_t vertex_count{batch_size * 4};
-
             static constexpr sz_t indices_count{batch_size * 6};
 
             static constexpr sz_t vertex_bytes{
                 vertex_count * sizeof(bsr_vertex)};
-
-            static constexpr sz_t indices_bytes{
-                indices_count * sizeof(GLuint)};
+            static constexpr sz_t indices_bytes{indices_count * sizeof(GLuint)};
 
 
             template <typename... Ts>
@@ -542,11 +539,11 @@ namespace vrm
                     [this](auto i)
                     {
                         _indices.emplace_back(lasti + i);
-                      //  std::cout << lasti + i << ", ";
+                        //  std::cout << lasti + i << ", ";
                     },
                     xs...);
 
-                ///std::cout << "\n";
+                /// std::cout << "\n";
             }
 
 
@@ -662,103 +659,72 @@ namespace vrm
 
                 auto times(_data.size() / vertex_count);
 
-                // std::cout << "times = " << times << "\n\n";
+                glBufferData(
+                    GL_ARRAY_BUFFER, vertex_bytes, nullptr, GL_DYNAMIC_DRAW);
 
-                if(times > 0)
-                {
-                    /*
-                    std::cout << "vertex_count = " << vertex_count << "\n";
-                    std::cout << "indices_count = " << indices_count << "\n";
-
-                    std::cout << "\n";
-
-                    std::cout << "vertex_bytes = " << vertex_bytes << "\n";
-                    std::cout << "indices_bytes = " << indices_bytes << "\n";
-
-                    std::cout << "\n";
-
-                    std::cout << "_data.size() = " << _data.size() << "\n";
-                    std::cout << "_indices.size() = " << _indices.size()
-                              << "\n";
-
-                    std::cout << "\n";
-
-                    std::cout
-                        << "_data bytes = " << sizeof(bsr_vertex) * _data.size()
-                        << "\n";
-                    std::cout << "_indices bytes = "
-                              << sizeof(GLubyte) * _indices.size() << "\n";
-
-                    std::cout << "\n";
-*/
-                    glBufferData(GL_ARRAY_BUFFER, vertex_bytes, nullptr,
-                        GL_DYNAMIC_DRAW);
-
-                    /*
-                                        _indices.clear();
-                                        for(auto i = 0; i < batch_size; ++i)
-                                        {
-                                            auto x = i*4;
-                                            enqueue_i(x + 0, x + 1, x + 2, x +
-                       0, x + 2, x + 3);
-                                        }
-
-                                        for(auto i : _indices)
-                                        {
-                                            std::cout << (int)i << ", ";
-                                        }
-                    */
-                    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_bytes,
-                        nullptr, GL_DYNAMIC_DRAW);
-
-                    // _vbo0->buffer_data<buffer_usage::dynamic_draw>(_data,
-                    // vertex_count, vertex_count);
-                    // _vbo1->buffer_data<buffer_usage::dynamic_draw>(_indices,
-                    // indices_count, indices_count);
-                }
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_bytes, nullptr,
+                    GL_DYNAMIC_DRAW);
 
                 for(decltype(times) i(0); i < times; ++i)
                 {
-
-
-                    /*
-                    std::cout << "vertex offset = " << vertex_count * i << "\n";
-                    std::cout << "indices offset = " << indices_count * i
-                              << "\n";
-*/
-
                     // Send `vertex_count` vertices to GPU.
                     _vbo0->sub_buffer_data(GL_ARRAY_BUFFER, 0,
                         (GLsizeiptr)vertex_bytes,
                         (const void*)(_data.data() + vertex_count * i));
-
-                    //_vbo0->buffer_data<buffer_usage::static_draw>(_data,
-                    // vertex_count, vertex_count * i);
 
                     // Send `indices_count` vertices to GPU.
                     _vbo1->sub_buffer_data(GL_ELEMENT_ARRAY_BUFFER, 0,
                         (GLsizeiptr)indices_bytes,
                         (const void*)(_indices.data() + indices_count * i));
 
-                    // _vbo1->buffer_data<buffer_usage::static_draw>(_indices,
-                    // indices_count, indices_count * i);
-
-                    // std::cout << "\nbuffers filled\n";
-
-                    // glDrawArrays(GL_TRIANGLES, 0, vertex_count);
                     glDrawElements(
                         GL_TRIANGLES, indices_count, GL_UNSIGNED_INT, 0);
+                }
 
-                    // _vao->draw_elements<primitive::triangles>(GL_UNSIGNED_BYTE,
-                    // indices_count);
+                {
+                    auto remaining_offset_count(times * batch_size);
 
-                    // std::cout << "elements drawn\n\n\n";
+                    auto remaining_offset_count_vertex(
+                        remaining_offset_count * 4);
+
+                    auto remaining_offset_count_indices(
+                        remaining_offset_count * 6);
+
+                    auto remaining_offset_vertex(
+                        _data.data() + remaining_offset_count_vertex);
+
+                    auto remaining_offset_indices(
+                        _indices.data() + remaining_offset_count_indices);
+
+                    auto remaining_batch_size(_data.size() % batch_size);
+
+                    auto remaining_vertex_count(remaining_batch_size * 4);
+
+                    auto remaining_indices_count(remaining_batch_size * 6);
+
+                    auto remaining_vertex_bytes(
+                        remaining_vertex_count * sizeof(bsr_vertex));
+
+                    auto remaining_indices_bytes(
+                        remaining_indices_count * sizeof(GLuint));
+
+                    // Send `vertex_count` vertices to GPU.
+                    _vbo0->sub_buffer_data(GL_ARRAY_BUFFER, 0,
+                        (GLsizeiptr)remaining_vertex_bytes,
+                        (const void*)(remaining_offset_vertex));
+
+                    // Send `indices_count` vertices to GPU.
+                    _vbo1->sub_buffer_data(GL_ELEMENT_ARRAY_BUFFER, 0,
+                        (GLsizeiptr)remaining_indices_bytes,
+                        (const void*)(remaining_offset_indices));
+
+                    glDrawElements(
+                        GL_TRIANGLES, remaining_indices_count, GL_UNSIGNED_INT, 0);
                 }
 
                 _data.clear();
                 _indices.clear();
                 lasti = 0;
-                // added = 0;
             }
         };
     }
@@ -906,7 +872,7 @@ public:
     auto size() const noexcept { return _size; }
 };
 
-constexpr sdl::sz_t my_max_entities{8};
+constexpr sdl::sz_t my_max_entities{50000};
 
 enum class e_type : int
 {
