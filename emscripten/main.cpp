@@ -455,120 +455,14 @@ namespace vrm
                 const glm::vec2& position, const glm::vec2& origin,
                 const glm::vec2& size, float radians, const glm::vec4& color,
                 float hue) noexcept
-            {
-                /*
-                glm::mat4 _model;
-
-                // Tranformation order:
-                // 1) Scale.
-                // 2) Rotate.
-                // 3) Translate.
-
-                // They will occur in the opposite order below.
-
-                // Translate to `position`.
-                _model = glm::translate(_model, glm::vec3(position, 0.0f));
-
-                // Rotate around origin.
-                _model =
-                    glm::rotate(_model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
-
-                // Set origin to the center of the quad.
-                _model = glm::translate(_model, glm::vec3(-origin, 0.0f));
-
-                // Set origin back to `(0, 0)`.
-                _model = glm::translate(
-                    _model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
-
-                // Scale to `size`.
-                _model = glm::scale(_model, glm::vec3(size, 1.0f));
-
-                glm::vec4 pos0(0.f, 1.f, 0.f, 1.f);
-                glm::vec4 pos1(0.f, 0.f, 0.f, 1.f);
-                glm::vec4 pos2(1.f, 0.f, 0.f, 1.f);
-                glm::vec4 pos3(1.f, 1.f, 0.f, 1.f);
-
-                glm::vec4 comp0(_model * pos0);
-                glm::vec4 comp1(_model * pos1);
-                glm::vec4 comp2(_model * pos2);
-                glm::vec4 comp3(_model * pos3);
-
-                glm::vec4 pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
-                glm::vec4 pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
-                glm::vec4 pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
-                glm::vec4 pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
-                */
-
-
-
-                /*
-                glm::vec3 pos0(position.x + size.x * 0.f, position.y + size.y *
-                1.f, 1.f);
-                glm::vec3 pos1(position.x + size.x * 0.f, position.y + size.y *
-                0.f, 1.f);
-                glm::vec3 pos2(position.x + size.x * 1.f, position.y + size.y *
-                0.f, 1.f);
-                glm::vec3 pos3(position.x + size.x * 1.f, position.y + size.y *
-                1.f, 1.f);
-                */
-
-                /*
-                glm::mat3 scaling{
-                    // .
-                    1.f, 0.f, 0.f,              // .
-                    0.f, 1.f, 0.f,              // .
-                    0.f, 0.f, 1.f // .
-                };
-                */
+            {               
+                auto shear_x = 0.f;
+                auto shear_y = 0.f;
 
                 glm::vec3 pos0(0.f, 1.f, 1.f);
                 glm::vec3 pos1(0.f, 0.f, 1.f);
                 glm::vec3 pos2(1.f, 0.f, 1.f);
                 glm::vec3 pos3(1.f, 1.f, 1.f);
-
-                // a = px
-                // b = py
-                // c = sx
-                // d = sy
-                // e = cosr
-                // f = sinr
-                // g = shx
-                // h = shy
-                // i = ox
-                // l = oy
-
-                auto shear_x = 0.0f;
-                auto shear_y = 0.0f;
-
-
-                const auto& a(position.x);
-                const auto& b(position.y);
-                const auto& c(size.x);
-                const auto& d(size.y);
-                const auto& e(std::cos(radians));
-                const auto& f(std::sin(radians));
-                const auto& g(shear_x);
-                const auto& h(shear_y);
-                const auto& i(origin.x);
-                const auto& l(origin.y);
-
-                // i {{1,0,0}, {0,1,0}, {0,0,1}}
-
-                // t  {{1,0,0}, {0,1,0}, {a,b,1}}
-                // r  {{e,f,0}, {-f,e,0}, {0,0,1}}
-                // o  {{1,0,0}, {0,1,0}, {i,l,1}}
-                // o2 {{1,0,0}, {0,1,0}, {-c/2,-d/2,1}}
-                // s  {{c,0,0}, {0,d,0}, {0,0,1}}
-                // sx {{1,0,0}, {-g,1,0}, {0,0,1}}
-                // sy {{1,h,0}, {0,1,0}, {0,0,1}}
-
-                glm::mat3 baked{c * e * (1.f - g * h) - d * f * h,
-                    c * f * (1.f - g * h) + d * e * h, 0.f, -c * e * g - d * f,
-                    -c * f * g + d * e, 0.f,
-                    a + e * (-c * 0.5f + i) - f * (-d * 0.5f + l),
-                    b + e * (-d * 0.5f + l) + f * (-c * 0.5f + i), 1.f};
-
-                // {{c,0,0}, {0,d,0}, {0,0,1}}
 
                 glm::mat3 translation{
                     // .
@@ -605,8 +499,6 @@ namespace vrm
                     0.f, 0.f, 1.f     // .
                 };
 
-
-
                 glm::mat3 shearing_x{
                     // .
                     1.f, 0.f, 0.f,      // .
@@ -621,28 +513,17 @@ namespace vrm
                     0.f, 0.f, 1.f      // .
                 };
 
-
-
-                // auto transform(scaling * origining * rotation * translation);
                 auto transform(translation * rotation * origining * origining_2 * scaling * shearing_x * shearing_y);
-                //const auto& transform = baked;
-
-                // auto transform(                    translation * rotation   *
-                // shearing_y * shearing_x * scaling * origining);
 
                 glm::vec3 comp0(transform * pos0);
                 glm::vec3 comp1(transform * pos1);
                 glm::vec3 comp2(transform * pos2);
                 glm::vec3 comp3(transform * pos3);
 
-                // std::cout << comp0.xy() << "\n";
-
                 glm::vec4 pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
                 glm::vec4 pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
                 glm::vec4 pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
                 glm::vec4 pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
-
-                // TODO: compute color + hue on CPU ?
 
                 enqueue_v(pos_tex_coords_0, color, hue);
                 enqueue_v(pos_tex_coords_1, color, hue);
