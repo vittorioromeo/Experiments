@@ -351,6 +351,7 @@ namespace vrm
             sdl::attribute _a_hue;
 
             sdl::uniform _u_texture;
+            sdl::uniform _u_projection_view;
 
             std::vector<bsr_vertex> _data;
             std::vector<gl_index_type> _indices;
@@ -379,6 +380,7 @@ namespace vrm
 
                 // Get uniforms.
                 _u_texture = _program.get_uniform("u_texture");
+                _u_projection_view = _program.get_uniform("u_projection_view");
 
                 // Allocates enough memory for `vertex_count` `bsr_vertex`.
                 // Creates vertices VBO.
@@ -422,6 +424,7 @@ namespace vrm
                 _vbo1->bind();
 
                 _projection_view = _projection * _view;
+                _u_projection_view.matrix4fv(_projection_view);
             }
 
             template <typename... Ts>
@@ -453,6 +456,7 @@ namespace vrm
                 const glm::vec2& size, float radians, const glm::vec4& color,
                 float hue) noexcept
             {
+                /*
                 glm::mat4 _model;
 
                 // Tranformation order:
@@ -479,17 +483,159 @@ namespace vrm
                 // Scale to `size`.
                 _model = glm::scale(_model, glm::vec3(size, 1.0f));
 
-                glm::mat4 pvm(_projection_view * _model);
-
                 glm::vec4 pos0(0.f, 1.f, 0.f, 1.f);
                 glm::vec4 pos1(0.f, 0.f, 0.f, 1.f);
                 glm::vec4 pos2(1.f, 0.f, 0.f, 1.f);
                 glm::vec4 pos3(1.f, 1.f, 0.f, 1.f);
 
-                glm::vec4 comp0(pvm * pos0);
-                glm::vec4 comp1(pvm * pos1);
-                glm::vec4 comp2(pvm * pos2);
-                glm::vec4 comp3(pvm * pos3);
+                glm::vec4 comp0(_model * pos0);
+                glm::vec4 comp1(_model * pos1);
+                glm::vec4 comp2(_model * pos2);
+                glm::vec4 comp3(_model * pos3);
+
+                glm::vec4 pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
+                glm::vec4 pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
+                glm::vec4 pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
+                glm::vec4 pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
+                */
+
+
+
+                /*
+                glm::vec3 pos0(position.x + size.x * 0.f, position.y + size.y *
+                1.f, 1.f);
+                glm::vec3 pos1(position.x + size.x * 0.f, position.y + size.y *
+                0.f, 1.f);
+                glm::vec3 pos2(position.x + size.x * 1.f, position.y + size.y *
+                0.f, 1.f);
+                glm::vec3 pos3(position.x + size.x * 1.f, position.y + size.y *
+                1.f, 1.f);
+                */
+
+                /*
+                glm::mat3 scaling{
+                    // .
+                    1.f, 0.f, 0.f,              // .
+                    0.f, 1.f, 0.f,              // .
+                    0.f, 0.f, 1.f // .
+                };
+                */
+
+                glm::vec3 pos0(0.f, 1.f, 1.f);
+                glm::vec3 pos1(0.f, 0.f, 1.f);
+                glm::vec3 pos2(1.f, 0.f, 1.f);
+                glm::vec3 pos3(1.f, 1.f, 1.f);
+
+                // a = px
+                // b = py
+                // c = sx
+                // d = sy
+                // e = cosr
+                // f = sinr
+                // g = shx
+                // h = shy
+                // i = ox
+                // l = oy
+
+                auto shear_x = 0.0f;
+                auto shear_y = 0.0f;
+
+
+                const auto& a(position.x);
+                const auto& b(position.y);
+                const auto& c(size.x);
+                const auto& d(size.y);
+                const auto& e(std::cos(radians));
+                const auto& f(std::sin(radians));
+                const auto& g(shear_x);
+                const auto& h(shear_y);
+                const auto& i(origin.x);
+                const auto& l(origin.y);
+
+                // i {{1,0,0}, {0,1,0}, {0,0,1}}
+
+                // t  {{1,0,0}, {0,1,0}, {a,b,1}}
+                // r  {{e,f,0}, {-f,e,0}, {0,0,1}}
+                // o  {{1,0,0}, {0,1,0}, {i,l,1}}
+                // o2 {{1,0,0}, {0,1,0}, {-c/2,-d/2,1}}
+                // s  {{c,0,0}, {0,d,0}, {0,0,1}}
+                // sx {{1,0,0}, {-g,1,0}, {0,0,1}}
+                // sy {{1,h,0}, {0,1,0}, {0,0,1}}
+
+                glm::mat3 baked{c * e * (1.f - g * h) - d * f * h,
+                    c * f * (1.f - g * h) + d * e * h, 0.f, -c * e * g - d * f,
+                    -c * f * g + d * e, 0.f,
+                    a + e * (-c * 0.5f + i) - f * (-d * 0.5f + l),
+                    b + e * (-d * 0.5f + l) + f * (-c * 0.5f + i), 1.f};
+
+                // {{c,0,0}, {0,d,0}, {0,0,1}}
+
+                glm::mat3 translation{
+                    // .
+                    1.f, 0.f, 0.f,              // .
+                    0.f, 1.f, 0.f,              // .
+                    position.x, position.y, 1.f // .
+                };
+
+                glm::mat3 rotation{
+                    // .
+                    std::cos(radians), std::sin(radians), 0.f,  // .
+                    -std::sin(radians), std::cos(radians), 0.f, // .
+                    0.f, 0.f, 1.f                               // .
+                };
+
+                glm::mat3 origining{
+                    // .
+                    1.f, 0.f, 0.f,          // .
+                    0.f, 1.f, 0.f,          // .
+                    origin.x, origin.y, 1.f // .
+                };
+
+                glm::mat3 origining_2{
+                    // .
+                    1.f, 0.f, 0.f,                    // .
+                    0.f, 1.f, 0.f,                    // .
+                    -size.x * 0.5, -size.y * 0.5, 1.f // .
+                };
+
+                glm::mat3 scaling{
+                    // .
+                    size.x, 0.f, 0.f, // .
+                    0.f, size.y, 0.f, // .
+                    0.f, 0.f, 1.f     // .
+                };
+
+
+
+                glm::mat3 shearing_x{
+                    // .
+                    1.f, 0.f, 0.f,      // .
+                    -shear_x, 1.f, 0.f, // .
+                    0.f, 0.f, 1.f       // .
+                };
+
+                glm::mat3 shearing_y{
+                    // .
+                    1.f, shear_y, 0.f, // .
+                    0.f, 1.f, 0.f,     // .
+                    0.f, 0.f, 1.f      // .
+                };
+
+
+
+                // auto transform(scaling * origining * rotation * translation);
+                auto transform(translation * rotation * origining * origining_2 * scaling * shearing_x * shearing_y);
+                //const auto& transform = baked;
+
+                // auto transform(                    translation * rotation   *
+                // shearing_y * shearing_x * scaling * origining);
+
+                glm::vec3 comp0(transform * pos0);
+                glm::vec3 comp1(transform * pos1);
+                glm::vec3 comp2(transform * pos2);
+                glm::vec3 comp3(transform * pos3);
+
+                // std::cout << comp0.xy() << "\n";
 
                 glm::vec4 pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
                 glm::vec4 pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
@@ -712,7 +858,7 @@ public:
     auto size() const noexcept { return _size; }
 };
 
-constexpr sdl::sz_t my_max_entities{50000};
+constexpr sdl::sz_t my_max_entities{100000};
 
 enum class e_type : int
 {
@@ -993,7 +1139,7 @@ struct my_game
                 x.curve *= 0.5f;
             }
 
-            x.life -= step * 0.3f;
+            //x.life -= step * 0.3f;
 
             if(x.life <= 0.f) x.alive = false;
             if(x.life <= 10.f) x._opacity -= step * 0.2f;
@@ -1030,7 +1176,7 @@ struct my_game
             {
                 x.curve = 10.f;
 
-                for(int i = 0; i < 1000; ++i)
+                for(int i = 0; i < 10000; ++i)
                 {
                     if(state._free.empty()) break;
 
@@ -1099,13 +1245,14 @@ struct my_game
 
             if(rand() % 100 < 30)
             {
+                auto alive_str(std::to_string(state._alive.size()));
                 auto fps_str(std::to_string(_context.fps()));
                 auto fps_limit_str(
                     std::to_string(static_cast<int>(_context.fps_limit)));
                 auto update_ms_str(std::to_string(_context.update_ms()));
                 auto draw_ms_str(std::to_string(_context.draw_ms()));
 
-                _context.title("FPS: " + fps_str + "/" + fps_limit_str +
+                _context.title(alive_str + " |\tFPS: " + fps_str + "/" + fps_limit_str +
                                "\tU: " + update_ms_str + "\tD: " + draw_ms_str);
             }
 
