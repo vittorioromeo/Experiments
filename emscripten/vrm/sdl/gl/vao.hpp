@@ -10,6 +10,7 @@
 #include <vrm/sdl/context.hpp>
 #include <vrm/sdl/gl/check.hpp>
 #include <vrm/sdl/gl/primitive.hpp>
+#include <vrm/sdl/gl/index_type.hpp>
 
 namespace vrm
 {
@@ -28,12 +29,12 @@ namespace vrm
                 {
                     VRM_SDL_GLCHECK(glGenVertexArraysOES(_n, &_id));
                 }
-                
+
                 void deleteVAO() noexcept
                 {
                     VRM_SDL_GLCHECK(glDeleteVertexArraysOES(_n, &_id));
                 }
-                
+
                 void bind() noexcept
                 {
                     // std::cout << "bound vao " << _id << "\n";
@@ -54,18 +55,29 @@ namespace vrm
                 }
 
                 template <primitive TP>
-                void draw_arrays(GLint first_index, GLsizei index_count) noexcept
+                void draw_arrays(
+                    GLint first_index, GLsizei index_count) noexcept
                 {
-                    VRM_SDL_GLCHECK(
-                        glDrawArrays(impl::primitive_value<TP>, first_index, index_count));
+                    VRM_SDL_GLCHECK(glDrawArrays(
+                        impl::primitive_value<TP>, first_index, index_count));
                 }
 
                 template <primitive TP, index_type TI>
                 void draw_elements(
                     GLsizei index_count, sz_t vbo_offset_byte = 0) noexcept
                 {
+                    /*
+                    std::cout
+                        << "glDrawElements(impl::primitive_value<TP>, "
+                           "index_count= "
+                        << index_count
+                        << ", impl::index_type_value<TI>, vbo_offset_byte= "
+                        << vbo_offset_byte << "\n";
+                    */
+
                     VRM_SDL_GLCHECK(glDrawElements(impl::primitive_value<TP>,
-                        index_count, impl::index_type_value<TI>, (const void*)vbo_offset_byte));
+                        index_count, impl::index_type_value<TI>,
+                        (const void*)vbo_offset_byte));
                 }
 
                 template <primitive TP, typename... Ts>

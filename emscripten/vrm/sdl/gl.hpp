@@ -13,6 +13,7 @@
 #include <vrm/sdl/gl/check.hpp>
 #include <vrm/sdl/gl/shader.hpp>
 #include <vrm/sdl/gl/primitive.hpp>
+#include <vrm/sdl/gl/index_type.hpp>
 #include <vrm/sdl/gl/vao.hpp>
 #include <vrm/sdl/gl/vbo.hpp>
 #include <vrm/sdl/gl/attribute.hpp>
