@@ -1,3 +1,6 @@
+#include <cfenv>
+
+
 #include <stdio.h>
 #include <iostream>
 #include <memory>
@@ -312,7 +315,7 @@ namespace vrm
     {
         struct bsr_vertex
         {
-            glm::mat4 _projection_view_model;
+            // glm::mat4 _projection_view_model;
             glm::vec4 _pos_tex_coords;
             glm::vec4 _color;
             float _hue;
@@ -329,7 +332,7 @@ namespace vrm
             glm::mat4 _view;
             glm::mat4 _projection;
 
-            sdl::attribute _a_projection_view_model;
+            // sdl::attribute _a_projection_view_model;
             sdl::attribute _a_pos_tex_coords;
             sdl::attribute _a_color;
             sdl::attribute _a_hue;
@@ -357,12 +360,13 @@ namespace vrm
                 _vbo0 = sdl::make_vbo<buffer_target::array>(1);
                 _vbo1 = sdl::make_vbo<buffer_target::element_array>(1);
 
-                _a_projection_view_model =
-                    _program.get_attribute("a_projection_view_model");
-
                 _a_pos_tex_coords = _program.get_attribute("a_pos_tex_coords");
                 _a_color = _program.get_attribute("a_color");
                 _a_hue = _program.get_attribute("a_hue");
+
+                std::cout << _a_pos_tex_coords.location() << "\n";
+                std::cout << _a_color.location() << "\n";
+                std::cout << _a_hue.location() << "\n";
 
                 _u_texture = _program.get_uniform("u_texture");
             }
@@ -375,41 +379,30 @@ namespace vrm
                 _vbo0->bind();
                 _vbo1->bind();
 
-                constexpr auto pvm_first_0(sizeof(glm::vec4) * 0);
-                constexpr auto pvm_first_1(sizeof(glm::vec4) * 1);
-                constexpr auto pvm_first_2(sizeof(glm::vec4) * 2);
-                constexpr auto pvm_first_3(sizeof(glm::vec4) * 3);
-
                 constexpr auto stride(sizeof(bsr_vertex));
 
-                auto pvm_vap([this, &stride](auto offset, auto first)
-                    {
-                        _a_projection_view_model.vertex_attrib_pointer(offset,
-                            4, GL_FLOAT, true, stride, (const void*)first);
-                    });
-
-                _a_projection_view_model.enable(4);
-                pvm_vap(0, pvm_first_0);
-                pvm_vap(1, pvm_first_1);
-                pvm_vap(2, pvm_first_2);
-                pvm_vap(3, pvm_first_3);
-
                 _a_pos_tex_coords.enable().vertex_attrib_pointer(
-                    4, GL_FLOAT, true, stride, (const void*)sizeof(glm::mat4));
+                    4, GL_FLOAT, true, stride, (const void*)0);
 
                 _a_color.enable().vertex_attrib_pointer(4, GL_FLOAT, true,
-                    stride,
-                    (const void*)(sizeof(glm::mat4) + sizeof(glm::vec4)));
+                    stride, (const void*)(sizeof(glm::vec4)));
 
                 _a_hue.enable().vertex_attrib_pointer(1, GL_FLOAT, true, stride,
-                    (const void*)(sizeof(glm::mat4) + sizeof(glm::vec4) +
-                                                          sizeof(glm::vec4)));
+                    (const void*)(sizeof(glm::vec4) + sizeof(glm::vec4)));
+
+                // Allocates enough memory for `vertex_count` `bsr_vertex`.
+                _vbo0->allocate_buffer_items<buffer_usage::dynamic_draw,
+                    bsr_vertex>(vertex_count);
+
+                // Allocates enough memory for `indices_count` `gl_index_type`.
+                _vbo1->allocate_buffer_items<buffer_usage::dynamic_draw,
+                    gl_index_type>(indices_count);
             }
 
             void enqueue_v(bsr_vertex&& v) { _data.emplace_back(v); }
 
 
-            static constexpr sz_t batch_size{2048 * 2};
+            static constexpr sz_t batch_size{1024 * 8};
 
             static constexpr sz_t vertex_count{batch_size * 4};
             static constexpr sz_t indices_count{batch_size * 6};
@@ -471,15 +464,26 @@ namespace vrm
                 _model = glm::scale(_model, glm::vec3(size, 1.0f));
 
                 glm::mat4 pvm(_projection * _view * _model);
-                glm::vec4 pos_tex_coords_0(0.f, 1.f, 0.f, 1.f);
-                glm::vec4 pos_tex_coords_1(0.f, 0.f, 0.f, 0.f);
-                glm::vec4 pos_tex_coords_2(1.f, 0.f, 1.f, 0.f);
-                glm::vec4 pos_tex_coords_3(1.f, 1.f, 1.f, 1.f);
 
-                enqueue_v(bsr_vertex{pvm, pos_tex_coords_0, color, hue});
-                enqueue_v(bsr_vertex{pvm, pos_tex_coords_1, color, hue});
-                enqueue_v(bsr_vertex{pvm, pos_tex_coords_2, color, hue});
-                enqueue_v(bsr_vertex{pvm, pos_tex_coords_3, color, hue});
+                glm::vec4 pos0(0.f, 1.f, 0.f, 1.f);
+                glm::vec4 pos1(0.f, 0.f, 0.f, 1.f);
+                glm::vec4 pos2(1.f, 0.f, 0.f, 1.f);
+                glm::vec4 pos3(1.f, 1.f, 0.f, 1.f);
+
+                glm::vec4 comp0(pvm * pos0);
+                glm::vec4 comp1(pvm * pos1);
+                glm::vec4 comp2(pvm * pos2);
+                glm::vec4 comp3(pvm * pos3);
+
+                glm::vec4 pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
+                glm::vec4 pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
+                glm::vec4 pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
+                glm::vec4 pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
+
+                enqueue_v(bsr_vertex{pos_tex_coords_0, color, hue});
+                enqueue_v(bsr_vertex{pos_tex_coords_1, color, hue});
+                enqueue_v(bsr_vertex{pos_tex_coords_2, color, hue});
+                enqueue_v(bsr_vertex{pos_tex_coords_3, color, hue});
 
                 enqueue_i(0, 1, 2, 0, 2, 3);
             }
@@ -493,14 +497,6 @@ namespace vrm
 
                 auto times(_data.size() / vertex_count);
 
-                // Allocates enough memory for `vertex_count` `bsr_vertex`.
-                _vbo0->allocate_buffer_items<buffer_usage::dynamic_draw,
-                    bsr_vertex>(vertex_count);
-
-                // Allocates enough memory for `indices_count` `gl_index_type`.
-                _vbo1->allocate_buffer_items<buffer_usage::dynamic_draw,
-                    gl_index_type>(indices_count);
-
                 for(decltype(times) i(0); i < times; ++i)
                 {
                     // Send `vertex_count` vertices to GPU, from
@@ -513,11 +509,12 @@ namespace vrm
                     _vbo1->sub_buffer_data_items(
                         _indices, indices_count * i, indices_count);
 
-                    _vao->draw_elements<primitive::triangles, index_type::ui_int>(
-                        indices_count);
+                    _vao->draw_elements<primitive::triangles,
+                        index_type::ui_int>(indices_count);
                 }
 
                 {
+
                     auto remaining_offset_count(times * batch_size);
 
                     auto remaining_offset_count_vertex(
@@ -526,7 +523,7 @@ namespace vrm
                     auto remaining_offset_count_indices(
                         remaining_offset_count * 6);
 
-                    auto remaining_batch_size(_data.size() % batch_size);
+                    auto remaining_batch_size((_data.size() / 4) % batch_size);
 
                     auto remaining_vertex_count(remaining_batch_size * 4);
 
@@ -848,7 +845,6 @@ struct my_game_state
     {
         auto to_erase_begin(_free.size());
 
-
         _alive.for_each([this](auto i)
             {
                 if(!_entities[i].alive)
@@ -866,7 +862,6 @@ struct my_game_state
 
         for(auto i(to_erase_begin); i < _free.size(); ++i)
         {
-
             assert(_alive.has(_free[i]));
 
             _alive.erase(_free[i]);
@@ -1111,10 +1106,11 @@ struct my_game
         _context.draw_fn() = [&, this](const auto& state)
         {
             sr.use();
+            this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
             state.for_alive([this](const auto& e)
                 {
                     // TODO: slow
-                    this->texture(e.type)->activate_and_bind(GL_TEXTURE0);
+                    // this->texture(e.type)->activate_and_bind(GL_TEXTURE0);
                     // ----------
 
                     this->sprite_draw(e);
@@ -1160,6 +1156,8 @@ using my_context_settings = sdl::context_settings<my_game_state>;
 
 int main()
 {
+// feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+
 #define COUT_SIZE(...)                                                      \
     std::cout << "sizeof(" << #__VA_ARGS__ << ") = " << sizeof(__VA_ARGS__) \
               << "\n"
