@@ -480,6 +480,8 @@ namespace vrm
                 glm::vec4 pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
                 glm::vec4 pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
 
+                // TODO: compute color + hue on CPU ?
+
                 enqueue_v(bsr_vertex{pos_tex_coords_0, color, hue});
                 enqueue_v(bsr_vertex{pos_tex_coords_1, color, hue});
                 enqueue_v(bsr_vertex{pos_tex_coords_2, color, hue});
