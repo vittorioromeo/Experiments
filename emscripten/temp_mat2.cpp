@@ -1,4 +1,6 @@
 #include <cfenv>
+
+
 #include <stdio.h>
 #include <iostream>
 #include <memory>
@@ -11,6 +13,27 @@
 #include <type_traits>
 #include <random>
 #include <vrm/sdl.hpp>
+
+// batch_size = 2
+// vertex_count = 2 * 4 = 8
+// index_count = 2 * 6 = 12
+
+// batch_______________________________    batch_______________________________
+// 0---------------   1----------------|   2---------------   3---------------|
+//
+//                                         0    1    2    3    4   5    6    7
+// 0    1    2    3    4    5    6    7    8    9    10   11   12  13   14   15
+// v0_0 v0_1 v0_2 v0_3 v1_0 v1_1 v1_2 v1_3 v2_0 v2_1 v2_2 v2_3 v3_0 v3_1 v3_2
+// v3_3
+
+// 0 1 2 0 2 3         4 5 6 4 6 7         0 1 2 0 2 3         4 5 6 4 6 7
+
+// i+0 i+1 i+2 i+0 i+2 i+3
+// i+=4
+// i+0 i+1 i+2 i+0 i+2 i+3
+// i+=4
+// 4 > vertex_count? yes -> reset i
+// i+0 i+1 i+2 i+0 i+2 i+3
 
 namespace sdl = vrm::sdl;
 
@@ -400,12 +423,6 @@ namespace vrm
                 _vbo0->bind();
                 _vbo1->bind();
 
-                /*
-                _view = glm::translate(_view, glm::vec3(500.f, 300.f, 0.f));
-                _view = glm::scale(_view, glm::vec3(0.995f, 0.995f, 1.0f));
-                _view = glm::translate(_view, glm::vec3(-500.f, -300.f, 0.f));
-                */
-
                 _projection_view = _projection * _view;
                 _u_projection_view.matrix4fv(_projection_view);
             }
@@ -439,13 +456,119 @@ namespace vrm
                 const glm::vec2& size, float radians, const glm::vec4& color,
                 float hue) noexcept
             {
-                auto shear_x = 0.f;
-                auto shear_y = 0.f;
+                /*
+                glm::mat4 _model;
+
+                // Tranformation order:
+                // 1) Scale.
+                // 2) Rotate.
+                // 3) Translate.
+
+                // They will occur in the opposite order below.
+
+                // Translate to `position`.
+                _model = glm::translate(_model, glm::vec3(position, 0.0f));
+
+                // Rotate around origin.
+                _model =
+                    glm::rotate(_model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
+
+                // Set origin to the center of the quad.
+                _model = glm::translate(_model, glm::vec3(-origin, 0.0f));
+
+                // Set origin back to `(0, 0)`.
+                _model = glm::translate(
+                    _model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
+
+                // Scale to `size`.
+                _model = glm::scale(_model, glm::vec3(size, 1.0f));
+
+                glm::vec4 pos0(0.f, 1.f, 0.f, 1.f);
+                glm::vec4 pos1(0.f, 0.f, 0.f, 1.f);
+                glm::vec4 pos2(1.f, 0.f, 0.f, 1.f);
+                glm::vec4 pos3(1.f, 1.f, 0.f, 1.f);
+
+                glm::vec4 comp0(_model * pos0);
+                glm::vec4 comp1(_model * pos1);
+                glm::vec4 comp2(_model * pos2);
+                glm::vec4 comp3(_model * pos3);
+
+                glm::vec4 pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
+                glm::vec4 pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
+                glm::vec4 pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
+                glm::vec4 pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
+                */
+
+
+
+                /*
+                glm::vec3 pos0(position.x + size.x * 0.f, position.y + size.y *
+                1.f, 1.f);
+                glm::vec3 pos1(position.x + size.x * 0.f, position.y + size.y *
+                0.f, 1.f);
+                glm::vec3 pos2(position.x + size.x * 1.f, position.y + size.y *
+                0.f, 1.f);
+                glm::vec3 pos3(position.x + size.x * 1.f, position.y + size.y *
+                1.f, 1.f);
+                */
+
+                /*
+                glm::mat3 scaling{
+                    // .
+                    1.f, 0.f, 0.f,              // .
+                    0.f, 1.f, 0.f,              // .
+                    0.f, 0.f, 1.f // .
+                };
+                */
 
                 glm::vec3 pos0(0.f, 1.f, 1.f);
                 glm::vec3 pos1(0.f, 0.f, 1.f);
                 glm::vec3 pos2(1.f, 0.f, 1.f);
                 glm::vec3 pos3(1.f, 1.f, 1.f);
+
+                // a = px
+                // b = py
+                // c = sx
+                // d = sy
+                // e = cosr
+                // f = sinr
+                // g = shx
+                // h = shy
+                // i = ox
+                // l = oy
+
+                auto shear_x = 0.0f;
+                auto shear_y = 0.0f;
+
+
+                const auto& a(position.x);
+                const auto& b(position.y);
+                const auto& c(size.x);
+                const auto& d(size.y);
+                const auto& e(std::cos(radians));
+                const auto& f(std::sin(radians));
+                const auto& g(shear_x);
+                const auto& h(shear_y);
+                const auto& i(origin.x);
+                const auto& l(origin.y);
+
+                // i {{1,0,0}, {0,1,0}, {0,0,1}}
+
+                // t  {{1,0,0}, {0,1,0}, {a,b,1}}
+                // r  {{e,f,0}, {-f,e,0}, {0,0,1}}
+                // o  {{1,0,0}, {0,1,0}, {i,l,1}}
+                // o2 {{1,0,0}, {0,1,0}, {-c/2,-d/2,1}}
+                // s  {{c,0,0}, {0,d,0}, {0,0,1}}
+                // sx {{1,0,0}, {-g,1,0}, {0,0,1}}
+                // sy {{1,h,0}, {0,1,0}, {0,0,1}}
+
+                glm::mat3 baked{c * e * (1.f - g * h) - d * f * h,
+                    c * f * (1.f - g * h) + d * e * h, 0.f, -c * e * g - d * f,
+                    -c * f * g + d * e, 0.f,
+                    a + e * (-c * 0.5f + i) - f * (-d * 0.5f + l),
+                    b + e * (-d * 0.5f + l) + f * (-c * 0.5f + i), 1.f};
+
+                // {{c,0,0}, {0,d,0}, {0,0,1}}
 
                 glm::mat3 translation{
                     // .
@@ -482,6 +605,8 @@ namespace vrm
                     0.f, 0.f, 1.f     // .
                 };
 
+
+
                 glm::mat3 shearing_x{
                     // .
                     1.f, 0.f, 0.f,      // .
@@ -496,18 +621,29 @@ namespace vrm
                     0.f, 0.f, 1.f      // .
                 };
 
-                auto transform(translation * rotation * origining *
-                               origining_2 * scaling * shearing_x * shearing_y);
+
+
+                // auto transform(scaling * origining * rotation * translation);
+                // auto transform(translation * rotation * origining *
+                // origining_2 * scaling * shearing_x * shearing_y);
+                auto transform = baked;
+
+                // auto transform(                    translation * rotation   *
+                // shearing_y * shearing_x * scaling * origining);
 
                 glm::vec3 comp0(transform * pos0);
                 glm::vec3 comp1(transform * pos1);
                 glm::vec3 comp2(transform * pos2);
                 glm::vec3 comp3(transform * pos3);
 
+                // std::cout << comp0.xy() << "\n";
+
                 glm::vec4 pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
                 glm::vec4 pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
                 glm::vec4 pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
                 glm::vec4 pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
+
+                // TODO: compute color + hue on CPU ?
 
                 enqueue_v(pos_tex_coords_0, color, hue);
                 enqueue_v(pos_tex_coords_1, color, hue);
@@ -723,7 +859,7 @@ public:
     auto size() const noexcept { return _size; }
 };
 
-constexpr sdl::sz_t my_max_entities{15000};
+constexpr sdl::sz_t my_max_entities{45};
 
 enum class e_type : int
 {
@@ -912,11 +1048,8 @@ struct my_game
     using this_type = my_game<TContext>;
     using game_state_type = my_game_state;
     using entity_type = typename game_state_type::entity_type;
-    using engine_type = typename std::remove_reference_t<TContext>::engine_type;
 
     TContext _context;
-    engine_type& _engine;
-
     sdl::batched_sprite_renderer sr;
     // sdl::sprite_renderer sr;
 
@@ -1007,7 +1140,7 @@ struct my_game
                 x.curve *= 0.5f;
             }
 
-            // x.life -= step * 0.3f;
+            x.life -= step * 0.3f;
 
             if(x.life <= 0.f) x.alive = false;
             if(x.life <= 10.f) x._opacity -= step * 0.2f;
@@ -1044,7 +1177,7 @@ struct my_game
             {
                 x.curve = 10.f;
 
-                for(int i = 0; i < 10000; ++i)
+                for(int i = 0; i < 1000; ++i)
                 {
                     if(state._free.empty()) break;
 
@@ -1062,8 +1195,7 @@ struct my_game
     }
 
 
-    my_game(TContext&& context)
-        : _context(FWD(context)), _engine(*_context._engine)
+    my_game(TContext&& context) : _context(FWD(context))
     {
         texture(e_type::soul) = make_texture_from_image("files/soul.png");
 
@@ -1073,7 +1205,7 @@ struct my_game
         texture(e_type::toriel) = make_texture_from_image("files/toriel.png");
 
         {
-            auto& state(_engine.current_state());
+            auto& state(_context.current_state());
             auto& entities(state._entities);
 
             state.add(make_toriel(state, sdl::make_vec2(500.f, 100.f)));
@@ -1081,7 +1213,7 @@ struct my_game
                 state.add(make_soul(sdl::make_vec2(500.f, 500.f)));
         }
 
-        _engine.update_fn() = [&, this](auto& state, auto step)
+        _context.update_fn() = [&, this](auto& state, auto step)
         {
             const auto& entities(state._entities);
             auto& soul(state.soul());
@@ -1114,16 +1246,14 @@ struct my_game
 
             if(rand() % 100 < 30)
             {
-                auto alive_str(std::to_string(state._alive.size()));
                 auto fps_str(std::to_string(_context.fps()));
                 auto fps_limit_str(
                     std::to_string(static_cast<int>(_context.fps_limit)));
                 auto update_ms_str(std::to_string(_context.update_ms()));
                 auto draw_ms_str(std::to_string(_context.draw_ms()));
 
-                _context.title(alive_str + " |\tFPS: " + fps_str + "/" +
-                               fps_limit_str + "\tU: " + update_ms_str +
-                               "\tD: " + draw_ms_str);
+                _context.title("FPS: " + fps_str + "/" + fps_limit_str +
+                               "\tU: " + update_ms_str + "\tD: " + draw_ms_str);
             }
 
 
@@ -1140,7 +1270,7 @@ struct my_game
             */
         };
 
-        _engine.draw_fn() = [&, this](const auto& state)
+        _context.draw_fn() = [&, this](const auto& state)
         {
             sr.use();
             this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
@@ -1159,7 +1289,7 @@ struct my_game
             //  std::cout << "\n\ndraw end\n";
         };
 
-        _engine.interpolate_fn() = [&, this](
+        _context.interpolate_fn() = [&, this](
             auto& interpolated, const auto& s0, const auto& s1, float t)
         {
             auto lerp = [t](const auto& v0, const auto& v1)
@@ -1189,15 +1319,7 @@ struct my_game
     }
 };
 
-using my_timer = sdl::impl::static_timer;
-
-using my_engine_settings =
-    sdl::interpolated_engine_settings<my_timer, my_game_state>;
-
-using my_interpolated_engine =
-    sdl::impl::non_interpolated_engine<my_engine_settings>;
-
-using my_context_settings = sdl::context_settings<my_interpolated_engine>;
+using my_context_settings = sdl::context_settings<my_game_state>;
 
 int main()
 {
@@ -1207,22 +1329,14 @@ int main()
     std::cout << "sizeof(" << #__VA_ARGS__ << ") = " << sizeof(__VA_ARGS__) \
               << "\n"
 
-    // COUT_SIZE(my_game_entity);
-    // COUT_SIZE(std::array<my_game_entity, my_max_entities>);
-    // COUT_SIZE(sparse_int_set<std::size_t, my_max_entities>);
-
-    // TODO:
-
-    my_timer timer;
-    my_interpolated_engine engine;
+    COUT_SIZE(my_game_entity);
+    COUT_SIZE(std::array<my_game_entity, my_max_entities>);
+    COUT_SIZE(sparse_int_set<std::size_t, my_max_entities>);
 
     auto c_handle(
         sdl::make_global_context<my_context_settings>("test game", 1000, 600));
 
     auto& c(*c_handle);
-    engine._timer = &timer;
-    c._engine = &engine;
-
     auto game(std::make_unique<my_game<decltype(c)>>(c));
     sdl::run_global_context();
 

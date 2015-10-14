@@ -24,13 +24,14 @@ namespace vrm
             {
             public:
                 ft _step, _time_slice, _time{0};
-                float _max_loops, _loops{0}, _interp_t{0};
+                float _interp_t{0};
+                sz_t _max_loops, _loops{0};
 
             public:
                 static_timer(ft step = 1.f, ft time_slice = 16.f,
-                    float max_loops = 50.f) noexcept : _step{step},
-                                                       _time_slice{time_slice},
-                                                       _max_loops{max_loops}
+                    sz_t max_loops = 50) noexcept : _step{step},
+                                                    _time_slice{time_slice},
+                                                    _max_loops{max_loops}
                 {
                 }
 

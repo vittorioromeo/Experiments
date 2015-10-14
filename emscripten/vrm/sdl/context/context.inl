@@ -19,6 +19,75 @@ namespace vrm
     {
         namespace impl
         {
+
+            template <typename TSettings>
+            auto& interpolated_engine<TSettings>::update_fn() noexcept
+            {
+                return _update_fn;
+            }
+
+            template <typename TSettings>
+            auto& interpolated_engine<TSettings>::draw_fn() noexcept
+            {
+                return _draw_fn;
+            }
+
+            template <typename TSettings>
+            auto& interpolated_engine<TSettings>::interpolate_fn() noexcept
+            {
+                return _interpolate_fn;
+            }
+
+            template <typename TSettings>
+            void interpolated_engine<TSettings>::run_update(ft step)
+            {
+                _prev_state = _current_state;
+                this->update_fn()(_current_state, step);
+            }
+
+            template <typename TSettings>
+            void interpolated_engine<TSettings>::run_draw()
+            {
+                this->_interpolate_fn(_interpolated_state, _prev_state,
+                    _current_state, _timer->interp_t());
+
+                draw_fn()(_interpolated_state);
+            }
+
+
+
+            template <typename TSettings>
+            auto& non_interpolated_engine<TSettings>::update_fn() noexcept
+            {
+                return _update_fn;
+            }
+
+            template <typename TSettings>
+            auto& non_interpolated_engine<TSettings>::draw_fn() noexcept
+            {
+                return _draw_fn;
+            }
+
+            template <typename TSettings>
+            auto& non_interpolated_engine<TSettings>::interpolate_fn() noexcept
+            {
+                return _interpolate_fn;
+            }
+
+            template <typename TSettings>
+            void non_interpolated_engine<TSettings>::run_update(ft step)
+            {
+                this->update_fn()(_current_state, step);
+            }
+
+            template <typename TSettings>
+            void non_interpolated_engine<TSettings>::run_draw()
+            {
+                draw_fn()(_current_state);
+            }
+
+
+
             template <typename TSettings>
             auto& context<TSettings>::on_key_up() noexcept
             {
@@ -41,24 +110,6 @@ namespace vrm
             auto& context<TSettings>::on_btn_down() noexcept
             {
                 return _on_btn_down;
-            }
-
-            template <typename TSettings>
-            auto& context<TSettings>::update_fn() noexcept
-            {
-                return _update_fn;
-            }
-
-            template <typename TSettings>
-            auto& context<TSettings>::draw_fn() noexcept
-            {
-                return _draw_fn;
-            }
-
-            template <typename TSettings>
-            auto& context<TSettings>::interpolate_fn() noexcept
-            {
-                return _interpolate_fn;
             }
 
             template <typename TSettings>
@@ -102,26 +153,7 @@ namespace vrm
                 }
             }
 
-            template <typename TSettings>
-            void context<TSettings>::run_update(ft step)
-            {
-                _prev_state = _current_state;
-                this->update_fn()(_current_state, step);
-            }
 
-            template <typename TSettings>
-            void context<TSettings>::run_draw()
-            {
-                this->_interpolate_fn(_interpolated_state, _prev_state,
-                    _current_state, _static_timer.interp_t());
-
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |
-                        GL_STENCIL_BUFFER_BIT);
-
-                draw_fn()(_interpolated_state);
-
-                SDL_GL_SwapWindow(*_window);
-            }
 
             template <typename TSettings>
             context<TSettings>::context(
@@ -215,6 +247,18 @@ namespace vrm
             }
 
             template <typename TSettings>
+            auto& context<TSettings>::timer() noexcept
+            {
+                return *_engine->_timer;
+            }
+
+            template <typename TSettings>
+            const auto& context<TSettings>::timer() const noexcept
+            {
+                return *_engine->_timer;
+            }
+
+            template <typename TSettings>
             void context<TSettings>::run()
             {
                 auto time_dur([](auto&& f)
@@ -233,16 +277,22 @@ namespace vrm
 
                                 _update_duration = time_dur([&, this]
                                     {
-                                        _static_timer.run(real_ms(),
+                                        timer().run(real_ms(),
                                             [&, this](auto step)
                                             {
-                                                this->run_update(step);
+                                                _engine->run_update(step);
                                             });
                                     });
 
                                 _draw_duration = time_dur([this]
                                     {
-                                        this->run_draw();
+                                        glClear(GL_COLOR_BUFFER_BIT |
+                                                GL_DEPTH_BUFFER_BIT |
+                                                GL_STENCIL_BUFFER_BIT);
+
+                                        _engine->run_draw();
+
+                                        SDL_GL_SwapWindow(*_window);
                                     });
                             });
 
@@ -305,39 +355,6 @@ namespace vrm
             {
                 return unique_surface(FWD(xs)...);
             }
-
-            /*template <typename... Ts>
-            auto context<TSettings>::make_texture(Ts&&... xs) noexcept
-            {
-                return unique_texture(*_renderer, FWD(xs)...);
-            }
-
-
-            auto context<TSettings>::make_sprite() noexcept { return sprite{}; }
-            auto context<TSettings>::make_sprite(texture& t) noexcept { return
-            sprite{t}; }
-
-            auto context<TSettings>::make_ttffont(const std::string& path, sz_t
-            font_size)
-            {
-                return unique_ttffont(path, font_size);
-            }
-
-            auto context<TSettings>::make_ttftext_texture(
-                ttffont& f, const std::string& s, SDL_Color color)
-            {
-                auto temp(make_image(TTF_RenderText_Blended(f, s.c_str(),
-            color)));
-                auto result(make_texture(*temp));
-                return result;
-            }
-
-            void context::draw(texture& t, const vec2f& pos) noexcept
-            {
-                _renderer->draw(t, pos);
-            }
-            void context::draw(sprite& s) noexcept { _renderer->draw(s); }
-    */
 
             template <typename TSettings>
             void context<TSettings>::title(const std::string& s) noexcept

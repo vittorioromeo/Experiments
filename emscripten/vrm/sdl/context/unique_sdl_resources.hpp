@@ -25,7 +25,7 @@ namespace vrm
                     SDL_DestroyWindow(p.ptr());
                 }
             };
-         
+
             struct renderer_deleter
             {
                 void operator()(renderer& p) noexcept

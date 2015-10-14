@@ -17,13 +17,13 @@ namespace vrm
 {
     namespace sdl
     {
-        template <typename TGameState>
-        struct context_settings
+        template <typename TTimer, typename TGameState>
+        struct interpolated_engine_settings
         {
+            using timer_type = TTimer;
             using state_type = TGameState;
 
-            using update_fn_type =
-                std::function<void(state_type&, ft)>;
+            using update_fn_type = std::function<void(state_type&, ft)>;
 
             using draw_fn_type = std::function<void(const state_type&)>;
 
@@ -34,7 +34,7 @@ namespace vrm
             {
                 static update_fn_type result([](auto&, auto)
                     {
-                       // return state;
+                        // return state;
                     });
                 return result;
             }
@@ -57,6 +57,13 @@ namespace vrm
 
                 return result;
             }
+        };
+
+        template <typename TEngine>
+        struct context_settings
+        {
+            using engine_type = TEngine;
+            using timer_type = typename engine_type::timer_type;
         };
     }
 }
