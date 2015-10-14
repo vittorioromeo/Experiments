@@ -91,6 +91,7 @@ namespace vrm
                 {
                     assert(byte_count >= 0);
                     assert(vbo_byte_offset >= 0);
+                    assert(data_ptr != nullptr);
 
                     /*
                     std::cout << "glBufferSubData("
@@ -120,10 +121,12 @@ namespace vrm
 
                 template <typename T>
                 void sub_buffer_data_items(const std::vector<T>& vec,
-                    sz_t vector_item_offset, sz_t item_count,
+                    sz_t item_count_offset, sz_t item_count,
                     sz_t vbo_byte_offset = 0) noexcept
                 {
-                    sub_buffer_data_items<T>(vec.data() + vector_item_offset,
+                    assert(vec.size() - item_count_offset >= item_count);
+
+                    sub_buffer_data_items<T>(vec.data() + item_count_offset,
                         item_count, vbo_byte_offset);
                 }
 
@@ -161,6 +164,8 @@ namespace vrm
                 void buffer_data_items(const std::vector<T>& vec,
                     sz_t item_count, sz_t item_count_offset = 0) noexcept
                 {
+                    assert(vec.size() - item_count_offset >= item_count);
+
                     buffer_data_items<TUsage, T>(
                         vec.data() + item_count_offset, item_count);
                 }

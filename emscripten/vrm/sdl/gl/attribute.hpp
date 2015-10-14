@@ -39,9 +39,10 @@ namespace vrm
             }
 
 
-            auto& vertex_attrib_pointer(sz_t layout_offset, sz_t n_components,
-                GLenum type, bool normalized = true, sz_t stride = 0,
-                const GLvoid* first_element = nullptr) noexcept
+            auto& vertex_attrib_pointer(sz_t n_components, GLenum type,
+                bool normalized = true, sz_t stride = 0,
+                const GLvoid* first_element = nullptr,
+                sz_t layout_offset = 0) noexcept
             {
                 assert(n_components > 0 && n_components < 5);
 
@@ -58,12 +59,15 @@ namespace vrm
                 return *this;
             }
 
-            auto& vertex_attrib_pointer(sz_t n_components, GLenum type,
-                bool normalized = true, sz_t stride = 0,
-                const GLvoid* first_element = nullptr) noexcept
+            template <typename T>
+            auto& vertex_attrib_pointer_in(sz_t n_components, GLenum type,
+                bool normalized = true, sz_t offset = 0,
+                sz_t layout_offset = 0) noexcept
             {
-                return vertex_attrib_pointer(0, n_components, GL_FLOAT,
-                    normalized, stride, first_element);
+                static_assert(std::is_standard_layout<T>{}, "");
+        
+                return vertex_attrib_pointer(n_components, type, normalized,
+                    sizeof(T), reinterpret_cast<const void*>(offset), layout_offset);
             }
 
             auto& vertex_attrib_pointer_float(sz_t n_components,
@@ -74,45 +78,6 @@ namespace vrm
                 return vertex_attrib_pointer(n_components, GL_FLOAT, normalized,
                     sizeof(float) * n_components, first_element);
             }
-
-            auto location() const noexcept { return _location; }
-        };
-
-        class uniform
-        {
-        private:
-            GLuint _location;
-
-        public:
-            uniform() = default;
-            uniform(GLuint location) noexcept : _location{location} {}
-
-            void matrix4fv(sz_t count, bool transpose, const GLfloat* value)
-            {
-                VRM_SDL_GLCHECK(
-                    glUniformMatrix4fv(_location, count, transpose, value));
-            }
-
-            void matrix4fv(const glm::mat4& m) noexcept
-            {
-                matrix4fv(1, false, glm::value_ptr(m));
-            }
-
-            void integer(int x) noexcept
-            {
-                VRM_SDL_GLCHECK(glUniform1i(_location, x));
-            }
-
-            void floating(float x) noexcept
-            {
-                VRM_SDL_GLCHECK(glUniform1f(_location, x));
-            }
-
-            void vec4(const glm::vec4& x) noexcept
-            {
-                VRM_SDL_GLCHECK(glUniform4f(_location, x.x, x.y, x.z, x.w));
-            }
-
 
             auto location() const noexcept { return _location; }
         };

@@ -37,7 +37,4 @@ void main()
         vec3(yColor.r, chroma * cos(finalHue), chroma * sin(finalHue));
 
     gl_FragColor = vec4(yiq2rgb * yFinalColor, v_color.w * tx_color.w);
-
-    // vec4 color_before_hue = v_color * texture2D(u_texture, v_tex_coords);
-    // gl_FragColor = color_after_hue;
 }

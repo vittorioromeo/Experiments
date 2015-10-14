@@ -17,5 +17,6 @@
 #include <vrm/sdl/gl/vao.hpp>
 #include <vrm/sdl/gl/vbo.hpp>
 #include <vrm/sdl/gl/attribute.hpp>
+#include <vrm/sdl/gl/uniform.hpp>
 #include <vrm/sdl/gl/program.hpp>
 #include <vrm/sdl/gl/texture2d.hpp>

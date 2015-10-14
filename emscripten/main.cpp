@@ -16,7 +16,7 @@
 
 // batch_size = 2
 // vertex_count = 2 * 4 = 8
-// indices_count = 2 * 6 = 12
+// index_count = 2 * 6 = 12
 
 // batch_______________________________    batch_______________________________
 // 0---------------   1----------------|   2---------------   3---------------|
@@ -315,14 +315,26 @@ namespace vrm
     {
         struct bsr_vertex
         {
-            // glm::mat4 _projection_view_model;
             glm::vec4 _pos_tex_coords;
             glm::vec4 _color;
             float _hue;
+
+            // Required to avoid temporary with `emplace_back`.
+            bsr_vertex(const glm::vec4& pos_tex_coords, const glm::vec4& color,
+                float hue) noexcept : _pos_tex_coords(pos_tex_coords),
+                                      _color(color),
+                                      _hue(hue)
+            {
+            }
         };
 
         struct batched_sprite_renderer
         {
+            using gl_index_type = GLuint;
+            static constexpr sz_t batch_size{1024 * 8};
+            static constexpr sz_t vertex_count{batch_size * 4};
+            static constexpr sz_t index_count{batch_size * 6};
+
             program _program{impl::make_batched_sprite_renderer_program()};
             sdl::impl::unique_vao _vao;
 
@@ -332,20 +344,19 @@ namespace vrm
             glm::mat4 _view;
             glm::mat4 _projection;
 
-            // sdl::attribute _a_projection_view_model;
+            glm::mat4 _projection_view;
+
             sdl::attribute _a_pos_tex_coords;
             sdl::attribute _a_color;
             sdl::attribute _a_hue;
 
             sdl::uniform _u_texture;
 
-            using gl_index_type = GLuint;
-
             std::vector<bsr_vertex> _data;
             std::vector<gl_index_type> _indices;
             gl_index_type lasti{0};
 
-            batched_sprite_renderer()
+            batched_sprite_renderer() noexcept
             {
                 _projection = make_2d_projection(1000.f, 600.f);
                 init_render_data();
@@ -354,24 +365,55 @@ namespace vrm
             void init_render_data() noexcept
             {
                 // TODO: required?
-                _program.use();
+                // _program.use();
 
-                _vao = make_vao(1);
+
+                _vao = sdl::make_vao(1);
                 _vbo0 = sdl::make_vbo<buffer_target::array>(1);
                 _vbo1 = sdl::make_vbo<buffer_target::element_array>(1);
 
+                // Get attributes.
                 _a_pos_tex_coords = _program.get_attribute("a_pos_tex_coords");
                 _a_color = _program.get_attribute("a_color");
                 _a_hue = _program.get_attribute("a_hue");
 
-                std::cout << _a_pos_tex_coords.location() << "\n";
-                std::cout << _a_color.location() << "\n";
-                std::cout << _a_hue.location() << "\n";
-
+                // Get uniforms.
                 _u_texture = _program.get_uniform("u_texture");
+
+                // Allocates enough memory for `vertex_count` `bsr_vertex`.
+                // Creates vertices VBO.
+                _data.reserve(vertex_count);
+                _vbo0->bind();
+                _vbo0->allocate_buffer_items<buffer_usage::dynamic_draw,
+                    bsr_vertex>(vertex_count);
+
+                // Allocates enough memory for `index_count` `gl_index_type`.
+                // Creates indices VBO.
+                _indices.reserve(index_count);
+                _vbo1->bind();
+                _vbo1->allocate_buffer_items<buffer_usage::dynamic_draw,
+                    gl_index_type>(index_count);
+
+
+                _vao->bind();
+
+                _a_pos_tex_coords.enable() // .
+                    .vertex_attrib_pointer_in<bsr_vertex>(4, GL_FLOAT,
+                        true, // .
+                        offsetof(bsr_vertex, _pos_tex_coords));
+
+                _a_color.enable() // .
+                    .vertex_attrib_pointer_in<bsr_vertex>(4, GL_FLOAT,
+                        true, // .
+                        offsetof(bsr_vertex, _color));
+
+                _a_hue.enable() // .
+                    .vertex_attrib_pointer_in<bsr_vertex>(1, GL_FLOAT,
+                        true, // .
+                        offsetof(bsr_vertex, _hue));
             }
 
-            void use()
+            void use() noexcept
             {
                 _program.use();
 
@@ -379,43 +421,17 @@ namespace vrm
                 _vbo0->bind();
                 _vbo1->bind();
 
-                constexpr auto stride(sizeof(bsr_vertex));
-
-                _a_pos_tex_coords.enable().vertex_attrib_pointer(
-                    4, GL_FLOAT, true, stride, (const void*)0);
-
-                _a_color.enable().vertex_attrib_pointer(4, GL_FLOAT, true,
-                    stride, (const void*)(sizeof(glm::vec4)));
-
-                _a_hue.enable().vertex_attrib_pointer(1, GL_FLOAT, true, stride,
-                    (const void*)(sizeof(glm::vec4) + sizeof(glm::vec4)));
-
-                // Allocates enough memory for `vertex_count` `bsr_vertex`.
-                _vbo0->allocate_buffer_items<buffer_usage::dynamic_draw,
-                    bsr_vertex>(vertex_count);
-
-                // Allocates enough memory for `indices_count` `gl_index_type`.
-                _vbo1->allocate_buffer_items<buffer_usage::dynamic_draw,
-                    gl_index_type>(indices_count);
+                _projection_view = _projection * _view;
             }
 
-            void enqueue_v(bsr_vertex&& v) { _data.emplace_back(v); }
-
-
-            static constexpr sz_t batch_size{1024 * 8};
-
-            static constexpr sz_t vertex_count{batch_size * 4};
-            static constexpr sz_t indices_count{batch_size * 6};
-
-            static constexpr sz_t vertex_bytes{
-                vertex_count * sizeof(bsr_vertex)};
-
-            static constexpr sz_t indices_bytes{
-                indices_count * sizeof(gl_index_type)};
-
+            template <typename... Ts>
+            void enqueue_v(Ts&&... xs) noexcept
+            {
+                _data.emplace_back(FWD(xs)...);
+            }
 
             template <typename... Ts>
-            void enqueue_i(Ts... xs)
+            void enqueue_i(Ts... xs) noexcept
             {
                 sdl::for_args(
                     [this](auto i)
@@ -463,7 +479,7 @@ namespace vrm
                 // Scale to `size`.
                 _model = glm::scale(_model, glm::vec3(size, 1.0f));
 
-                glm::mat4 pvm(_projection * _view * _model);
+                glm::mat4 pvm(_projection_view * _model);
 
                 glm::vec4 pos0(0.f, 1.f, 0.f, 1.f);
                 glm::vec4 pos1(0.f, 0.f, 0.f, 1.f);
@@ -482,10 +498,10 @@ namespace vrm
 
                 // TODO: compute color + hue on CPU ?
 
-                enqueue_v(bsr_vertex{pos_tex_coords_0, color, hue});
-                enqueue_v(bsr_vertex{pos_tex_coords_1, color, hue});
-                enqueue_v(bsr_vertex{pos_tex_coords_2, color, hue});
-                enqueue_v(bsr_vertex{pos_tex_coords_3, color, hue});
+                enqueue_v(pos_tex_coords_0, color, hue);
+                enqueue_v(pos_tex_coords_1, color, hue);
+                enqueue_v(pos_tex_coords_2, color, hue);
+                enqueue_v(pos_tex_coords_3, color, hue);
 
                 enqueue_i(0, 1, 2, 0, 2, 3);
             }
@@ -495,6 +511,8 @@ namespace vrm
                 _vao->bind();
                 _vbo0->bind();
                 _vbo1->bind();
+
+                // TODO:
                 _u_texture.integer(0);
 
                 auto times(_data.size() / vertex_count);
@@ -506,17 +524,19 @@ namespace vrm
                     _vbo0->sub_buffer_data_items(
                         _data, vertex_count * i, vertex_count);
 
-                    // Send `indices_count` vertices to GPU, from
-                    // `_indices[indices_count * i]`.
+                    // Send `index_count` vertices to GPU, from
+                    // `_indices[index_count * i]`.
                     _vbo1->sub_buffer_data_items(
-                        _indices, indices_count * i, indices_count);
+                        _indices, index_count * i, index_count);
 
                     _vao->draw_elements<primitive::triangles,
-                        index_type::ui_int>(indices_count);
+                        index_type::ui_int>(index_count);
                 }
 
+                auto quad_count(_data.size() / 4);
+                auto remaining_batch_size(quad_count % batch_size);
+                if(remaining_batch_size > 0)
                 {
-
                     auto remaining_offset_count(times * batch_size);
 
                     auto remaining_offset_count_vertex(
@@ -525,23 +545,21 @@ namespace vrm
                     auto remaining_offset_count_indices(
                         remaining_offset_count * 6);
 
-                    auto remaining_batch_size((_data.size() / 4) % batch_size);
 
                     auto remaining_vertex_count(remaining_batch_size * 4);
 
-                    auto remaining_indices_count(remaining_batch_size * 6);
+                    auto remaining_index_count(remaining_batch_size * 6);
 
                     // Send `vertex_count` vertices to GPU.
                     _vbo0->sub_buffer_data_items(_data,
                         remaining_offset_count_vertex, remaining_vertex_count);
 
-                    // Send `indices_count` vertices to GPU.
+                    // Send `index_count` vertices to GPU.
                     _vbo1->sub_buffer_data_items(_indices,
-                        remaining_offset_count_indices,
-                        remaining_indices_count);
+                        remaining_offset_count_indices, remaining_index_count);
 
                     _vao->draw_elements<primitive::triangles,
-                        index_type::ui_int>(remaining_indices_count);
+                        index_type::ui_int>(remaining_index_count);
                 }
 
                 _data.clear();

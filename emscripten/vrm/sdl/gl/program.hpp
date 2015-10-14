@@ -10,6 +10,7 @@
 #include <vrm/sdl/gl/check.hpp>
 #include <vrm/sdl/gl/shader.hpp>
 #include <vrm/sdl/gl/attribute.hpp>
+#include <vrm/sdl/gl/uniform.hpp>
 
 namespace vrm
 {
@@ -23,7 +24,8 @@ namespace vrm
         public:
             program() = default;
 
-            program(impl::unique_program&& mResource) : id{std::move(mResource)}
+            program(impl::unique_program&& mResource) noexcept
+                : id{std::move(mResource)}
             {
             }
 
