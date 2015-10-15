@@ -54,13 +54,34 @@ namespace vrm
         namespace impl
         {
             template <buffer_target TTarget>
-            struct vbo
+            class vbo
             {
+            private:
                 static constexpr GLenum target_value{
                     impl::buffer_target_value<TTarget>};
 
                 GLuint _id, _n;
 
+                bool bound() const noexcept
+                {
+                    GLint result;
+
+                    if(TTarget == buffer_target::array)
+                    {
+                        VRM_SDL_GLCHECK(
+                            glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &result));
+                    }
+
+                    if(TTarget == buffer_target::element_array)
+                    {
+                        VRM_SDL_GLCHECK(glGetIntegerv(
+                            GL_ELEMENT_ARRAY_BUFFER_BINDING, &result));
+                    }
+
+                    return result == _id;
+                }
+
+            public:
                 vbo() = default;
                 vbo(GLuint n) noexcept : _n{n} {}
 
@@ -75,15 +96,17 @@ namespace vrm
                 }
 
                 void bind() noexcept
-                {
-                    // std::cout << "bound vbo " << _id << "\n";
+                {                
                     VRM_SDL_GLCHECK(glBindBuffer(target_value, _id));
                 }
 
                 void unbind() noexcept
                 {
+                    assert(bound());
                     VRM_SDL_GLCHECK(glBindBuffer(target_value, 0));
                 }
+
+
 
                 void sub_buffer_data(const void* data_ptr,
                     GLsizeiptr byte_count,
@@ -92,14 +115,7 @@ namespace vrm
                     assert(byte_count >= 0);
                     assert(vbo_byte_offset >= 0);
                     assert(data_ptr != nullptr);
-
-                    /*
-                    std::cout << "glBufferSubData("
-                              << "target_value=" << target_value
-                              << ", vbo_byte_offset=" << vbo_byte_offset
-                              << ", byte_count=" << byte_count
-                              << ", data_ptr)\n";
-                    */
+                    assert(bound());
 
                     VRM_SDL_GLCHECK(glBufferSubData(
                         target_value, vbo_byte_offset, byte_count, data_ptr));
@@ -134,6 +150,8 @@ namespace vrm
                 void buffer_data(
                     const void* data_ptr, GLsizeiptr byte_count) noexcept
                 {
+                    assert(bound());
+
                     VRM_SDL_GLCHECK(glBufferData(target_value, byte_count,
                         data_ptr, impl::buffer_usage_value<TUsage>));
                 }
@@ -213,8 +231,10 @@ namespace vrm
         }
 
         template <buffer_target TTarget>
-        auto make_vbo(GLuint n) noexcept
+        auto make_vbo(GLuint n = 1) noexcept
         {
+            assert(n > 0);
+
             impl::vbo<TTarget> v{n};
             v.generate();
 

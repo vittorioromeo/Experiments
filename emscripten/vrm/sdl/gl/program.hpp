@@ -21,6 +21,13 @@ namespace vrm
         private:
             impl::unique_program id;
 
+            bool in_use() const noexcept
+            {
+                GLint result;
+                VRM_SDL_GLCHECK(glGetIntegerv(GL_CURRENT_PROGRAM, &result));
+                return result == *id;
+            }
+
         public:
             program() = default;
 
@@ -56,16 +63,16 @@ namespace vrm
             auto nth_attribute(GLuint location) const noexcept
             {
                 assert(location != GL_INVALID_OPERATION);
-                return attribute{location};
+                return sdl::attribute{location};
             }
 
             auto nth_uniform(GLuint location) const noexcept
             {
                 assert(location != GL_INVALID_OPERATION);
-                return uniform{location};
+                return sdl::uniform{location};
             }
 
-            auto get_attribute(const char* name) const noexcept
+            auto attribute(const char* name) const noexcept
             {
                 GLuint location;
                 VRM_SDL_GLCHECK(location = glGetAttribLocation(*id, name));
@@ -73,7 +80,7 @@ namespace vrm
                 return nth_attribute(location);
             }
 
-            auto get_uniform(const char* name) const noexcept
+            auto uniform(const char* name) const noexcept
             {
                 GLuint location;
                 VRM_SDL_GLCHECK(location = glGetUniformLocation(*id, name));

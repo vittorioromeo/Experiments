@@ -33,7 +33,7 @@ namespace vrm
         template <shader_t TS>
         auto make_shader(const char* src) noexcept
         {
-            constexpr std::size_t shaderLogBufferSize{512};
+            constexpr sz_t shaderLogBufferSize{512};
             static char logBuffer[shaderLogBufferSize];
             static std::string logString;
 

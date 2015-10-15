@@ -9,6 +9,7 @@
 #include <vrm/sdl/context.hpp>
 #include <vrm/sdl/gl/check.hpp>
 #include <vrm/sdl/gl/shader.hpp>
+#include <vrm/sdl/gl/attribute_helpers.hpp>
 
 namespace vrm
 {
@@ -65,9 +66,20 @@ namespace vrm
                 sz_t layout_offset = 0) noexcept
             {
                 static_assert(std::is_standard_layout<T>{}, "");
-        
+
                 return vertex_attrib_pointer(n_components, type, normalized,
-                    sizeof(T), reinterpret_cast<const void*>(offset), layout_offset);
+                    sizeof(T), reinterpret_cast<const void*>(offset),
+                    layout_offset);
+            }
+
+            template <typename T, typename TValue>
+            auto& vertex_attrib_pointer_in(bool normalized = true,
+                sz_t offset = 0, sz_t layout_offset = 0) noexcept
+            {
+                return vertex_attrib_pointer_in<T>(
+                    impl::n_components_for<TValue>,
+                    impl::attrib_type_for<TValue>, normalized, offset,
+                    layout_offset);
             }
 
             auto& vertex_attrib_pointer_float(sz_t n_components,

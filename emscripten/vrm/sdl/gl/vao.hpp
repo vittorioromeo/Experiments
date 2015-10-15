@@ -18,10 +18,27 @@ namespace vrm
     {
         namespace impl
         {
-            struct vao
+            class vao
             {
+            private:
                 GLuint _id, _n;
 
+                bool bound() const noexcept
+                {
+#ifdef GL_VERTEX_ARRAY_BINDING
+                    GLint result;
+
+                    VRM_SDL_GLCHECK(
+                        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &result));
+
+                    return result == static_cast<GLint>(_id);
+#else
+                    return true;
+#endif
+                }
+
+
+            public:
                 vao() = default;
                 vao(GLuint n) noexcept : _n{n} {}
 
@@ -37,12 +54,12 @@ namespace vrm
 
                 void bind() noexcept
                 {
-                    // std::cout << "bound vao " << _id << "\n";
                     VRM_SDL_GLCHECK(glBindVertexArrayOES(_id));
                 }
 
                 void unbind() noexcept
                 {
+                    assert(bound());
                     VRM_SDL_GLCHECK(glBindVertexArrayOES(0));
                 }
 
@@ -58,6 +75,8 @@ namespace vrm
                 void draw_arrays(
                     GLint first_index, GLsizei index_count) noexcept
                 {
+                    assert(bound());
+
                     VRM_SDL_GLCHECK(glDrawArrays(
                         impl::primitive_value<TP>, first_index, index_count));
                 }
@@ -66,14 +85,7 @@ namespace vrm
                 void draw_elements(
                     GLsizei index_count, sz_t vbo_offset_byte = 0) noexcept
                 {
-                    /*
-                    std::cout
-                        << "glDrawElements(index_count= "
-                        << index_count
-                        << ", vbo_offset_byte= "
-                        << vbo_offset_byte << ")\n";
-                    */
-                    
+                    assert(bound());
 
                     VRM_SDL_GLCHECK(glDrawElements(impl::primitive_value<TP>,
                         index_count, impl::index_type_value<TI>,
@@ -111,8 +123,10 @@ namespace vrm
             using unique_vao = unique_resource<impl::vao, gl_vao_deleter>;
         }
 
-        auto make_vao(GLuint n) noexcept
+        auto make_vao(GLuint n = 1) noexcept
         {
+            assert(n > 0);
+
             impl::vao v{n};
             v.generate();
 

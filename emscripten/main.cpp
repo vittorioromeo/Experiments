@@ -281,11 +281,11 @@ namespace vrm
 
                 // Set model/view/projection uniform matrices.
                 _u_projection_view_model =
-                    _program.get_uniform("u_projection_view_model");
+                    _program.uniform("u_projection_view_model");
 
-                _u_texture = _program.get_uniform("u_texture");
-                _u_color = _program.get_uniform("u_color");
-                _u_hue = _program.get_uniform("u_hue");
+                _u_texture = _program.uniform("u_texture");
+                _u_color = _program.uniform("u_color");
+                _u_hue = _program.uniform("u_hue");
             }
 
             void use()
@@ -335,8 +335,7 @@ namespace vrm
                 _model = glm::scale(_model, glm::vec3(size, 1.0f));
 
                 // Set model/view/projection uniform matrices.
-                _u_projection_view_model.matrix4fv(
-                    _projection * _view * _model);
+                _u_projection_view_model.mat4(_projection * _view * _model);
 
                 // Gets the texture unit index from the cache and uses it.
                 _u_texture.integer(_texture_cache.use(t));
@@ -358,6 +357,17 @@ namespace vrm
 
     namespace sdl
     {
+
+#define VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(                         \
+    attribute_handle, vertex_type, member_name, normalized)         \
+    do                                                              \
+    {                                                               \
+        attribute_handle.enable()                                   \
+            .vertex_attrib_pointer_in<vertex_type,                  \
+                decltype(std::declval<vertex_type>().member_name)>( \
+                normalized, offsetof(vertex_type, member_name));    \
+    } while(false)
+
         struct bsr_vertex
         {
             glm::vec4 _pos_tex_coords;
@@ -400,7 +410,7 @@ namespace vrm
 
             std::vector<bsr_vertex> _data;
             std::vector<gl_index_type> _indices;
-            gl_index_type lasti{0};
+            gl_index_type _current_batch_vertex_count{0};
 
             batched_sprite_renderer() noexcept
             {
@@ -408,24 +418,22 @@ namespace vrm
                 init_render_data();
             }
 
+
+
             void init_render_data() noexcept
             {
-                // TODO: required?
-                // _program.use();
-
-
-                _vao = sdl::make_vao(1);
-                _vbo0 = sdl::make_vbo<buffer_target::array>(1);
-                _vbo1 = sdl::make_vbo<buffer_target::element_array>(1);
+                _vao = sdl::make_vao();
+                _vbo0 = sdl::make_vbo<buffer_target::array>();
+                _vbo1 = sdl::make_vbo<buffer_target::element_array>();
 
                 // Get attributes.
-                _a_pos_tex_coords = _program.get_attribute("a_pos_tex_coords");
-                _a_color = _program.get_attribute("a_color");
-                _a_hue = _program.get_attribute("a_hue");
+                _a_pos_tex_coords = _program.attribute("a_pos_tex_coords");
+                _a_color = _program.attribute("a_color");
+                _a_hue = _program.attribute("a_hue");
 
                 // Get uniforms.
-                _u_texture = _program.get_uniform("u_texture");
-                _u_projection_view = _program.get_uniform("u_projection_view");
+                _u_texture = _program.uniform("u_texture");
+                _u_projection_view = _program.uniform("u_projection_view");
 
                 // Allocates enough memory for `vertex_count` `bsr_vertex`.
                 // Creates vertices VBO.
@@ -441,23 +449,16 @@ namespace vrm
                 _vbo1->allocate_buffer_items<buffer_usage::dynamic_draw,
                     gl_index_type>(index_count);
 
-
                 _vao->bind();
 
-                _a_pos_tex_coords.enable() // .
-                    .vertex_attrib_pointer_in<bsr_vertex>(4, GL_FLOAT,
-                        true, // .
-                        offsetof(bsr_vertex, _pos_tex_coords));
+                VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(
+                    _a_pos_tex_coords, bsr_vertex, _pos_tex_coords, true);
 
-                _a_color.enable() // .
-                    .vertex_attrib_pointer_in<bsr_vertex>(4, GL_FLOAT,
-                        true, // .
-                        offsetof(bsr_vertex, _color));
+                VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(
+                    _a_color, bsr_vertex, _color, true);
 
-                _a_hue.enable() // .
-                    .vertex_attrib_pointer_in<bsr_vertex>(1, GL_FLOAT,
-                        true, // .
-                        offsetof(bsr_vertex, _hue));
+                VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(
+                    _a_hue, bsr_vertex, _hue, true);
             }
 
             void use() noexcept
@@ -474,10 +475,12 @@ namespace vrm
                 _view = glm::translate(_view, glm::vec3(-500.f, -300.f, 0.f));
                 */
 
+                // TODO: camera_2d class
                 _projection_view = _projection * _view;
-                _u_projection_view.matrix4fv(_projection_view);
+                _u_projection_view.mat4(_projection_view);
             }
 
+        private:
             template <typename... Ts>
             void enqueue_v(Ts&&... xs) noexcept
             {
@@ -485,36 +488,28 @@ namespace vrm
             }
 
             template <typename... Ts>
-            void enqueue_i(Ts... xs) noexcept
+            void enqueue_i(Ts&&... xs) noexcept
             {
                 sdl::for_args(
-                    [this](auto i)
+                    [this](auto&& i)
                     {
-                        _indices.emplace_back(lasti + i);
+                        _indices.emplace_back(
+                            _current_batch_vertex_count + FWD(i));
                     },
-                    xs...);
+                    FWD(xs)...);
 
-                lasti += 4;
-                if(lasti > vertex_count - 3)
+                _current_batch_vertex_count += 4;
+
+                if(_current_batch_vertex_count > vertex_count - 3)
                 {
-                    lasti = 0;
+                    _current_batch_vertex_count = 0;
                 }
             }
 
-
-            void draw_sprite(const impl::gltexture2d& t,
-                const glm::vec2& position, const glm::vec2& origin,
-                const glm::vec2& size, float radians, const glm::vec4& color,
-                float hue) noexcept
+            auto trasform_matrix(const glm::vec2& position,
+                const glm::vec2& origin, const glm::vec2& size, float radians,
+                float shear_x, float shear_y) const noexcept
             {
-                auto shear_x = 0.f;
-                auto shear_y = 0.f;
-
-                glm::vec3 pos0(0.f, 1.f, 1.f);
-                glm::vec3 pos1(0.f, 0.f, 1.f);
-                glm::vec3 pos2(1.f, 0.f, 1.f);
-                glm::vec3 pos3(1.f, 1.f, 1.f);
-
                 glm::mat3 translation{
                     // .
                     1.f, 0.f, 0.f,              // .
@@ -536,7 +531,7 @@ namespace vrm
                     origin.x, origin.y, 1.f // .
                 };
 
-                glm::mat3 origining_2{
+                glm::mat3 centering{
                     // .
                     1.f, 0.f, 0.f,                    // .
                     0.f, 1.f, 0.f,                    // .
@@ -564,18 +559,36 @@ namespace vrm
                     0.f, 0.f, 1.f      // .
                 };
 
-                auto transform(translation * rotation * origining *
-                               origining_2 * scaling * shearing_x * shearing_y);
+                return translation * rotation * origining * centering *
+                       scaling * shearing_x * shearing_y;
+            }
+
+        public:
+            void draw_sprite(const impl::gltexture2d& t,
+                const glm::vec2& position, const glm::vec2& origin,
+                const glm::vec2& size, float radians, const glm::vec4& color,
+                float hue) noexcept
+            {
+                auto shear_x = 0.f;
+                auto shear_y = 0.f;
+
+                const glm::vec3 pos0(0.f, 1.f, 1.f);
+                const glm::vec3 pos1(0.f, 0.f, 1.f);
+                const glm::vec3 pos2(1.f, 0.f, 1.f);
+                const glm::vec3 pos3(1.f, 1.f, 1.f);
+
+                auto transform(trasform_matrix(
+                    position, origin, size, radians, shear_x, shear_y));
 
                 glm::vec3 comp0(transform * pos0);
                 glm::vec3 comp1(transform * pos1);
                 glm::vec3 comp2(transform * pos2);
                 glm::vec3 comp3(transform * pos3);
 
-                glm::vec4 pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
-                glm::vec4 pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
-                glm::vec4 pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
-                glm::vec4 pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
+                glm::vec4 pos_tex_coords_0(comp0.xy(), 0.f, 1.f);
+                glm::vec4 pos_tex_coords_1(comp1.xy(), 0.f, 0.f);
+                glm::vec4 pos_tex_coords_2(comp2.xy(), 1.f, 0.f);
+                glm::vec4 pos_tex_coords_3(comp3.xy(), 1.f, 1.f);
 
                 enqueue_v(pos_tex_coords_0, color, hue);
                 enqueue_v(pos_tex_coords_1, color, hue);
@@ -612,9 +625,10 @@ namespace vrm
                         index_type::ui_int>(index_count);
                 }
 
-                auto quad_count(_data.size() / 4);
-                auto remaining_batch_size(quad_count % batch_size);
-                if(remaining_batch_size > 0)
+                auto total_quad_count(_data.size() / 4);
+                auto remaining_quad_count(total_quad_count % batch_size);
+
+                if(remaining_quad_count > 0)
                 {
                     auto remaining_offset_count(times * batch_size);
 
@@ -624,10 +638,9 @@ namespace vrm
                     auto remaining_offset_count_indices(
                         remaining_offset_count * 6);
 
+                    auto remaining_vertex_count(remaining_quad_count * 4);
 
-                    auto remaining_vertex_count(remaining_batch_size * 4);
-
-                    auto remaining_index_count(remaining_batch_size * 6);
+                    auto remaining_index_count(remaining_quad_count * 6);
 
                     // Send `vertex_count` vertices to GPU.
                     _vbo0->sub_buffer_data_items(_data,
@@ -643,7 +656,7 @@ namespace vrm
 
                 _data.clear();
                 _indices.clear();
-                lasti = 0;
+                _current_batch_vertex_count = 0;
             }
         };
     }
@@ -721,7 +734,7 @@ public:
 
         auto& ptr(_sparse[x]);
         assert(size() > 0);
-        
+
         auto last(back());
         assert(ptr != nullptr);
 
@@ -782,7 +795,16 @@ public:
         return _dense[i];
     }
 
-    auto size() const noexcept { return _end - _dense.data(); }
+    auto size() const noexcept
+    {
+        return static_cast<sdl::sz_t>(end() - begin());
+    }
+
+    decltype(auto) begin() noexcept { return _dense.data(); }
+    decltype(auto) begin() const noexcept { return _dense.data(); }
+
+    decltype(auto) end() noexcept { return _end; }
+    decltype(auto) end() const noexcept { return _end; }
 };
 
 constexpr sdl::sz_t my_max_entities{100000};
@@ -936,7 +958,7 @@ struct my_game_state
 
     void reclaim()
     {
-        auto to_erase_begin(_free.size());
+        auto to_erase_begin(_free.end());
 
         _alive.for_each([this](auto i)
             {
@@ -953,13 +975,13 @@ struct my_game_state
             });
 
 
-        for(auto i(to_erase_begin); i < _free.size(); ++i)
+        for(auto i(to_erase_begin); i != _free.end(); ++i)
         {
-            assert(_alive.has(_free[i]));
+            assert(_alive.has(*i));
 
-            _alive.erase(_free[i]);
+            _alive.erase(*i);
 
-            assert(!_alive.has(_free[i]));
+            assert(!_alive.has(*i));
         }
     }
 
@@ -1264,6 +1286,11 @@ using my_context_settings = sdl::context_settings<my_interpolated_engine>;
 
 int main()
 {
+// std::cout << sdl::impl::n_components_for<glm::tvec4<float,
+// glm::precision::highp>> << "\n";
+// std::cout << sdl::impl::attrib_type_for<glm::vec4> << "\n";
+//    std::cout << GL_FLOAT << "\n";
+
 // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
 #define COUT_SIZE(...)                                                      \
