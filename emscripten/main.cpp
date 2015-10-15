@@ -14,6 +14,74 @@
 
 namespace sdl = vrm::sdl;
 
+// TODO:
+template <sdl::sz_t TPrecision>
+struct TrigTable
+{
+private:
+    static constexpr sdl::sz_t count{TPrecision};
+    static constexpr float ratio{TPrecision / sdl::tau};
+    std::array<float, count> arr;
+
+public:
+    template <typename TF>
+    inline TrigTable(TF&& mFn) noexcept
+    {
+        for(auto i(0u); i < count; ++i) arr[i] = mFn(i / ratio);
+    }
+
+    inline auto get(float mX) const noexcept
+    {
+
+        auto idx(static_cast<sdl::sz_t>(mX * ratio));
+        assert(idx < count);
+        // assert(mX >= 0.f && mX <= sdl::tau);
+
+        return arr[idx];
+    }
+};
+
+static constexpr sdl::sz_t tablePrecision{628};
+
+inline const auto& getSinTable() noexcept
+{
+    static TrigTable<tablePrecision> result{[](auto mX)
+        {
+            return std::sin(mX);
+        }};
+    return result;
+}
+inline const auto& getCosTable() noexcept
+{
+    static TrigTable<tablePrecision> result{[](auto mX)
+        {
+            return std::cos(mX);
+        }};
+    return result;
+}
+
+float constrainAngle(float x) noexcept
+{
+    x = std::fmod(x, sdl::tau);
+    if(x < 0) x += sdl::tau;
+    return x;
+}
+
+
+inline auto tbl_sin(float mX) noexcept
+{
+    // return std::sin(mX);
+    // return getSinTable().get(constrainAngle(mX));
+    return getSinTable().get(mX);
+}
+inline auto tbl_cos(float mX) noexcept
+{
+    // return std::cos(mX);
+    // return getCosTable().get(constrainAngle(mX));
+    return getCosTable().get(mX);
+}
+
+
 namespace vrm
 {
     namespace sdl
@@ -456,9 +524,9 @@ namespace vrm
 
                 glm::mat3 rotation{
                     // .
-                    std::cos(radians), std::sin(radians), 0.f,  // .
-                    -std::sin(radians), std::cos(radians), 0.f, // .
-                    0.f, 0.f, 1.f                               // .
+                    tbl_cos(radians), tbl_sin(radians), 0.f,  // .
+                    -tbl_sin(radians), tbl_cos(radians), 0.f, // .
+                    0.f, 0.f, 1.f                             // .
                 };
 
                 glm::mat3 origining{
@@ -597,14 +665,9 @@ template <typename T, std::size_t TSize>
 class sparse_int_set
 {
 private:
-    static constexpr std::size_t null_value{TSize + 1};
-
     std::vector<T> _dense;
-    std::vector<std::size_t> _sparse;
-    std::size_t _size;
-
-    // std::array<T, TSize> _dense;
-    // std::array<std::size_t, TSize> _sparse;
+    std::vector<T*> _sparse;
+    T* _end;
 
 public:
     sparse_int_set() noexcept
@@ -615,7 +678,7 @@ public:
     }
 
     sparse_int_set(const sparse_int_set& rhs)
-        : _dense(rhs._dense), _sparse(rhs._sparse), _size(rhs._size)
+        : _dense(rhs._dense), _sparse(rhs._sparse), _end(rhs._end)
     {
     }
 
@@ -623,7 +686,7 @@ public:
     {
         _dense = rhs._dense;
         _sparse = rhs._sparse;
-        _size = rhs._size;
+        _end = rhs._end;
 
         return *this;
     }
@@ -634,7 +697,7 @@ public:
     bool has(const T& x) const noexcept
     {
         assert(x < TSize);
-        return _sparse[x] != null_value;
+        return _sparse[x] != nullptr;
     }
 
     bool add(const T& x) noexcept
@@ -642,11 +705,11 @@ public:
         assert(x < TSize);
         if(has(x)) return false;
 
-        assert(_size < TSize);
-        _dense[_size] = x;
+        assert(size() < TSize);
+        *_end = x;
 
-        _sparse[x] = _size;
-        ++_size;
+        _sparse[x] = _end;
+        ++_end;
 
         return true;
     }
@@ -656,74 +719,73 @@ public:
         assert(x < TSize);
         if(!has(x)) return false;
 
-        auto ptr(_sparse[x]);
-        assert(_size > 0);
+        auto& ptr(_sparse[x]);
+        assert(size() > 0);
+        
+        auto last(back());
+        assert(ptr != nullptr);
 
-        assert(has(_dense[_size - 1]));
-        auto last(_dense[_size - 1]);
-        assert(ptr != null_value);
-
-        if(_dense[ptr] != last)
+        if(*ptr != last)
         {
-            _dense[ptr] = last;
+            *ptr = last;
             _sparse[last] = ptr;
         }
 
         assert(has(x));
-        _sparse[x] = null_value;
+        ptr = nullptr;
 
-        assert(_size > 0);
-        --_size;
+        assert(size() > 0);
+        --_end;
 
         return true;
     }
 
     void clear() noexcept
     {
-        for(auto& p : _sparse) p = null_value;
-        _size = 0;
+        for(auto& p : _sparse) p = nullptr;
+        _end = _dense.data();
     }
 
-    bool empty() const noexcept { return _size == 0; }
+    bool empty() const noexcept { return _end == _dense.data(); }
 
     void pop_back() noexcept
     {
-        assert(_size > 0);
+        assert(size() > 0);
         erase(back());
     }
 
     auto back() const noexcept
     {
-        assert(_size > 0);
+        assert(size() > 0);
 
-        assert(has(_dense[_size - 1]));
-        return _dense[_size - 1];
+        assert(has(*(_end - 1)));
+        return *(_end - 1);
     }
 
     template <typename TF>
     void for_each(TF&& f) const noexcept
     {
-        assert(_size <= TSize);
+        assert(size() <= TSize);
 
-        for(decltype(_size) i(0); i < _size; ++i)
+        for(auto p(_dense.data()); p != _end; ++p)
         {
-            assert(has(_dense[i]));
-            f(_dense[i]);
+            assert(has(*p));
+            f(*p);
         }
     }
 
     auto operator[](std::size_t i) const noexcept
     {
-        assert(i < _size);
+        assert(i < size());
 
         assert(has(_dense[i]));
         return _dense[i];
     }
 
-    auto size() const noexcept { return _size; }
+    auto size() const noexcept { return _end - _dense.data(); }
 };
 
-constexpr sdl::sz_t my_max_entities{15000};
+constexpr sdl::sz_t my_max_entities{100000};
 
 enum class e_type : int
 {
@@ -975,7 +1037,7 @@ struct my_game
         entity_type e;
         e.type = e_type::fireball;
         e._pos = pos;
-        e._radians = static_cast<float>(rand() % 6280) / 1000.f;
+        e._radians = rndf(0.f, sdl::tau);
         e._origin = glm::vec2{0, 0};
 
         e._size =
@@ -998,16 +1060,17 @@ struct my_game
         {
             x._pos += x.vel * (x.speed * step);
             // x._radians += dir ? 0.2 * step : -0.2 * step;
-            x._radians += 0.01f * step;
+            x._radians = constrainAngle(x._radians + 0.01f * step);
 
-            x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
+            // TODO: uses std::sin and std::cos...
+            // x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
 
             if(std::abs(x.curve) > 0.01)
             {
                 x.curve *= 0.5f;
             }
 
-            // x.life -= step * 0.3f;
+            x.life -= step * 1.f;
 
             if(x.life <= 0.f) x.alive = false;
             if(x.life <= 10.f) x._opacity -= step * 0.2f;
@@ -1050,7 +1113,7 @@ struct my_game
 
                     auto angle(rndf(0.f, sdl::tau));
                     auto speed(rndf(0.1f, 3.f));
-                    auto unit_vec(glm::vec2(std::cos(angle), std::sin(angle)));
+                    auto unit_vec(glm::vec2(tbl_cos(angle), tbl_sin(angle)));
                     auto vel(unit_vec * speed);
 
                     state.add(this->make_fireball(
