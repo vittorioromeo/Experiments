@@ -32,5 +32,6 @@
 #include <gtx/color_space.hpp>
 #include <gtx/string_cast.hpp>
 #include <gtx/rotate_vector.hpp>
+#include <gtx/vector_angle.hpp>
 
 #endif

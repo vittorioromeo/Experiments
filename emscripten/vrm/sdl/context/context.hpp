@@ -164,7 +164,8 @@ namespace vrm
                 const auto& timer() const noexcept;
 
             public:
-                void run_events();
+                void run_window_events() noexcept;
+                void run_events() noexcept;
 
                 void limit_fps_if_necessary() const noexcept;
 

@@ -14,71 +14,39 @@
 
 namespace sdl = vrm::sdl;
 
-// TODO:
-template <sdl::sz_t TPrecision>
-struct TrigTable
+static constexpr sdl::sz_t trig_table_precision{628};
+
+inline const auto& sin_table() noexcept
 {
-private:
-    static constexpr sdl::sz_t count{TPrecision};
-    static constexpr float ratio{TPrecision / sdl::tau};
-    std::array<float, count> arr;
-
-public:
-    template <typename TF>
-    inline TrigTable(TF&& mFn) noexcept
-    {
-        for(auto i(0u); i < count; ++i) arr[i] = mFn(i / ratio);
-    }
-
-    inline auto get(float mX) const noexcept
-    {
-
-        auto idx(static_cast<sdl::sz_t>(mX * ratio));
-        assert(idx < count);
-        // assert(mX >= 0.f && mX <= sdl::tau);
-
-        return arr[idx];
-    }
-};
-
-static constexpr sdl::sz_t tablePrecision{628};
-
-inline const auto& getSinTable() noexcept
-{
-    static TrigTable<tablePrecision> result{[](auto mX)
+    static sdl::trig_table<trig_table_precision> result{[](auto x)
         {
-            return std::sin(mX);
+            return std::sin(x);
         }};
+
     return result;
 }
-inline const auto& getCosTable() noexcept
+inline const auto& cos_table() noexcept
 {
-    static TrigTable<tablePrecision> result{[](auto mX)
+    static sdl::trig_table<trig_table_precision> result{[](auto x)
         {
-            return std::cos(mX);
+            return std::cos(x);
         }};
+
     return result;
 }
-
-float constrainAngle(float x) noexcept
-{
-    x = std::fmod(x, sdl::tau);
-    if(x < 0) x += sdl::tau;
-    return x;
-}
-
 
 inline auto tbl_sin(float mX) noexcept
 {
     // return std::sin(mX);
-    // return getSinTable().get(constrainAngle(mX));
-    return getSinTable().get(mX);
+    // return sin_table().get(wrap_radians(mX));
+    return sin_table().get(mX);
 }
+
 inline auto tbl_cos(float mX) noexcept
 {
     // return std::cos(mX);
-    // return getCosTable().get(constrainAngle(mX));
-    return getCosTable().get(mX);
+    // return cos_table().get(wrap_radians(mX));
+    return cos_table().get(mX);
 }
 
 
@@ -86,10 +54,243 @@ namespace vrm
 {
     namespace sdl
     {
-        auto make_2d_projection(float width, float height)
+
+        namespace impl
         {
-            return glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
+            auto make_2d_projection(float width, float height)
+            {
+                return glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
+            }
+
+            auto trasform_matrix_2d(const glm::vec2& position,
+                const glm::vec2& origin, const glm::vec2& size, float radians,
+                float shear_x, float shear_y) noexcept
+            {
+                glm::mat3 translation{
+                    // .
+                    1.f, 0.f, 0.f,              // .
+                    0.f, 1.f, 0.f,              // .
+                    position.x, position.y, 1.f // .
+                };
+
+                glm::mat3 rotation{
+                    // .
+                    tbl_cos(radians), tbl_sin(radians), 0.f,  // .
+                    -tbl_sin(radians), tbl_cos(radians), 0.f, // .
+                    0.f, 0.f, 1.f                             // .
+                };
+
+                glm::mat3 origining{
+                    // .
+                    1.f, 0.f, 0.f,          // .
+                    0.f, 1.f, 0.f,          // .
+                    origin.x, origin.y, 1.f // .
+                };
+
+                glm::mat3 centering{
+                    // .
+                    1.f, 0.f, 0.f,                    // .
+                    0.f, 1.f, 0.f,                    // .
+                    -size.x * 0.5, -size.y * 0.5, 1.f // .
+                };
+
+                glm::mat3 scaling{
+                    // .
+                    size.x, 0.f, 0.f, // .
+                    0.f, size.y, 0.f, // .
+                    0.f, 0.f, 1.f     // .
+                };
+
+                glm::mat3 shearing_x{
+                    // .
+                    1.f, 0.f, 0.f,      // .
+                    -shear_x, 1.f, 0.f, // .
+                    0.f, 0.f, 1.f       // .
+                };
+
+                glm::mat3 shearing_y{
+                    // .
+                    1.f, shear_y, 0.f, // .
+                    0.f, 1.f, 0.f,     // .
+                    0.f, 0.f, 1.f      // .
+                };
+
+                return translation * rotation * origining * centering *
+                       scaling * shearing_x * shearing_y;
+            }
         }
+
+        class screen_2d
+        {
+        private:
+            glm::mat4 _projection;
+            float _width;
+            float _height;
+
+        public:
+            screen_2d(float width, float height) noexcept
+                : _projection{impl::make_2d_projection(width, height)},
+                  _width{width},
+                  _height{height}
+            {
+            }
+
+            const auto& width() const noexcept { return _width; }
+            const auto& height() const noexcept { return _height; }
+
+            const auto& projection() const noexcept { return _projection; }
+        };
+
+        auto make_screen_2d(float width, float height)
+        {
+            return screen_2d{width, height};
+        }
+
+        class camera_2d
+        {
+        private:
+            screen_2d& _screen;
+            glm::vec2 _position;
+            float _scale{1.f};
+            float _radians{0.f};
+
+            const auto& screen_width() const noexcept
+            {
+                return _screen.width();
+            }
+
+            const auto& screen_height() const noexcept
+            {
+                return _screen.height();
+            }
+
+            auto half_screen_width() const noexcept
+            {
+                return screen_width() / 2.f;
+            }
+
+            auto half_screen_height() const noexcept
+            {
+                return screen_height() / 2.f;
+            }
+
+        public:
+            // TODO:
+            // this is actually "position"
+            auto origin() const noexcept 
+            {
+                auto origin_x(_position.x + half_screen_width());
+                auto origin_y(_position.y + half_screen_height());
+
+                return glm::vec2(origin_x, origin_y);
+            }
+
+            private:
+            void translate_to_origin(glm::mat4& view, float direction) const
+                noexcept
+            {
+                
+
+                view = glm::translate(view,
+                    glm::vec3(origin().x * direction, origin().y * direction, 0.f));
+            }
+
+            void translate_to_offset(float direction) noexcept
+            {
+                //  _view = glm::translate(
+                //      _view, glm::vec3(_view().xy() , 0.f));
+            }
+
+            void scale_xy(float factor) noexcept
+            {
+                //  _view = glm::scale(_view, glm::vec3(factor, factor, 1.0f));
+            }
+
+        public:
+            camera_2d(screen_2d& screen) noexcept : _screen{screen} {}
+
+            auto& zoom(float factor) noexcept
+            {
+                _scale += factor;
+                return *this;
+            }
+
+            auto& move_towards_angle(float radians, float speed)
+            {
+                radians += _radians;
+
+                //  _view = glm::translate(_view, glm::vec3(-offset, 0.f));
+                _position += glm::vec2(
+                    speed * std::cos(radians), speed * std::sin(radians));
+
+                return *this;
+            }
+
+            auto& move_towards_point(const glm::vec2& point, float speed)
+            {
+                auto direction((point - origin()));
+                auto angle(std::atan2(direction.y, direction.x));
+                return move_towards_angle(angle - _radians, speed);
+            }
+
+
+            auto& move(glm::vec2 offset) noexcept
+            {
+                auto speed(glm::length(offset));
+
+                offset = glm::normalize(offset);
+                auto direction(std::atan2(offset.y, offset.x));
+
+                return move_towards_angle(direction, speed);
+            }
+
+            // TODO:
+            // this is actually "offset"
+            auto& position() noexcept { return _position; }
+            const auto& position() const noexcept { return _position; }
+
+            auto& angle() noexcept { return _radians; }
+            const auto& angle() const noexcept { return _radians; }
+
+
+
+            auto& rotate(float radians) noexcept
+            {
+                _radians += radians;
+                return *this;
+            }
+
+            const auto& projection() const noexcept
+            {
+                return _screen.projection();
+            }
+
+            auto view() const noexcept
+            {
+                glm::mat4 result;
+
+                result = glm::translate(result, glm::vec3{-_position, 0.f});
+
+                translate_to_origin(result, 1.f);
+                {
+                    result =
+                        glm::scale(result, glm::vec3(_scale, _scale, 1.0f));
+
+                    result = glm::rotate(
+                        result, -_radians, glm::vec3(0.f, 0.f, 1.f));
+                }
+                translate_to_origin(result, -1.f);
+
+                return result;
+            }
+
+            auto projection_view() const noexcept
+            {
+                return projection() * view();
+            }
+        };
+
+
 
         namespace impl
         {
@@ -245,7 +446,7 @@ namespace vrm
 
             sprite_renderer()
             {
-                _projection = make_2d_projection(1000.f, 600.f);
+                _projection = impl::make_2d_projection(1000.f, 600.f);
                 init_render_data();
             }
 
@@ -396,10 +597,10 @@ namespace vrm
             sdl::impl::unique_vbo<buffer_target::array> _vbo0;
             sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
 
-            glm::mat4 _view;
-            glm::mat4 _projection;
+            // glm::mat4 _view;
+            // glm::mat4 _projection;
 
-            glm::mat4 _projection_view;
+            // glm::mat4 _projection_view;
 
             sdl::attribute _a_pos_tex_coords;
             sdl::attribute _a_color;
@@ -414,7 +615,7 @@ namespace vrm
 
             batched_sprite_renderer() noexcept
             {
-                _projection = make_2d_projection(1000.f, 600.f);
+                // _projection = impl::make_2d_projection(1000.f, 600.f);
                 init_render_data();
             }
 
@@ -461,7 +662,7 @@ namespace vrm
                     _a_hue, bsr_vertex, _hue, true);
             }
 
-            void use() noexcept
+            void use(const glm::mat4& projection_view) noexcept
             {
                 _program.use();
 
@@ -476,8 +677,13 @@ namespace vrm
                 */
 
                 // TODO: camera_2d class
-                _projection_view = _projection * _view;
-                _u_projection_view.mat4(_projection_view);
+                // _projection_view = _projection * _view;
+                _u_projection_view.mat4(projection_view);
+            }
+
+            void use(const camera_2d& camera) noexcept
+            {
+                use(camera.projection_view());
             }
 
         private:
@@ -506,62 +712,7 @@ namespace vrm
                 }
             }
 
-            auto trasform_matrix(const glm::vec2& position,
-                const glm::vec2& origin, const glm::vec2& size, float radians,
-                float shear_x, float shear_y) const noexcept
-            {
-                glm::mat3 translation{
-                    // .
-                    1.f, 0.f, 0.f,              // .
-                    0.f, 1.f, 0.f,              // .
-                    position.x, position.y, 1.f // .
-                };
 
-                glm::mat3 rotation{
-                    // .
-                    tbl_cos(radians), tbl_sin(radians), 0.f,  // .
-                    -tbl_sin(radians), tbl_cos(radians), 0.f, // .
-                    0.f, 0.f, 1.f                             // .
-                };
-
-                glm::mat3 origining{
-                    // .
-                    1.f, 0.f, 0.f,          // .
-                    0.f, 1.f, 0.f,          // .
-                    origin.x, origin.y, 1.f // .
-                };
-
-                glm::mat3 centering{
-                    // .
-                    1.f, 0.f, 0.f,                    // .
-                    0.f, 1.f, 0.f,                    // .
-                    -size.x * 0.5, -size.y * 0.5, 1.f // .
-                };
-
-                glm::mat3 scaling{
-                    // .
-                    size.x, 0.f, 0.f, // .
-                    0.f, size.y, 0.f, // .
-                    0.f, 0.f, 1.f     // .
-                };
-
-                glm::mat3 shearing_x{
-                    // .
-                    1.f, 0.f, 0.f,      // .
-                    -shear_x, 1.f, 0.f, // .
-                    0.f, 0.f, 1.f       // .
-                };
-
-                glm::mat3 shearing_y{
-                    // .
-                    1.f, shear_y, 0.f, // .
-                    0.f, 1.f, 0.f,     // .
-                    0.f, 0.f, 1.f      // .
-                };
-
-                return translation * rotation * origining * centering *
-                       scaling * shearing_x * shearing_y;
-            }
 
         public:
             void draw_sprite(const impl::gltexture2d& t,
@@ -577,7 +728,7 @@ namespace vrm
                 const glm::vec3 pos2(1.f, 0.f, 1.f);
                 const glm::vec3 pos3(1.f, 1.f, 1.f);
 
-                auto transform(trasform_matrix(
+                auto transform(impl::trasform_matrix_2d(
                     position, origin, size, radians, shear_x, shear_y));
 
                 glm::vec3 comp0(transform * pos0);
@@ -1006,6 +1157,9 @@ struct my_game
 
     std::array<sdl::impl::unique_gltexture2d, e_type_count> _texture_array;
 
+    sdl::screen_2d _screen{1000.f, 600.f};
+    sdl::camera_2d _camera{_screen};
+
     auto& texture(e_type type) noexcept
     {
         return _texture_array[static_cast<int>(type)];
@@ -1082,7 +1236,7 @@ struct my_game
         {
             x._pos += x.vel * (x.speed * step);
             // x._radians += dir ? 0.2 * step : -0.2 * step;
-            x._radians = constrainAngle(x._radians + 0.01f * step);
+            x._radians = sdl::wrap_rad(x._radians + 0.01f * step);
 
             // TODO: uses std::sin and std::cos...
             // x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
@@ -1189,8 +1343,21 @@ struct my_game
 
             state.reclaim();
 
-            if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
-            if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
+            if(_context.key(sdl::kkey::w)) _camera.move({0.f, -3.f * step});
+            if(_context.key(sdl::kkey::s)) _camera.move({0.f, 3.f * step});
+            if(_context.key(sdl::kkey::a)) _camera.move({-3.f * step, 0.f});
+            if(_context.key(sdl::kkey::d)) _camera.move({3.f * step, 0.f});
+
+            if(_context.key(sdl::kkey::q)) _camera.rotate(-0.05f * step);
+            if(_context.key(sdl::kkey::e)) _camera.rotate(0.05f * step);
+
+            if(_context.key(sdl::kkey::z)) _camera.zoom(-0.05f * step);
+            if(_context.key(sdl::kkey::x)) _camera.zoom(0.05f * step);
+
+            _camera.move_towards_point(soul._pos, (4.f * (glm::length(soul._pos - _camera.origin()) * 0.01f) * step));
+
+            // if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
+            // if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
 
             if(_context.key(sdl::kkey::escape))
             {
@@ -1227,7 +1394,12 @@ struct my_game
 
         _engine.draw_fn() = [&, this](const auto& state)
         {
-            sr.use();
+
+
+            sr.use(_camera);
+
+
+
             this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
             state.for_alive([this](const auto& e)
                 {

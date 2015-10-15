@@ -113,7 +113,29 @@ namespace vrm
             }
 
             template <typename TSettings>
-            void context<TSettings>::run_events()
+            void context<TSettings>::run_window_events() noexcept
+            {
+                switch(_event.window.event)
+                {
+                    case SDL_WINDOWEVENT_SHOWN: break;
+                    case SDL_WINDOWEVENT_HIDDEN: break;
+                    case SDL_WINDOWEVENT_EXPOSED: break;
+                    case SDL_WINDOWEVENT_MOVED: break;
+                    case SDL_WINDOWEVENT_RESIZED: break;
+                    case SDL_WINDOWEVENT_SIZE_CHANGED: break;
+                    case SDL_WINDOWEVENT_MINIMIZED: break;
+                    case SDL_WINDOWEVENT_MAXIMIZED: break;
+                    case SDL_WINDOWEVENT_RESTORED: break;
+                    case SDL_WINDOWEVENT_ENTER: break;
+                    case SDL_WINDOWEVENT_LEAVE: break;
+                    case SDL_WINDOWEVENT_FOCUS_GAINED: break;
+                    case SDL_WINDOWEVENT_FOCUS_LOST: break;
+                    case SDL_WINDOWEVENT_CLOSE: break;
+                }
+            }
+
+            template <typename TSettings>
+            void context<TSettings>::run_events() noexcept
             {
                 while(SDL_PollEvent(&_event))
                 {
@@ -144,11 +166,14 @@ namespace vrm
                             _input_state.mouse_y(_event.motion.y);
                             break;
 
-                        case SDL_QUIT: std::terminate(); break;
-                        case SDL_WINDOWEVENT: break;
+                        case SDL_WINDOWEVENT: run_window_events(); break;
+
                         case SDL_FINGERDOWN: break;
                         case SDL_FINGERUP: break;
                         case SDL_FINGERMOTION: break;
+
+
+                        case SDL_QUIT: std::terminate(); break;
                     }
                 }
             }
