@@ -48,7 +48,8 @@ VRM_SDL_NAMESPACE
 
         logString = logBuffer;
 
-        if(!logString.empty()) {
+        if(!logString.empty())
+        {
             std::cout << "Shader compilation log" << logString << std::endl;
             int temp;
             std::cin >> temp;

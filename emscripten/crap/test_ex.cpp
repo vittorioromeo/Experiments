@@ -97,7 +97,8 @@ int main(int argc, char** argv)
     loop = [&]
     {
         SDL_Event e;
-        while(SDL_PollEvent(&e)) {
+        while(SDL_PollEvent(&e))
+        {
             if(e.type == SDL_QUIT) std::terminate();
         }
 

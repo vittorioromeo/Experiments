@@ -24,7 +24,8 @@ VRM_SDL_NAMESPACE
 
         auto& enable(int size = 1) noexcept
         {
-            for(auto i(0); i < size; ++i) {
+            for(auto i(0); i < size; ++i)
+            {
                 VRM_SDL_GLCHECK(glEnableVertexAttribArray(_location + i));
             }
             return *this;

@@ -134,7 +134,8 @@ VRM_SDL_NAMESPACE
         template <typename TSettings>
         void context<TSettings>::run_events() noexcept
         {
-            while(SDL_PollEvent(&_event)) {
+            while(SDL_PollEvent(&_event))
+            {
                 switch(_event.type)
                 {
                     case SDL_KEYDOWN:
@@ -180,7 +181,8 @@ VRM_SDL_NAMESPACE
             : _width{width}, _height{height}, _window{title, width, height},
               _glcontext{*_window}
         {
-            if(TTF_Init() != 0) {
+            if(TTF_Init() != 0)
+            {
                 log_sdl_error("ttf_init");
                 std::terminate();
             }

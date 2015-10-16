@@ -64,12 +64,14 @@ VRM_SDL_NAMESPACE
             {
                 GLint result;
 
-                if(TTarget == buffer_target::array) {
+                if(TTarget == buffer_target::array)
+                {
                     VRM_SDL_GLCHECK(
                         glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &result));
                 }
 
-                if(TTarget == buffer_target::element_array) {
+                if(TTarget == buffer_target::element_array)
+                {
                     VRM_SDL_GLCHECK(glGetIntegerv(
                         GL_ELEMENT_ARRAY_BUFFER_BINDING, &result));
                 }

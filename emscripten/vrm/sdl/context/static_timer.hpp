@@ -39,7 +39,8 @@ VRM_SDL_NAMESPACE
                 _loops = 0;
                 _time += frame_time;
 
-                while(_time >= _time_slice && _loops < _max_loops) {
+                while(_time >= _time_slice && _loops < _max_loops)
+                {
                     f(_step);
                     _time -= _time_slice;
                     ++_loops;

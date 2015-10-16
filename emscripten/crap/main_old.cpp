@@ -540,18 +540,21 @@ int main(int argc, char** argv)
 
     c.update_fn() = [&](auto)
     {
-        for(auto& t : triangles._vertices) {
+        for(auto& t : triangles._vertices)
+        {
             t._position.y() -= 0.0001f;
         }
 
-        if(c.key(sdl::kkey::space)) {
+        if(c.key(sdl::kkey::space))
+        {
 
             for(auto i = 0; i < 10; ++i) add_rnd_triangle(triangles);
         }
 
         triangles.init(program);
 
-        if(timer-- <= 0) {
+        if(timer-- <= 0)
+        {
             c.title(std::to_string(c.fps()) + " (" +
                     std::to_string(triangles._vertices.size()) + ")");
 
@@ -680,7 +683,8 @@ int main_old(int argc, char** argv)
 
         e._update_fn = [&](auto& x, auto)
         {
-            if((rand() % 100) > 30) {
+            if((rand() % 100) > 30)
+            {
                 for(int i = 0; i < 30; ++i)
                     if(entities.size() < max_entities)
                         entities.emplace_back(make_fireball(x._pos,
