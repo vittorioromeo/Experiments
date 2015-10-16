@@ -14,45 +14,45 @@
 
 namespace sdl = vrm::sdl;
 
-static constexpr sdl::sz_t trig_table_precision{628};
-
-inline const auto& sin_table() noexcept
+namespace impl
 {
-    static sdl::trig_table<trig_table_precision> result{[](auto x)
-        {
-            return std::sin(x);
-        }};
+    static constexpr sdl::sz_t trig_table_precision{628};
 
-    return result;
-}
-inline const auto& cos_table() noexcept
-{
-    static sdl::trig_table<trig_table_precision> result{[](auto x)
-        {
-            return std::cos(x);
-        }};
+    inline const auto& sin_table() noexcept
+    {
+        static sdl::trig_table<trig_table_precision> result{[](auto x)
+            {
+                return std::sin(x);
+            }};
 
-    return result;
+        return result;
+    }
+    inline const auto& cos_table() noexcept
+    {
+        static sdl::trig_table<trig_table_precision> result{[](auto x)
+            {
+                return std::cos(x);
+            }};
+
+        return result;
+    }
 }
 
 inline auto tbl_sin(float mX) noexcept
 {
     // return std::sin(mX);
     // return sin_table().get(wrap_radians(mX));
-    return sin_table().get(mX);
+    return impl::sin_table().get(mX);
 }
 
 inline auto tbl_cos(float mX) noexcept
 {
     // return std::cos(mX);
     // return cos_table().get(wrap_radians(mX));
-    return cos_table().get(mX);
+    return impl::cos_table().get(mX);
 }
 
-
-namespace vrm
-{
-    namespace sdl
+VRM_SDL_NAMESPACE
     {
         namespace impl
         {
@@ -127,7 +127,8 @@ namespace vrm
                 const auto& ws(container_size);
                 auto original_ratio(os.x / os.y);
 
-                if(ws.y * original_ratio <= ws.x) {
+                if(ws.y * original_ratio <= ws.x)
+                {
                     // the width is the boss
 
                     auto r_width = ws.y * original_ratio;
@@ -514,7 +515,8 @@ namespace vrm
 
             void clear()
             {
-                for(sz_t i(0); i < TN; ++i) {
+                for(sz_t i(0); i < TN; ++i)
+                {
                     // Set cache to "unbound".
                     _last_binds[i] = 0;
                 }
@@ -535,17 +537,6 @@ namespace vrm
                 _last_binds[free_unit_idx] = t.location();
                 return free_unit_idx;
             }
-        };
-
-        struct sprite_data
-        {
-            impl::gltexture2d _texture;
-            vec2f _position;
-            vec2f _origin;
-            vec2f _size;
-            vec4f _color;
-            float _radians;
-            float _hue;
         };
     }
 
@@ -602,8 +593,6 @@ namespace vrm
                 // _projection = impl::make_2d_projection(1000.f, 600.f);
                 init_render_data();
             }
-
-
 
             void init_render_data() noexcept
             {
@@ -679,12 +668,11 @@ namespace vrm
 
                 _current_batch_vertex_count += 4;
 
-                if(_current_batch_vertex_count > vertex_count - 3) {
+                if(_current_batch_vertex_count > vertex_count - 3)
+                {
                     _current_batch_vertex_count = 0;
                 }
             }
-
-
 
         public:
             void draw_sprite(const impl::gltexture2d& t, const vec2f& position,
@@ -729,7 +717,8 @@ namespace vrm
 
                 auto times(_data.size() / vertex_count);
 
-                for(decltype(times) i(0); i < times; ++i) {
+                for(decltype(times) i(0); i < times; ++i)
+                {
                     // Send `vertex_count` vertices to GPU, from
                     // `_data[vertex_count * i]`.
                     _vbo0->sub_buffer_data_items(
@@ -747,7 +736,8 @@ namespace vrm
                 auto total_quad_count(_data.size() / 4);
                 auto remaining_quad_count(total_quad_count % batch_size);
 
-                if(remaining_quad_count > 0) {
+                if(remaining_quad_count > 0)
+                {
                     auto remaining_offset_count(times * batch_size);
 
                     auto remaining_offset_count_vertex(
@@ -778,7 +768,7 @@ namespace vrm
             }
         };
     }
-}
+VRM_SDL_NAMESPACE_END
 
 std::random_device rnd_device;
 std::default_random_engine rnd_gen{rnd_device()};
@@ -856,7 +846,8 @@ public:
         auto last(back());
         assert(ptr != nullptr);
 
-        if(*ptr != last) {
+        if(*ptr != last)
+        {
             *ptr = last;
             _sparse[last] = ptr;
         }
@@ -897,7 +888,8 @@ public:
     {
         assert(size() <= TSize);
 
-        for(auto p(_dense.data()); p != _end; ++p) {
+        for(auto p(_dense.data()); p != _end; ++p)
+        {
             assert(has(*p));
             f(*p);
         }
@@ -1078,7 +1070,8 @@ struct my_game_state
 
         _alive.for_each([this](auto i)
             {
-                if(!_entities[i].alive) {
+                if(!_entities[i].alive)
+                {
                     assert(_alive.has(i));
                     assert(!_free.has(i));
 
@@ -1090,7 +1083,8 @@ struct my_game_state
             });
 
 
-        for(auto i(to_erase_begin); i != _free.end(); ++i) {
+        for(auto i(to_erase_begin); i != _free.end(); ++i)
+        {
             assert(_alive.has(*i));
 
             _alive.erase(*i);
@@ -1204,7 +1198,8 @@ struct my_game
             // TODO: uses std::sin and std::cos...
             // x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
 
-            if(std::abs(x.curve) > 0.01) {
+            if(std::abs(x.curve) > 0.01)
+            {
                 x.curve *= 0.5f;
             }
 
@@ -1241,10 +1236,12 @@ struct my_game
         return [this](auto& x, auto& state, auto step)
         {
             x.curve -= step;
-            if(x.curve <= 0.f) {
+            if(x.curve <= 0.f)
+            {
                 x.curve = 10.f;
 
-                for(int i = 0; i < 10000; ++i) {
+                for(int i = 0; i < 10000; ++i)
+                {
                     if(state._free.empty()) break;
 
                     auto angle(rndf(0.f, sdl::tau));
@@ -1287,7 +1284,8 @@ struct my_game
 
             state.for_alive([this, &state, step](auto& e)
                 {
-                    if(e.type == e_type::soul) {
+                    if(e.type == e_type::soul)
+                    {
                         this->soul_update()(e, state, step);
                     }
                     else if(e.type == e_type::fireball)
@@ -1320,11 +1318,13 @@ struct my_game
             // if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
             // if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
 
-            if(_context.key(sdl::kkey::escape)) {
+            if(_context.key(sdl::kkey::escape))
+            {
                 sdl::stop_global_context();
             }
 
-            if(rand() % 100 < 30) {
+            if(rand() % 100 < 30)
+            {
                 auto alive_str(std::to_string(state._alive.size()));
                 auto fps_str(std::to_string(_context.fps()));
                 auto fps_limit_str(
