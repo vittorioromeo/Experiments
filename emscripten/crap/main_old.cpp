@@ -294,9 +294,9 @@ namespace vrm
             program _program;
             sdl::impl::unique_vao _vao;
 
-            glm::mat4 model;
-            glm::mat4 view;
-            glm::mat4 projection;
+            mat4f model;
+            mat4f view;
+            mat4f projection;
 
             sprite_renderer()
             {
@@ -501,9 +501,9 @@ int main(int argc, char** argv)
     auto program = sdl::make_program(*v_shader, *f_shader);
     program.use();
 
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 projection = glm::ortho(0.0f, 1000.0f, 600.0f, 0.0f, -1.0f, 1.0f);
+    mat4f model;
+    mat4f view;
+    mat4f projection = glm::ortho(0.0f, 1000.0f, 600.0f, 0.0f, -1.0f, 1.0f);
 
     program.get_uniform("model").matrix4fv(model);
     program.get_uniform("view").matrix4fv(view);

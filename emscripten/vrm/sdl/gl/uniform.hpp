@@ -46,19 +46,19 @@ VRM_SDL_NAMESPACE
 
     public:
         void mat2(
-            const glm::mat2& m, sz_t count = 1, bool transpose = false) noexcept
+            const mat2f& m, sz_t count = 1, bool transpose = false) noexcept
         {
             matrix2fv(count, transpose, glm::value_ptr(m));
         }
 
         void mat3(
-            const glm::mat3& m, sz_t count = 1, bool transpose = false) noexcept
+            const mat3f& m, sz_t count = 1, bool transpose = false) noexcept
         {
             matrix3fv(count, transpose, glm::value_ptr(m));
         }
 
         void mat4(
-            const glm::mat4& m, sz_t count = 1, bool transpose = false) noexcept
+            const mat4f& m, sz_t count = 1, bool transpose = false) noexcept
         {
             matrix4fv(count, transpose, glm::value_ptr(m));
         }

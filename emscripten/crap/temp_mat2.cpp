@@ -167,9 +167,9 @@ namespace vrm
             sdl::impl::unique_vbo<buffer_target::array> _vbo0;
             sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
 
-            glm::mat4 _model;
-            glm::mat4 _view;
-            glm::mat4 _projection;
+            mat4f _model;
+            mat4f _view;
+            mat4f _projection;
 
             sdl::uniform _u_projection_view_model;
             sdl::uniform _u_texture;
@@ -263,7 +263,7 @@ namespace vrm
                 float hue = 0.f) noexcept
             {
                 // Reset `model` to identity matrix.
-                _model = glm::mat4{};
+                _model = mat4f{};
 
                 // Tranformation order:
                 // 1) Scale.
@@ -341,10 +341,10 @@ namespace vrm
             sdl::impl::unique_vbo<buffer_target::array> _vbo0;
             sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
 
-            glm::mat4 _view;
-            glm::mat4 _projection;
+            mat4f _view;
+            mat4f _projection;
 
-            glm::mat4 _projection_view;
+            mat4f _projection_view;
 
             sdl::attribute _a_pos_tex_coords;
             sdl::attribute _a_color;
@@ -457,7 +457,7 @@ namespace vrm
                 float hue) noexcept
             {
                 /*
-                glm::mat4 _model;
+                mat4f _model;
 
                 // Tranformation order:
                 // 1) Scale.
@@ -513,7 +513,7 @@ namespace vrm
                 */
 
                 /*
-                glm::mat3 scaling{
+                mat3f scaling{
                     // .
                     1.f, 0.f, 0.f,              // .
                     0.f, 1.f, 0.f,              // .
@@ -562,7 +562,7 @@ namespace vrm
                 // sx {{1,0,0}, {-g,1,0}, {0,0,1}}
                 // sy {{1,h,0}, {0,1,0}, {0,0,1}}
 
-                glm::mat3 baked{c * e * (1.f - g * h) - d * f * h,
+                mat3f baked{c * e * (1.f - g * h) - d * f * h,
                     c * f * (1.f - g * h) + d * e * h, 0.f, -c * e * g - d * f,
                     -c * f * g + d * e, 0.f,
                     a + e * (-c * 0.5f + i) - f * (-d * 0.5f + l),
@@ -570,35 +570,35 @@ namespace vrm
 
                 // {{c,0,0}, {0,d,0}, {0,0,1}}
 
-                glm::mat3 translation{
+                mat3f translation{
                     // .
                     1.f, 0.f, 0.f,              // .
                     0.f, 1.f, 0.f,              // .
                     position.x, position.y, 1.f // .
                 };
 
-                glm::mat3 rotation{
+                mat3f rotation{
                     // .
                     std::cos(radians), std::sin(radians), 0.f,  // .
                     -std::sin(radians), std::cos(radians), 0.f, // .
                     0.f, 0.f, 1.f                               // .
                 };
 
-                glm::mat3 origining{
+                mat3f origining{
                     // .
                     1.f, 0.f, 0.f,          // .
                     0.f, 1.f, 0.f,          // .
                     origin.x, origin.y, 1.f // .
                 };
 
-                glm::mat3 origining_2{
+                mat3f origining_2{
                     // .
                     1.f, 0.f, 0.f,                    // .
                     0.f, 1.f, 0.f,                    // .
                     -size.x * 0.5, -size.y * 0.5, 1.f // .
                 };
 
-                glm::mat3 scaling{
+                mat3f scaling{
                     // .
                     size.x, 0.f, 0.f, // .
                     0.f, size.y, 0.f, // .
@@ -607,14 +607,14 @@ namespace vrm
 
 
 
-                glm::mat3 shearing_x{
+                mat3f shearing_x{
                     // .
                     1.f, 0.f, 0.f,      // .
                     -shear_x, 1.f, 0.f, // .
                     0.f, 0.f, 1.f       // .
                 };
 
-                glm::mat3 shearing_y{
+                mat3f shearing_y{
                     // .
                     1.f, shear_y, 0.f, // .
                     0.f, 1.f, 0.f,     // .

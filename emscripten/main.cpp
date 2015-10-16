@@ -65,49 +65,49 @@ namespace vrm
                 const vec2f& origin, const vec2f& size, float radians,
                 float shear_x, float shear_y) noexcept
             {
-                glm::mat3 translation{
+                mat3f translation{
                     // .
                     1.f, 0.f, 0.f,              // .
                     0.f, 1.f, 0.f,              // .
                     position.x, position.y, 1.f // .
                 };
 
-                glm::mat3 rotation{
+                mat3f rotation{
                     // .
                     tbl_cos(radians), tbl_sin(radians), 0.f,  // .
                     -tbl_sin(radians), tbl_cos(radians), 0.f, // .
                     0.f, 0.f, 1.f                             // .
                 };
 
-                glm::mat3 origining{
+                mat3f origining{
                     // .
                     1.f, 0.f, 0.f,          // .
                     0.f, 1.f, 0.f,          // .
                     origin.x, origin.y, 1.f // .
                 };
 
-                glm::mat3 centering{
+                mat3f centering{
                     // .
                     1.f, 0.f, 0.f,                    // .
                     0.f, 1.f, 0.f,                    // .
                     -size.x * 0.5, -size.y * 0.5, 1.f // .
                 };
 
-                glm::mat3 scaling{
+                mat3f scaling{
                     // .
                     size.x, 0.f, 0.f, // .
                     0.f, size.y, 0.f, // .
                     0.f, 0.f, 1.f     // .
                 };
 
-                glm::mat3 shearing_x{
+                mat3f shearing_x{
                     // .
                     1.f, 0.f, 0.f,      // .
                     -shear_x, 1.f, 0.f, // .
                     0.f, 0.f, 1.f       // .
                 };
 
-                glm::mat3 shearing_y{
+                mat3f shearing_y{
                     // .
                     1.f, shear_y, 0.f, // .
                     0.f, 1.f, 0.f,     // .
@@ -240,7 +240,7 @@ namespace vrm
 
             sdl::window& _window;
             scale_fn_type _scale_fn{screen_scale::fixed()};
-            glm::mat4 _projection;
+            mat4f _projection;
             vec2f _original_size;
             float _original_ratio;
 
@@ -354,7 +354,7 @@ namespace vrm
             auto position() const noexcept { return _offset + origin(); }
 
         private:
-            void translate_to_origin(glm::mat4& view, float direction) const
+            void translate_to_origin(mat4f& view, float direction) const
                 noexcept
             {
                 view = glm::translate(
@@ -414,7 +414,7 @@ namespace vrm
 
             auto view() const noexcept
             {
-                glm::mat4 result;
+                mat4f result;
 
                 result = glm::translate(result, vec3f{-_offset, 0.f});
 
@@ -656,7 +656,7 @@ namespace vrm
                     _a_hue, bsr_vertex, _hue, true);
             }
 
-            void use(const glm::mat4& projection_view) noexcept
+            void use(const mat4f& projection_view) noexcept
             {
                 _program.use();
                 _u_projection_view.mat4(projection_view);
