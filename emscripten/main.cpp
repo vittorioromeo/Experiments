@@ -53,495 +53,476 @@ inline auto tbl_cos(float mX) noexcept
 }
 
 VRM_SDL_NAMESPACE
+{
+    namespace impl
     {
-        namespace impl
+        auto make_2d_projection(float width, float height)
         {
-            auto make_2d_projection(float width, float height)
+            return glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
+        }
+
+        auto trasform_matrix_2d(const vec2f& position, const vec2f& origin,
+            const vec2f& size, float radians, float shear_x,
+            float shear_y) noexcept
+        {
+            mat3f translation{
+                // .
+                1.f, 0.f, 0.f,              // .
+                0.f, 1.f, 0.f,              // .
+                position.x, position.y, 1.f // .
+            };
+
+            mat3f rotation{
+                // .
+                tbl_cos(radians), tbl_sin(radians), 0.f,  // .
+                -tbl_sin(radians), tbl_cos(radians), 0.f, // .
+                0.f, 0.f, 1.f                             // .
+            };
+
+            mat3f origining{
+                // .
+                1.f, 0.f, 0.f,          // .
+                0.f, 1.f, 0.f,          // .
+                origin.x, origin.y, 1.f // .
+            };
+
+            mat3f centering{
+                // .
+                1.f, 0.f, 0.f,                    // .
+                0.f, 1.f, 0.f,                    // .
+                -size.x * 0.5, -size.y * 0.5, 1.f // .
+            };
+
+            mat3f scaling{
+                // .
+                size.x, 0.f, 0.f, // .
+                0.f, size.y, 0.f, // .
+                0.f, 0.f, 1.f     // .
+            };
+
+            mat3f shearing_x{
+                // .
+                1.f, 0.f, 0.f,      // .
+                -shear_x, 1.f, 0.f, // .
+                0.f, 0.f, 1.f       // .
+            };
+
+            mat3f shearing_y{
+                // .
+                1.f, shear_y, 0.f, // .
+                0.f, 1.f, 0.f,     // .
+                0.f, 0.f, 1.f      // .
+            };
+
+            return translation * rotation * origining * centering * scaling *
+                   shearing_x * shearing_y;
+        }
+
+        template <typename TFX, typename TFY>
+        auto ratio_scale_impl(const vec2f& original_size,
+            const vec2f& container_size, TFX&& step_x_fn,
+            TFY&& step_y_fn) noexcept
+        {
+            const auto& os(original_size);
+            const auto& ws(container_size);
+            auto original_ratio(os.x / os.y);
+
+            if(ws.y * original_ratio <= ws.x)
             {
-                return glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
+                // the width is the boss
+
+                auto r_width = ws.y * original_ratio;
+                step_x_fn(r_width);
+                return vec2f(r_width, r_width / original_ratio);
             }
-
-            auto trasform_matrix_2d(const vec2f& position, const vec2f& origin,
-                const vec2f& size, float radians, float shear_x,
-                float shear_y) noexcept
+            else
             {
-                mat3f translation{
-                    // .
-                    1.f, 0.f, 0.f,              // .
-                    0.f, 1.f, 0.f,              // .
-                    position.x, position.y, 1.f // .
-                };
+                // the height is the boss
 
-                mat3f rotation{
-                    // .
-                    tbl_cos(radians), tbl_sin(radians), 0.f,  // .
-                    -tbl_sin(radians), tbl_cos(radians), 0.f, // .
-                    0.f, 0.f, 1.f                             // .
-                };
-
-                mat3f origining{
-                    // .
-                    1.f, 0.f, 0.f,          // .
-                    0.f, 1.f, 0.f,          // .
-                    origin.x, origin.y, 1.f // .
-                };
-
-                mat3f centering{
-                    // .
-                    1.f, 0.f, 0.f,                    // .
-                    0.f, 1.f, 0.f,                    // .
-                    -size.x * 0.5, -size.y * 0.5, 1.f // .
-                };
-
-                mat3f scaling{
-                    // .
-                    size.x, 0.f, 0.f, // .
-                    0.f, size.y, 0.f, // .
-                    0.f, 0.f, 1.f     // .
-                };
-
-                mat3f shearing_x{
-                    // .
-                    1.f, 0.f, 0.f,      // .
-                    -shear_x, 1.f, 0.f, // .
-                    0.f, 0.f, 1.f       // .
-                };
-
-                mat3f shearing_y{
-                    // .
-                    1.f, shear_y, 0.f, // .
-                    0.f, 1.f, 0.f,     // .
-                    0.f, 0.f, 1.f      // .
-                };
-
-                return translation * rotation * origining * centering *
-                       scaling * shearing_x * shearing_y;
-            }
-
-            template <typename TFX, typename TFY>
-            auto ratio_scale_impl(const vec2f& original_size,
-                const vec2f& container_size, TFX&& step_x_fn,
-                TFY&& step_y_fn) noexcept
-            {
-                const auto& os(original_size);
-                const auto& ws(container_size);
-                auto original_ratio(os.x / os.y);
-
-                if(ws.y * original_ratio <= ws.x)
-                {
-                    // the width is the boss
-
-                    auto r_width = ws.y * original_ratio;
-                    step_x_fn(r_width);
-                    return vec2f(r_width, r_width / original_ratio);
-                }
-                else
-                {
-                    // the height is the boss
-
-                    auto r_height = ws.x / original_ratio;
-                    step_y_fn(r_height);
-                    return vec2f(r_height * original_ratio, r_height);
-                }
-            }
-
-            auto discrete_ratio_step(float value, float increment) noexcept
-            {
-                return std::floor(value / increment) * increment;
-            }
-
-            auto discrete_ratio_scale(const vec2f& original_size,
-                const vec2f& container_size, float x_increment,
-                float y_increment) noexcept
-            {
-                return ratio_scale_impl(original_size, container_size,
-                    [=](auto& x)
-                    {
-                        x = discrete_ratio_step(x, x_increment);
-                    },
-                    [=](auto& y)
-                    {
-                        y = discrete_ratio_step(y, y_increment);
-                    });
-            }
-
-            auto ratio_scale(const vec2f& original_size,
-                const vec2f& container_size) noexcept
-            {
-                return ratio_scale_impl(original_size, container_size,
-                    [](auto&)
-                    {
-                    },
-                    [](auto&)
-                    {
-                    });
-            }
-
-            auto ratio_scale_margin(
-                const vec2f& scaled_size, const vec2f& container_size) noexcept
-            {
-                return (container_size - scaled_size) / 2.f;
+                auto r_height = ws.x / original_ratio;
+                step_y_fn(r_height);
+                return vec2f(r_height * original_ratio, r_height);
             }
         }
 
-        namespace screen_scale
+        auto discrete_ratio_step(float value, float increment) noexcept
         {
-            auto fixed() noexcept
-            {
-                return [](const vec2f& original_size, const vec2f&)
-                {
-                    return original_size;
-                };
-            }
-
-            auto stretch() noexcept
-            {
-                return [](const vec2f&, const vec2f& window_size)
-                {
-                    return window_size;
-                };
-            }
-
-            auto ratio_aware() noexcept
-            {
-                return [](const vec2f& original_size, const vec2f& window_size)
-                {
-                    return impl::ratio_scale(original_size, window_size);
-                };
-            }
-
-            auto discrete_ratio_aware(const vec2f& increment) noexcept
-            {
-                return [=](const vec2f& original_size, const vec2f& window_size)
-                {
-                    return impl::discrete_ratio_scale(
-                        original_size, window_size, increment.x, increment.y);
-                };
-            }
-
-            auto pixel_perfect() noexcept
-            {
-                return [=](const vec2f& original_size, const vec2f& window_size)
-                {
-                    return impl::discrete_ratio_scale(original_size,
-                        window_size, original_size.x, original_size.y);
-                };
-            }
+            return std::floor(value / increment) * increment;
         }
 
-        class screen_2d
+        auto discrete_ratio_scale(const vec2f& original_size,
+            const vec2f& container_size, float x_increment,
+            float y_increment) noexcept
         {
-        private:
-            using scale_fn_type =
-                std::function<vec2f(const vec2f&, const vec2f&)>;
-
-            sdl::window& _window;
-            scale_fn_type _scale_fn{screen_scale::fixed()};
-            mat4f _projection;
-            vec2f _original_size;
-            float _original_ratio;
-
-            void refresh_projection()
-            {
-                _projection = impl::make_2d_projection(
-                    _original_size.x, _original_size.y);
-            }
-
-        public:
-            screen_2d(sdl::window& window, float width, float height) noexcept
-                : _window{window},
-                  _original_size{width, height},
-                  _original_ratio{width / height}
-            {
-                refresh_projection();
-            }
-
-            void resize(const vec2f& new_original_size) noexcept
-            {
-                _original_size = new_original_size;
-                refresh_projection();
-            }
-
-            template <typename TF>
-            void scale_fn(TF&& fn) noexcept
-            {
-                _scale_fn = FWD(fn);
-            }
-
-            void mode(window_mode x) noexcept { _window.mode(x); }
-            const auto& mode() const noexcept { return _window.mode(); }
-
-            auto& window() noexcept { return _window; }
-            const auto& window() const noexcept { return _window; }
-
-            const auto& original_size() const noexcept
-            {
-                return _original_size;
-            }
-            const auto& original_ratio() const noexcept
-            {
-                return _original_ratio;
-            }
-
-            // TODO:
-            // comment everything
-            // think about "screen" and "camera"
-            // let user choose stuff
-
-            auto scaled_size() const noexcept
-            {
-                return _scale_fn(_original_size, _window.size());
-            }
-
-            auto scaling_factor() const noexcept
-            {
-                return scaled_size().x / _original_size.x;
-            }
-
-            auto margin() const noexcept
-            {
-                return impl::ratio_scale_margin(scaled_size(), _window.size());
-            }
-
-            void use_background() noexcept
-            {
-                _window.scissor_and_viewport({0.f, 0.f}, _window.size());
-            }
-
-            void use_foreground() noexcept
-            {
-                _window.scissor_and_viewport(margin(), scaled_size());
-            }
-
-            void clear(const vec4f& color) noexcept { _window.clear(color); }
-
-            void use_and_clear_background(const vec4f& color) noexcept
-            {
-                use_background();
-                clear(color);
-            }
-
-            void use_and_clear_foreground(const vec4f& color) noexcept
-            {
-                use_foreground();
-                clear(color);
-            }
-
-            const auto& projection() const noexcept { return _projection; }
-        };
-
-
-        class camera_2d
-        {
-        private:
-            screen_2d& _screen;
-            vec2f _offset;
-            float _scale{1.f};
-            float _radians{0.f};
-
-            auto origin() const noexcept
-            {
-                return _screen.original_size() / 2.f;
-            }
-
-        public:
-            auto position() const noexcept { return _offset + origin(); }
-
-        private:
-            void translate_to_origin(mat4f& view, float direction) const
-                noexcept
-            {
-                view = glm::translate(
-                    view, vec3f(position().xy() * direction, 0.f));
-            }
-
-        public:
-            camera_2d(screen_2d& screen) noexcept : _screen{screen} {}
-
-            auto& zoom(float factor) noexcept
-            {
-                _scale += factor;
-                return *this;
-            }
-
-            auto& move_towards_angle(float radians, float speed)
-            {
-                radians += _radians;
-
-                _offset +=
-                    vec2f(speed * std::cos(radians), speed * std::sin(radians));
-
-                return *this;
-            }
-
-            auto& move_towards_point(const vec2f& point, float speed)
-            {
-                auto direction((point - position()));
-                auto angle(std::atan2(direction.y, direction.x));
-                return move_towards_angle(angle - _radians, speed);
-            }
-
-
-            auto& move(vec2f offset) noexcept
-            {
-                auto speed(glm::length(offset));
-
-                offset = glm::normalize(offset);
-                auto direction(std::atan2(offset.y, offset.x));
-
-                return move_towards_angle(direction, speed);
-            }
-
-            auto& offset() noexcept { return _offset; }
-            const auto& offset() const noexcept { return _offset; }
-
-            auto& angle() noexcept { return _radians; }
-            const auto& angle() const noexcept { return _radians; }
-
-            auto& rotate(float radians) noexcept
-            {
-                _radians += radians;
-                return *this;
-            }
-
-            auto projection() const noexcept { return _screen.projection(); }
-
-            auto view() const noexcept
-            {
-                mat4f result;
-
-                result = glm::translate(result, vec3f{-_offset, 0.f});
-
-                translate_to_origin(result, 1.f);
+            return ratio_scale_impl(original_size, container_size,
+                [=](auto& x)
                 {
-                    // std::cout << _screen.scaling_factor() << "\n";
-                    // auto sc(_scale * _screen.scaling_factor());
-
-                    auto sc(_scale);
-
-                    result = glm::scale(result, vec3f(sc, sc, 1.0f));
-
-                    result =
-                        glm::rotate(result, -_radians, vec3f(0.f, 0.f, 1.f));
-                }
-                translate_to_origin(result, -1.f);
-
-                return result;
-            }
-
-            auto projection_view() const noexcept
-            {
-                return projection() * view();
-            }
-        };
-
-
-
-        namespace impl
-        {
-            auto make_program_from_file(
-                const char* vert_path, const char* frag_path)
-            {
-                auto v_sh(make_shader_from_file<shader_t::vertex>(vert_path));
-                auto f_sh(make_shader_from_file<shader_t::fragment>(frag_path));
-                return make_program(*v_sh, *f_sh);
-            }
-
-            auto make_sprite_renderer_program()
-            {
-                constexpr auto v_sh_path("vrm/sdl/glsl/sprite.vert");
-                constexpr auto f_sh_path("vrm/sdl/glsl/sprite.frag");
-                return make_program_from_file(v_sh_path, f_sh_path);
-            }
-
-            auto make_batched_sprite_renderer_program()
-            {
-                constexpr auto v_sh_path("vrm/sdl/glsl/batched_sprite.vert");
-                constexpr auto f_sh_path("vrm/sdl/glsl/batched_sprite.frag");
-                return make_program_from_file(v_sh_path, f_sh_path);
-            }
+                    x = discrete_ratio_step(x, x_increment);
+                },
+                [=](auto& y)
+                {
+                    y = discrete_ratio_step(y, y_increment);
+                });
         }
 
-        namespace impl
+        auto ratio_scale(
+            const vec2f& original_size, const vec2f& container_size) noexcept
         {
-            auto get_texture_unit_idx(GLenum texture_unit) noexcept
-            {
-                return static_cast<sz_t>(texture_unit) -
-                       static_cast<sz_t>(GL_TEXTURE0);
-            }
-
-            auto get_texture_unit(sz_t idx) noexcept
-            {
-                return static_cast<GLenum>(
-                    static_cast<sz_t>(GL_TEXTURE0) + idx);
-            }
-
-            constexpr auto get_max_texture_unit_count() noexcept
-            {
-                return GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
-            }
-
-            constexpr auto get_valid_texture_unit_count(int desired) noexcept
-            {
-                return std::min(desired, get_max_texture_unit_count());
-            }
+            return ratio_scale_impl(original_size, container_size,
+                [](auto&)
+                {
+                },
+                [](auto&)
+                {
+                });
         }
 
-        template <sz_t TN>
-        struct texture_cache
+        auto ratio_scale_margin(
+            const vec2f& scaled_size, const vec2f& container_size) noexcept
         {
-        private:
-            static constexpr sz_t _null_bind{TN};
-            GLuint _last_binds[TN];
-
-            auto get_unit_idx(const impl::gltexture2d& t) const noexcept
-            {
-                for(sz_t i(0); i < TN; ++i)
-                    if(_last_binds[i] == t.location()) return i;
-
-                return _null_bind;
-            }
-
-            auto get_free_unit_idx() const noexcept
-            {
-                for(sz_t i(0); i < TN; ++i)
-                    if(_last_binds[i] == 0) return i;
-
-                return _null_bind;
-            }
-
-        public:
-            texture_cache() noexcept { clear(); }
-
-            void clear()
-            {
-                for(sz_t i(0); i < TN; ++i)
-                {
-                    // Set cache to "unbound".
-                    _last_binds[i] = 0;
-                }
-            }
-
-            auto use(const impl::gltexture2d& t) noexcept
-            {
-                auto unit_idx(get_unit_idx(t));
-
-                // If the texture is already bound, return the texture unit
-                // index.
-                if(unit_idx != _null_bind) return unit_idx;
-
-                // Otherwise, find a free texture unit, bind the texture, cache
-                // its location and return the texture unit index.
-                auto free_unit_idx(get_free_unit_idx());
-                t.activate_and_bind(impl::get_texture_unit(free_unit_idx));
-                _last_binds[free_unit_idx] = t.location();
-                return free_unit_idx;
-            }
-        };
+            return (container_size - scaled_size) / 2.f;
+        }
     }
 
-    namespace sdl
+    namespace screen_scale
     {
+        auto fixed() noexcept
+        {
+            return [](const vec2f& original_size, const vec2f&)
+            {
+                return original_size;
+            };
+        }
+
+        auto stretch() noexcept
+        {
+            return [](const vec2f&, const vec2f& window_size)
+            {
+                return window_size;
+            };
+        }
+
+        auto ratio_aware() noexcept
+        {
+            return [](const vec2f& original_size, const vec2f& window_size)
+            {
+                return impl::ratio_scale(original_size, window_size);
+            };
+        }
+
+        auto discrete_ratio_aware(const vec2f& increment) noexcept
+        {
+            return [=](const vec2f& original_size, const vec2f& window_size)
+            {
+                return impl::discrete_ratio_scale(
+                    original_size, window_size, increment.x, increment.y);
+            };
+        }
+
+        auto pixel_perfect() noexcept
+        {
+            return [=](const vec2f& original_size, const vec2f& window_size)
+            {
+                return impl::discrete_ratio_scale(original_size, window_size,
+                    original_size.x, original_size.y);
+            };
+        }
+    }
+
+    class screen_2d
+    {
+    private:
+        using scale_fn_type = std::function<vec2f(const vec2f&, const vec2f&)>;
+
+        sdl::window& _window;
+        scale_fn_type _scale_fn{screen_scale::fixed()};
+        mat4f _projection;
+        vec2f _original_size;
+        float _original_ratio;
+
+        void refresh_projection()
+        {
+            _projection =
+                impl::make_2d_projection(_original_size.x, _original_size.y);
+        }
+
+    public:
+        screen_2d(sdl::window& window, float width, float height) noexcept
+            : _window{window},
+              _original_size{width, height},
+              _original_ratio{width / height}
+        {
+            refresh_projection();
+        }
+
+        void resize(const vec2f& new_original_size) noexcept
+        {
+            _original_size = new_original_size;
+            refresh_projection();
+        }
+
+        template <typename TF>
+        void scale_fn(TF&& fn) noexcept
+        {
+            _scale_fn = FWD(fn);
+        }
+
+        void mode(window_mode x) noexcept { _window.mode(x); }
+        const auto& mode() const noexcept { return _window.mode(); }
+
+        auto& window() noexcept { return _window; }
+        const auto& window() const noexcept { return _window; }
+
+        const auto& original_size() const noexcept { return _original_size; }
+        const auto& original_ratio() const noexcept { return _original_ratio; }
+
+        // TODO:
+        // comment everything
+        // think about "screen" and "camera"
+        // let user choose stuff
+
+        auto scaled_size() const noexcept
+        {
+            return _scale_fn(_original_size, _window.size());
+        }
+
+        auto scaling_factor() const noexcept
+        {
+            return scaled_size().x / _original_size.x;
+        }
+
+        auto margin() const noexcept
+        {
+            return impl::ratio_scale_margin(scaled_size(), _window.size());
+        }
+
+        void use_background() noexcept
+        {
+            _window.scissor_and_viewport({0.f, 0.f}, _window.size());
+        }
+
+        void use_foreground() noexcept
+        {
+            _window.scissor_and_viewport(margin(), scaled_size());
+        }
+
+        void clear(const vec4f& color) noexcept { _window.clear(color); }
+
+        void use_and_clear_background(const vec4f& color) noexcept
+        {
+            use_background();
+            clear(color);
+        }
+
+        void use_and_clear_foreground(const vec4f& color) noexcept
+        {
+            use_foreground();
+            clear(color);
+        }
+
+        const auto& projection() const noexcept { return _projection; }
+    };
+
+
+    class camera_2d
+    {
+    private:
+        screen_2d& _screen;
+        vec2f _offset;
+        float _scale{1.f};
+        float _radians{0.f};
+
+        auto origin() const noexcept { return _screen.original_size() / 2.f; }
+
+    public:
+        auto position() const noexcept { return _offset + origin(); }
+
+    private:
+        void translate_to_origin(mat4f& view, float direction) const noexcept
+        {
+            view =
+                glm::translate(view, vec3f(position().xy() * direction, 0.f));
+        }
+
+    public:
+        camera_2d(screen_2d& screen) noexcept : _screen{screen} {}
+
+        auto& zoom(float factor) noexcept
+        {
+            _scale += factor;
+            return *this;
+        }
+
+        auto& move_towards_angle(float radians, float speed)
+        {
+            radians += _radians;
+
+            _offset +=
+                vec2f(speed * std::cos(radians), speed * std::sin(radians));
+
+            return *this;
+        }
+
+        auto& move_towards_point(const vec2f& point, float speed)
+        {
+            auto direction((point - position()));
+            auto angle(std::atan2(direction.y, direction.x));
+            return move_towards_angle(angle - _radians, speed);
+        }
+
+
+        auto& move(vec2f offset) noexcept
+        {
+            auto speed(glm::length(offset));
+
+            offset = glm::normalize(offset);
+            auto direction(std::atan2(offset.y, offset.x));
+
+            return move_towards_angle(direction, speed);
+        }
+
+        auto& offset() noexcept { return _offset; }
+        const auto& offset() const noexcept { return _offset; }
+
+        auto& angle() noexcept { return _radians; }
+        const auto& angle() const noexcept { return _radians; }
+
+        auto& rotate(float radians) noexcept
+        {
+            _radians += radians;
+            return *this;
+        }
+
+        auto projection() const noexcept { return _screen.projection(); }
+
+        auto view() const noexcept
+        {
+            mat4f result;
+
+            result = glm::translate(result, vec3f{-_offset, 0.f});
+
+            translate_to_origin(result, 1.f);
+            {
+                // std::cout << _screen.scaling_factor() << "\n";
+                // auto sc(_scale * _screen.scaling_factor());
+
+                auto sc(_scale);
+
+                result = glm::scale(result, vec3f(sc, sc, 1.0f));
+
+                result = glm::rotate(result, -_radians, vec3f(0.f, 0.f, 1.f));
+            }
+            translate_to_origin(result, -1.f);
+
+            return result;
+        }
+
+        auto projection_view() const noexcept { return projection() * view(); }
+    };
+
+
+
+    namespace impl
+    {
+        auto make_program_from_file(
+            const char* vert_path, const char* frag_path)
+        {
+            auto v_sh(make_shader_from_file<shader_t::vertex>(vert_path));
+            auto f_sh(make_shader_from_file<shader_t::fragment>(frag_path));
+            return make_program(*v_sh, *f_sh);
+        }
+
+        auto make_sprite_renderer_program()
+        {
+            constexpr auto v_sh_path("vrm/sdl/glsl/sprite.vert");
+            constexpr auto f_sh_path("vrm/sdl/glsl/sprite.frag");
+            return make_program_from_file(v_sh_path, f_sh_path);
+        }
+
+        auto make_batched_sprite_renderer_program()
+        {
+            constexpr auto v_sh_path("vrm/sdl/glsl/batched_sprite.vert");
+            constexpr auto f_sh_path("vrm/sdl/glsl/batched_sprite.frag");
+            return make_program_from_file(v_sh_path, f_sh_path);
+        }
+    }
+
+    namespace impl
+    {
+        auto get_texture_unit_idx(GLenum texture_unit) noexcept
+        {
+            return static_cast<sz_t>(texture_unit) -
+                   static_cast<sz_t>(GL_TEXTURE0);
+        }
+
+        auto get_texture_unit(sz_t idx) noexcept
+        {
+            return static_cast<GLenum>(static_cast<sz_t>(GL_TEXTURE0) + idx);
+        }
+
+        constexpr auto get_max_texture_unit_count() noexcept
+        {
+            return GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+        }
+
+        constexpr auto get_valid_texture_unit_count(int desired) noexcept
+        {
+            return std::min(desired, get_max_texture_unit_count());
+        }
+    }
+
+    template <sz_t TN>
+    struct texture_cache
+    {
+    private:
+        static constexpr sz_t _null_bind{TN};
+        GLuint _last_binds[TN];
+
+        auto get_unit_idx(const impl::gltexture2d& t) const noexcept
+        {
+            for(sz_t i(0); i < TN; ++i)
+                if(_last_binds[i] == t.location()) return i;
+
+            return _null_bind;
+        }
+
+        auto get_free_unit_idx() const noexcept
+        {
+            for(sz_t i(0); i < TN; ++i)
+                if(_last_binds[i] == 0) return i;
+
+            return _null_bind;
+        }
+
+    public:
+        texture_cache() noexcept { clear(); }
+
+        void clear()
+        {
+            for(sz_t i(0); i < TN; ++i)
+            {
+                // Set cache to "unbound".
+                _last_binds[i] = 0;
+            }
+        }
+
+        auto use(const impl::gltexture2d& t) noexcept
+        {
+            auto unit_idx(get_unit_idx(t));
+
+            // If the texture is already bound, return the texture unit
+            // index.
+            if(unit_idx != _null_bind) return unit_idx;
+
+            // Otherwise, find a free texture unit, bind the texture, cache
+            // its location and return the texture unit index.
+            auto free_unit_idx(get_free_unit_idx());
+            t.activate_and_bind(impl::get_texture_unit(free_unit_idx));
+            _last_binds[free_unit_idx] = t.location();
+            return free_unit_idx;
+        }
+    };
+}
 
 #define VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(                         \
     attribute_handle, vertex_type, member_name, normalized)         \
@@ -553,221 +534,219 @@ VRM_SDL_NAMESPACE
                 normalized, offsetof(vertex_type, member_name));    \
     } while(false)
 
-        struct bsr_vertex
+VRM_SDL_NAMESPACE
+{
+    struct bsr_vertex
+    {
+        vec4f _pos_tex_coords;
+        vec4f _color;
+        float _hue;
+
+        // Required to avoid temporary with `emplace_back`.
+        bsr_vertex(const vec4f& pos_tex_coords, const vec4f& color,
+            float hue) noexcept : _pos_tex_coords(pos_tex_coords),
+                                  _color(color),
+                                  _hue(hue)
         {
-            vec4f _pos_tex_coords;
-            vec4f _color;
-            float _hue;
+        }
+    };
 
-            // Required to avoid temporary with `emplace_back`.
-            bsr_vertex(const vec4f& pos_tex_coords, const vec4f& color,
-                float hue) noexcept : _pos_tex_coords(pos_tex_coords),
-                                      _color(color),
-                                      _hue(hue)
-            {
-            }
-        };
+    struct batched_sprite_renderer
+    {
+        using gl_index_type = GLuint;
+        static constexpr sz_t batch_size{1024 * 8};
+        static constexpr sz_t vertex_count{batch_size * 4};
+        static constexpr sz_t index_count{batch_size * 6};
 
-        struct batched_sprite_renderer
+        program _program{impl::make_batched_sprite_renderer_program()};
+        sdl::impl::unique_vao _vao;
+
+        sdl::impl::unique_vbo<buffer_target::array> _vbo0;
+        sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
+
+        sdl::uniform _u_texture;
+        sdl::uniform _u_projection_view;
+
+        std::vector<bsr_vertex> _data;
+        std::vector<gl_index_type> _indices;
+        gl_index_type _current_batch_vertex_count{0};
+
+        batched_sprite_renderer() noexcept
         {
-            using gl_index_type = GLuint;
-            static constexpr sz_t batch_size{1024 * 8};
-            static constexpr sz_t vertex_count{batch_size * 4};
-            static constexpr sz_t index_count{batch_size * 6};
+            // _projection = impl::make_2d_projection(1000.f, 600.f);
+            init_render_data();
+        }
 
-            program _program{impl::make_batched_sprite_renderer_program()};
-            sdl::impl::unique_vao _vao;
+        void init_render_data() noexcept
+        {
+            _vao = sdl::make_vao();
 
-            sdl::impl::unique_vbo<buffer_target::array> _vbo0;
-            sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
+            // The VAO "contains" the VBOs.
+            _vao->bind();
 
-            sdl::uniform _u_texture;
-            sdl::uniform _u_projection_view;
+            _vbo0 = sdl::make_vbo<buffer_target::array>();
+            _vbo1 = sdl::make_vbo<buffer_target::element_array>();
 
-            std::vector<bsr_vertex> _data;
-            std::vector<gl_index_type> _indices;
-            gl_index_type _current_batch_vertex_count{0};
+            // Get attributes.
+            auto _a_pos_tex_coords = _program.attribute("a_pos_tex_coords");
+            auto _a_color = _program.attribute("a_color");
+            auto _a_hue = _program.attribute("a_hue");
 
-            batched_sprite_renderer() noexcept
-            {
-                // _projection = impl::make_2d_projection(1000.f, 600.f);
-                init_render_data();
-            }
+            // Get uniforms.
+            _u_texture = _program.uniform("u_texture");
+            _u_projection_view = _program.uniform("u_projection_view");
 
-            void init_render_data() noexcept
-            {
-                _vao = sdl::make_vao();
+            // Allocates enough memory for `vertex_count` `bsr_vertex`.
+            // Creates vertices VBO.
+            _data.reserve(vertex_count);
+            _vbo0->bind();
+            _vbo0->allocate_buffer_items<buffer_usage::dynamic_draw,
+                bsr_vertex>(vertex_count);
 
-                // The VAO "contains" the VBOs.
-                _vao->bind();
+            // Allocates enough memory for `index_count` `gl_index_type`.
+            // Creates indices VBO.
+            _indices.reserve(index_count);
+            _vbo1->bind();
+            _vbo1->allocate_buffer_items<buffer_usage::dynamic_draw,
+                gl_index_type>(index_count);
 
-                _vbo0 = sdl::make_vbo<buffer_target::array>();
-                _vbo1 = sdl::make_vbo<buffer_target::element_array>();
+            VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(
+                _a_pos_tex_coords, bsr_vertex, _pos_tex_coords, true);
 
-                // Get attributes.
-                auto _a_pos_tex_coords = _program.attribute("a_pos_tex_coords");
-                auto _a_color = _program.attribute("a_color");
-                auto _a_hue = _program.attribute("a_hue");
+            VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(
+                _a_color, bsr_vertex, _color, true);
 
-                // Get uniforms.
-                _u_texture = _program.uniform("u_texture");
-                _u_projection_view = _program.uniform("u_projection_view");
+            VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(_a_hue, bsr_vertex, _hue, true);
+        }
 
-                // Allocates enough memory for `vertex_count` `bsr_vertex`.
-                // Creates vertices VBO.
-                _data.reserve(vertex_count);
-                _vbo0->bind();
-                _vbo0->allocate_buffer_items<buffer_usage::dynamic_draw,
-                    bsr_vertex>(vertex_count);
+        void use(const mat4f& projection_view) noexcept
+        {
+            _program.use();
+            _u_projection_view.mat4(projection_view);
+        }
 
-                // Allocates enough memory for `index_count` `gl_index_type`.
-                // Creates indices VBO.
-                _indices.reserve(index_count);
-                _vbo1->bind();
-                _vbo1->allocate_buffer_items<buffer_usage::dynamic_draw,
-                    gl_index_type>(index_count);
+        void use(const camera_2d& camera) noexcept
+        {
+            use(camera.projection_view());
+        }
 
-                VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(
-                    _a_pos_tex_coords, bsr_vertex, _pos_tex_coords, true);
+    private:
+        template <typename... Ts>
+        void enqueue_v(Ts&&... xs) noexcept
+        {
+            _data.emplace_back(FWD(xs)...);
+        }
 
-                VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(
-                    _a_color, bsr_vertex, _color, true);
-
-                VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(
-                    _a_hue, bsr_vertex, _hue, true);
-            }
-
-            void use(const mat4f& projection_view) noexcept
-            {
-                _program.use();
-                _u_projection_view.mat4(projection_view);
-            }
-
-            void use(const camera_2d& camera) noexcept
-            {
-                use(camera.projection_view());
-            }
-
-        private:
-            template <typename... Ts>
-            void enqueue_v(Ts&&... xs) noexcept
-            {
-                _data.emplace_back(FWD(xs)...);
-            }
-
-            template <typename... Ts>
-            void enqueue_i(Ts&&... xs) noexcept
-            {
-                sdl::for_args(
-                    [this](auto&& i)
-                    {
-                        _indices.emplace_back(
-                            _current_batch_vertex_count + FWD(i));
-                    },
-                    FWD(xs)...);
-
-                _current_batch_vertex_count += 4;
-
-                if(_current_batch_vertex_count > vertex_count - 3)
+        template <typename... Ts>
+        void enqueue_i(Ts&&... xs) noexcept
+        {
+            sdl::for_args(
+                [this](auto&& i)
                 {
-                    _current_batch_vertex_count = 0;
-                }
-            }
+                    _indices.emplace_back(_current_batch_vertex_count + FWD(i));
+                },
+                FWD(xs)...);
 
-        public:
-            void draw_sprite(const impl::gltexture2d& t, const vec2f& position,
-                const vec2f& origin, const vec2f& size, float radians,
-                const vec4f& color, float hue) noexcept
+            _current_batch_vertex_count += 4;
+
+            if(_current_batch_vertex_count > vertex_count - 3)
             {
-                auto shear_x = 0.f;
-                auto shear_y = 0.f;
-
-                const vec3f pos0(0.f, 1.f, 1.f);
-                const vec3f pos1(0.f, 0.f, 1.f);
-                const vec3f pos2(1.f, 0.f, 1.f);
-                const vec3f pos3(1.f, 1.f, 1.f);
-
-                auto transform(impl::trasform_matrix_2d(
-                    position, origin, size, radians, shear_x, shear_y));
-
-                vec3f comp0(transform * pos0);
-                vec3f comp1(transform * pos1);
-                vec3f comp2(transform * pos2);
-                vec3f comp3(transform * pos3);
-
-                vec4f pos_tex_coords_0(comp0.xy(), 0.f, 1.f);
-                vec4f pos_tex_coords_1(comp1.xy(), 0.f, 0.f);
-                vec4f pos_tex_coords_2(comp2.xy(), 1.f, 0.f);
-                vec4f pos_tex_coords_3(comp3.xy(), 1.f, 1.f);
-
-                enqueue_v(pos_tex_coords_0, color, hue);
-                enqueue_v(pos_tex_coords_1, color, hue);
-                enqueue_v(pos_tex_coords_2, color, hue);
-                enqueue_v(pos_tex_coords_3, color, hue);
-
-                enqueue_i(0, 1, 2, 0, 2, 3);
-            }
-
-            void do_it()
-            {
-                _vao->bind();
-
-                // TODO:
-                _u_texture.integer(0);
-
-                auto times(_data.size() / vertex_count);
-
-                for(decltype(times) i(0); i < times; ++i)
-                {
-                    // Send `vertex_count` vertices to GPU, from
-                    // `_data[vertex_count * i]`.
-                    _vbo0->sub_buffer_data_items(
-                        _data, vertex_count * i, vertex_count);
-
-                    // Send `index_count` vertices to GPU, from
-                    // `_indices[index_count * i]`.
-                    _vbo1->sub_buffer_data_items(
-                        _indices, index_count * i, index_count);
-
-                    _vao->draw_elements<primitive::triangles,
-                        index_type::ui_int>(index_count);
-                }
-
-                auto total_quad_count(_data.size() / 4);
-                auto remaining_quad_count(total_quad_count % batch_size);
-
-                if(remaining_quad_count > 0)
-                {
-                    auto remaining_offset_count(times * batch_size);
-
-                    auto remaining_offset_count_vertex(
-                        remaining_offset_count * 4);
-
-                    auto remaining_offset_count_indices(
-                        remaining_offset_count * 6);
-
-                    auto remaining_vertex_count(remaining_quad_count * 4);
-
-                    auto remaining_index_count(remaining_quad_count * 6);
-
-                    // Send `vertex_count` vertices to GPU.
-                    _vbo0->sub_buffer_data_items(_data,
-                        remaining_offset_count_vertex, remaining_vertex_count);
-
-                    // Send `index_count` vertices to GPU.
-                    _vbo1->sub_buffer_data_items(_indices,
-                        remaining_offset_count_indices, remaining_index_count);
-
-                    _vao->draw_elements<primitive::triangles,
-                        index_type::ui_int>(remaining_index_count);
-                }
-
-                _data.clear();
-                _indices.clear();
                 _current_batch_vertex_count = 0;
             }
-        };
-    }
+        }
+
+    public:
+        void draw_sprite(const impl::gltexture2d& t, const vec2f& position,
+            const vec2f& origin, const vec2f& size, float radians,
+            const vec4f& color, float hue) noexcept
+        {
+            auto shear_x = 0.f;
+            auto shear_y = 0.f;
+
+            const vec3f pos0(0.f, 1.f, 1.f);
+            const vec3f pos1(0.f, 0.f, 1.f);
+            const vec3f pos2(1.f, 0.f, 1.f);
+            const vec3f pos3(1.f, 1.f, 1.f);
+
+            auto transform(impl::trasform_matrix_2d(
+                position, origin, size, radians, shear_x, shear_y));
+
+            vec3f comp0(transform * pos0);
+            vec3f comp1(transform * pos1);
+            vec3f comp2(transform * pos2);
+            vec3f comp3(transform * pos3);
+
+            vec4f pos_tex_coords_0(comp0.xy(), 0.f, 1.f);
+            vec4f pos_tex_coords_1(comp1.xy(), 0.f, 0.f);
+            vec4f pos_tex_coords_2(comp2.xy(), 1.f, 0.f);
+            vec4f pos_tex_coords_3(comp3.xy(), 1.f, 1.f);
+
+            enqueue_v(pos_tex_coords_0, color, hue);
+            enqueue_v(pos_tex_coords_1, color, hue);
+            enqueue_v(pos_tex_coords_2, color, hue);
+            enqueue_v(pos_tex_coords_3, color, hue);
+
+            enqueue_i(0, 1, 2, 0, 2, 3);
+        }
+
+        void do_it()
+        {
+            _vao->bind();
+
+            // TODO:
+            _u_texture.integer(0);
+
+            auto times(_data.size() / vertex_count);
+
+            for(decltype(times) i(0); i < times; ++i)
+            {
+                // Send `vertex_count` vertices to GPU, from
+                // `_data[vertex_count * i]`.
+                _vbo0->sub_buffer_data_items(
+                    _data, vertex_count * i, vertex_count);
+
+                // Send `index_count` vertices to GPU, from
+                // `_indices[index_count * i]`.
+                _vbo1->sub_buffer_data_items(
+                    _indices, index_count * i, index_count);
+
+                _vao->draw_elements<primitive::triangles, index_type::ui_int>(
+                    index_count);
+            }
+
+            auto total_quad_count(_data.size() / 4);
+            auto remaining_quad_count(total_quad_count % batch_size);
+
+            if(remaining_quad_count > 0)
+            {
+                auto remaining_offset_count(times * batch_size);
+
+                auto remaining_offset_count_vertex(remaining_offset_count * 4);
+
+                auto remaining_offset_count_indices(remaining_offset_count * 6);
+
+                auto remaining_vertex_count(remaining_quad_count * 4);
+
+                auto remaining_index_count(remaining_quad_count * 6);
+
+                // Send `vertex_count` vertices to GPU.
+                _vbo0->sub_buffer_data_items(_data,
+                    remaining_offset_count_vertex, remaining_vertex_count);
+
+                // Send `index_count` vertices to GPU.
+                _vbo1->sub_buffer_data_items(_indices,
+                    remaining_offset_count_indices, remaining_index_count);
+
+                _vao->draw_elements<primitive::triangles, index_type::ui_int>(
+                    remaining_index_count);
+            }
+
+            _data.clear();
+            _indices.clear();
+            _current_batch_vertex_count = 0;
+        }
+    };
+}
 VRM_SDL_NAMESPACE_END
 
 std::random_device rnd_device;
