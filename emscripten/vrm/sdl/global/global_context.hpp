@@ -38,8 +38,7 @@ VRM_SDL_NAMESPACE
 #ifdef __EMSCRIPTEN__
         emscripten_set_main_loop(impl::run_global_context_loop, 0, true);
 #else
-        while(true)
-        {
+        while(true) {
             impl::run_global_context_loop();
         }
 #endif

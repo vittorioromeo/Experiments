@@ -68,8 +68,7 @@ public:
         auto last(_dense[_size - 1]);
         assert(ptr != null_value);
 
-        if(_dense[ptr] != last)
-        {
+        if(_dense[ptr] != last) {
             _dense[ptr] = last;
             _sparse[last] = ptr;
         }
@@ -110,8 +109,7 @@ public:
     {
         assert(_size <= TSize);
 
-        for(decltype(_size) i(0); i < _size; ++i)
-        {
+        for(decltype(_size) i(0); i < _size; ++i) {
             assert(has(_dense[i]));
             f(_dense[i]);
         }

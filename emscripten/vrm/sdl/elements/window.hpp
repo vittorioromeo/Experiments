@@ -53,14 +53,12 @@ VRM_SDL_NAMESPACE
             return vec2f(rx, ry);
         }
 
-        void scissor(const vec2f& position, const vec2f& size) const
-            noexcept
+        void scissor(const vec2f& position, const vec2f& size) const noexcept
         {
             glScissor(position.x, position.y, size.x, size.y);
         }
 
-        void viewport(const vec2f& position, const vec2f& size) const
-            noexcept
+        void viewport(const vec2f& position, const vec2f& size) const noexcept
         {
             glViewport(position.x, position.y, size.x, size.y);
         }

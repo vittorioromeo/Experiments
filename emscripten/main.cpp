@@ -61,9 +61,9 @@ namespace vrm
                 return glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
             }
 
-            auto trasform_matrix_2d(const vec2f& position,
-                const vec2f& origin, const vec2f& size, float radians,
-                float shear_x, float shear_y) noexcept
+            auto trasform_matrix_2d(const vec2f& position, const vec2f& origin,
+                const vec2f& size, float radians, float shear_x,
+                float shear_y) noexcept
             {
                 mat3f translation{
                     // .
@@ -127,8 +127,7 @@ namespace vrm
                 const auto& ws(container_size);
                 auto original_ratio(os.x / os.y);
 
-                if(ws.y * original_ratio <= ws.x)
-                {
+                if(ws.y * original_ratio <= ws.x) {
                     // the width is the boss
 
                     auto r_width = ws.y * original_ratio;
@@ -177,8 +176,8 @@ namespace vrm
                     });
             }
 
-            auto ratio_scale_margin(const vec2f& scaled_size,
-                const vec2f& container_size) noexcept
+            auto ratio_scale_margin(
+                const vec2f& scaled_size, const vec2f& container_size) noexcept
             {
                 return (container_size - scaled_size) / 2.f;
             }
@@ -204,8 +203,7 @@ namespace vrm
 
             auto ratio_aware() noexcept
             {
-                return [](const vec2f& original_size,
-                    const vec2f& window_size)
+                return [](const vec2f& original_size, const vec2f& window_size)
                 {
                     return impl::ratio_scale(original_size, window_size);
                 };
@@ -213,8 +211,7 @@ namespace vrm
 
             auto discrete_ratio_aware(const vec2f& increment) noexcept
             {
-                return [=](const vec2f& original_size,
-                    const vec2f& window_size)
+                return [=](const vec2f& original_size, const vec2f& window_size)
                 {
                     return impl::discrete_ratio_scale(
                         original_size, window_size, increment.x, increment.y);
@@ -223,8 +220,7 @@ namespace vrm
 
             auto pixel_perfect() noexcept
             {
-                return [=](const vec2f& original_size,
-                    const vec2f& window_size)
+                return [=](const vec2f& original_size, const vec2f& window_size)
                 {
                     return impl::discrete_ratio_scale(original_size,
                         window_size, original_size.x, original_size.y);
@@ -316,10 +312,7 @@ namespace vrm
                 _window.scissor_and_viewport(margin(), scaled_size());
             }
 
-            void clear(const vec4f& color) noexcept
-            {
-                _window.clear(color);
-            }
+            void clear(const vec4f& color) noexcept { _window.clear(color); }
 
             void use_and_clear_background(const vec4f& color) noexcept
             {
@@ -374,8 +367,8 @@ namespace vrm
             {
                 radians += _radians;
 
-                _offset += vec2f(
-                    speed * std::cos(radians), speed * std::sin(radians));
+                _offset +=
+                    vec2f(speed * std::cos(radians), speed * std::sin(radians));
 
                 return *this;
             }
@@ -427,8 +420,8 @@ namespace vrm
 
                     result = glm::scale(result, vec3f(sc, sc, 1.0f));
 
-                    result = glm::rotate(
-                        result, -_radians, vec3f(0.f, 0.f, 1.f));
+                    result =
+                        glm::rotate(result, -_radians, vec3f(0.f, 0.f, 1.f));
                 }
                 translate_to_origin(result, -1.f);
 
@@ -521,8 +514,7 @@ namespace vrm
 
             void clear()
             {
-                for(sz_t i(0); i < TN; ++i)
-                {
+                for(sz_t i(0); i < TN; ++i) {
                     // Set cache to "unbound".
                     _last_binds[i] = 0;
                 }
@@ -687,8 +679,7 @@ namespace vrm
 
                 _current_batch_vertex_count += 4;
 
-                if(_current_batch_vertex_count > vertex_count - 3)
-                {
+                if(_current_batch_vertex_count > vertex_count - 3) {
                     _current_batch_vertex_count = 0;
                 }
             }
@@ -696,10 +687,9 @@ namespace vrm
 
 
         public:
-            void draw_sprite(const impl::gltexture2d& t,
-                const vec2f& position, const vec2f& origin,
-                const vec2f& size, float radians, const vec4f& color,
-                float hue) noexcept
+            void draw_sprite(const impl::gltexture2d& t, const vec2f& position,
+                const vec2f& origin, const vec2f& size, float radians,
+                const vec4f& color, float hue) noexcept
             {
                 auto shear_x = 0.f;
                 auto shear_y = 0.f;
@@ -739,8 +729,7 @@ namespace vrm
 
                 auto times(_data.size() / vertex_count);
 
-                for(decltype(times) i(0); i < times; ++i)
-                {
+                for(decltype(times) i(0); i < times; ++i) {
                     // Send `vertex_count` vertices to GPU, from
                     // `_data[vertex_count * i]`.
                     _vbo0->sub_buffer_data_items(
@@ -758,8 +747,7 @@ namespace vrm
                 auto total_quad_count(_data.size() / 4);
                 auto remaining_quad_count(total_quad_count % batch_size);
 
-                if(remaining_quad_count > 0)
-                {
+                if(remaining_quad_count > 0) {
                     auto remaining_offset_count(times * batch_size);
 
                     auto remaining_offset_count_vertex(
@@ -868,8 +856,7 @@ public:
         auto last(back());
         assert(ptr != nullptr);
 
-        if(*ptr != last)
-        {
+        if(*ptr != last) {
             *ptr = last;
             _sparse[last] = ptr;
         }
@@ -910,8 +897,7 @@ public:
     {
         assert(size() <= TSize);
 
-        for(auto p(_dense.data()); p != _end; ++p)
-        {
+        for(auto p(_dense.data()); p != _end; ++p) {
             assert(has(*p));
             f(*p);
         }
@@ -1092,8 +1078,7 @@ struct my_game_state
 
         _alive.for_each([this](auto i)
             {
-                if(!_entities[i].alive)
-                {
+                if(!_entities[i].alive) {
                     assert(_alive.has(i));
                     assert(!_free.has(i));
 
@@ -1105,8 +1090,7 @@ struct my_game_state
             });
 
 
-        for(auto i(to_erase_begin); i != _free.end(); ++i)
-        {
+        for(auto i(to_erase_begin); i != _free.end(); ++i) {
             assert(_alive.has(*i));
 
             _alive.erase(*i);
@@ -1220,8 +1204,7 @@ struct my_game
             // TODO: uses std::sin and std::cos...
             // x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
 
-            if(std::abs(x.curve) > 0.01)
-            {
+            if(std::abs(x.curve) > 0.01) {
                 x.curve *= 0.5f;
             }
 
@@ -1258,12 +1241,10 @@ struct my_game
         return [this](auto& x, auto& state, auto step)
         {
             x.curve -= step;
-            if(x.curve <= 0.f)
-            {
+            if(x.curve <= 0.f) {
                 x.curve = 10.f;
 
-                for(int i = 0; i < 10000; ++i)
-                {
+                for(int i = 0; i < 10000; ++i) {
                     if(state._free.empty()) break;
 
                     auto angle(rndf(0.f, sdl::tau));
@@ -1306,8 +1287,7 @@ struct my_game
 
             state.for_alive([this, &state, step](auto& e)
                 {
-                    if(e.type == e_type::soul)
-                    {
+                    if(e.type == e_type::soul) {
                         this->soul_update()(e, state, step);
                     }
                     else if(e.type == e_type::fireball)
@@ -1340,13 +1320,11 @@ struct my_game
             // if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
             // if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
 
-            if(_context.key(sdl::kkey::escape))
-            {
+            if(_context.key(sdl::kkey::escape)) {
                 sdl::stop_global_context();
             }
 
-            if(rand() % 100 < 30)
-            {
+            if(rand() % 100 < 30) {
                 auto alive_str(std::to_string(state._alive.size()));
                 auto fps_str(std::to_string(_context.fps()));
                 auto fps_limit_str(

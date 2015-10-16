@@ -62,7 +62,7 @@ foreach(vertexarray draw call)
     glBindVertexArray
     glDrawWhatever
 */
-    
+
 
 
 // Init
@@ -113,4 +113,3 @@ glDrawElements(...);
 
 // vao->unbind
 glBindVertexArray(0);
-

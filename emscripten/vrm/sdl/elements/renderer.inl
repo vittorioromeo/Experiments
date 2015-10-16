@@ -14,8 +14,7 @@ VRM_SDL_NAMESPACE
               w, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE)}
     {
         SDL_RendererInfo sri;
-        if(SDL_GetRendererInfo(*this, &sri) == 0)
-        {
+        if(SDL_GetRendererInfo(*this, &sri) == 0) {
             printf("Renderer backend: %s\n", sri.name);
         }
         else

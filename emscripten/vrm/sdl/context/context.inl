@@ -134,8 +134,7 @@ VRM_SDL_NAMESPACE
         template <typename TSettings>
         void context<TSettings>::run_events() noexcept
         {
-            while(SDL_PollEvent(&_event))
-            {
+            while(SDL_PollEvent(&_event)) {
                 switch(_event.type)
                 {
                     case SDL_KEYDOWN:
@@ -181,8 +180,7 @@ VRM_SDL_NAMESPACE
             : _width{width}, _height{height}, _window{title, width, height},
               _glcontext{*_window}
         {
-            if(TTF_Init() != 0)
-            {
+            if(TTF_Init() != 0) {
                 log_sdl_error("ttf_init");
                 std::terminate();
             }
@@ -305,7 +303,7 @@ VRM_SDL_NAMESPACE
 
                             _draw_duration = time_dur([this]
                                 {
-                                    //clear(vec4f{0.f, 0.f, 0.f, 1.f});
+                                    // clear(vec4f{0.f, 0.f, 0.f, 1.f});
                                     _engine->run_draw();
 
                                     SDL_GL_SwapWindow(*_window);

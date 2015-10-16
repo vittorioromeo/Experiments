@@ -319,11 +319,14 @@ namespace vrm
                 {
                     auto a(_program.get_attribute(name));
 
-                    // std::cout << "enabling " << name << ": " << a.location() <<"\n";
+                    // std::cout << "enabling " << name << ": " << a.location()
+                    // <<"\n";
 
                     a.enable();
-                    //a.vertex_attrib_pointer(n_values, type, true, sizeof(float), (void*)offset);
-                    // glVertexAttribPointer(a.location(), 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+                    // a.vertex_attrib_pointer(n_values, type, true,
+                    // sizeof(float), (void*)offset);
+                    // glVertexAttribPointer(a.location(), 2, GL_FLOAT,
+                    // GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
                 };
 
                 GLfloat vertices[] = {0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
@@ -341,22 +344,26 @@ namespace vrm
                     {
                         // vbo->buffer_data(GL_STATIC_DRAW, vertices);
 
-                        VRM_SDL_GLCHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices),
-                            vertices, GL_STATIC_DRAW));
+                        VRM_SDL_GLCHECK(glBufferData(GL_ARRAY_BUFFER,
+                            sizeof(vertices), vertices, GL_STATIC_DRAW));
 
                         // vao has to be unbound before the vbo
                         _vao->with([&, this]
                             {
                                 // Enable pos attribute
-                                use_vertex_attribute("position", GL_FLOAT, 2,
-                                    0);
+                                use_vertex_attribute(
+                                    "position", GL_FLOAT, 2, 0);
 
-                                VRM_SDL_GLCHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*)0));
+                                VRM_SDL_GLCHECK(glVertexAttribPointer(0, 2,
+                                    GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat),
+                                    (GLvoid*)0));
 
                                 use_vertex_attribute("tex_coords", GL_FLOAT, 2,
                                     sizeof(float) * 2);
 
-                                VRM_SDL_GLCHECK(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat))));
+                                VRM_SDL_GLCHECK(glVertexAttribPointer(1, 2,
+                                    GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat),
+                                    (GLvoid*)(2 * sizeof(GLfloat))));
                             });
                     });
 
@@ -389,8 +396,7 @@ namespace vrm
                 model = glm::translate(
                     model, vec3f(0.5f * size.x, 0.5f * size.y, 0.0f));
 
-                model =
-                    glm::rotate(model, radians, vec3f(0.0f, 0.0f, 1.0f));
+                model = glm::rotate(model, radians, vec3f(0.0f, 0.0f, 1.0f));
 
                 model = glm::translate(
                     model, vec3f(-0.5f * size.x, -0.5f * size.y, 0.0f));
@@ -534,21 +540,18 @@ int main(int argc, char** argv)
 
     c.update_fn() = [&](auto)
     {
-        for(auto& t : triangles._vertices)
-        {
+        for(auto& t : triangles._vertices) {
             t._position.y() -= 0.0001f;
         }
 
-        if(c.key(sdl::kkey::space))
-        {
+        if(c.key(sdl::kkey::space)) {
 
             for(auto i = 0; i < 10; ++i) add_rnd_triangle(triangles);
         }
 
         triangles.init(program);
 
-        if(timer-- <= 0)
-        {
+        if(timer-- <= 0) {
             c.title(std::to_string(c.fps()) + " (" +
                     std::to_string(triangles._vertices.size()) + ")");
 
@@ -561,8 +564,7 @@ int main(int argc, char** argv)
     {
         // glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        sr.draw_sprite(
-            *toriel_texture, vec2f{100, 200}, vec2f{100, 200}, 0.f);
+        sr.draw_sprite(*toriel_texture, vec2f{100, 200}, vec2f{100, 200}, 0.f);
 
         triangles.draw(program);
 
@@ -678,8 +680,7 @@ int main_old(int argc, char** argv)
 
         e._update_fn = [&](auto& x, auto)
         {
-            if((rand() % 100) > 30)
-            {
+            if((rand() % 100) > 30) {
                 for(int i = 0; i < 30; ++i)
                     if(entities.size() < max_entities)
                         entities.emplace_back(make_fireball(x._pos,

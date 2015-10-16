@@ -4,4 +4,3 @@
 // http://vittorioromeo.info | vittorio.romeo@outlook.com
 
 #pragma once
-

@@ -37,8 +37,6 @@ VRM_SDL_NAMESPACE
 
 
 
-
-
     template <typename T>
     using mat2 = glm::tmat2x2<T>;
 
@@ -62,8 +60,6 @@ VRM_SDL_NAMESPACE
     using mat4f = mat4<float>;
     using mat4i = mat4<int>;
     using mat4u = mat4<unsigned int>;
-
-
 
 
 
