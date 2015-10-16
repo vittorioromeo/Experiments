@@ -379,23 +379,23 @@ namespace vrm
                 // glBindVertexArray(0);
             }
 
-            void draw_sprite(texture& t, const glm::vec2& position,
-                const glm::vec2& size, float radians)
+            void draw_sprite(texture& t, const vec2f& position,
+                const vec2f& size, float radians)
             {
                 _program.use();
 
-                model = glm::translate(model, glm::vec3(position, 0.0f));
+                model = glm::translate(model, vec3f(position, 0.0f));
 
                 model = glm::translate(
-                    model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f));
+                    model, vec3f(0.5f * size.x, 0.5f * size.y, 0.0f));
 
                 model =
-                    glm::rotate(model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
+                    glm::rotate(model, radians, vec3f(0.0f, 0.0f, 1.0f));
 
                 model = glm::translate(
-                    model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
+                    model, vec3f(-0.5f * size.x, -0.5f * size.y, 0.0f));
 
-                model = glm::scale(model, glm::vec3(size, 1.0f)); // Last scale
+                model = glm::scale(model, vec3f(size, 1.0f)); // Last scale
 
                 _program.get_uniform("model").matrix4fv(model);
                 _program.get_uniform("view").matrix4fv(view);
@@ -562,7 +562,7 @@ int main(int argc, char** argv)
         // glDrawArrays(GL_TRIANGLES, 0, 3);
 
         sr.draw_sprite(
-            *toriel_texture, glm::vec2{100, 200}, glm::vec2{100, 200}, 0.f);
+            *toriel_texture, vec2f{100, 200}, vec2f{100, 200}, 0.f);
 
         triangles.draw(program);
 

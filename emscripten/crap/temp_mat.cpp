@@ -152,10 +152,10 @@ namespace vrm
         struct sprite_data
         {
             impl::gltexture2d _texture;
-            glm::vec2 _position;
-            glm::vec2 _origin;
-            glm::vec2 _size;
-            glm::vec4 _color;
+            vec2f _position;
+            vec2f _origin;
+            vec2f _size;
+            vec4f _color;
             float _radians;
             float _hue;
         };
@@ -258,9 +258,9 @@ namespace vrm
 
 
             void draw_sprite(const impl::gltexture2d& t,
-                const glm::vec2& position, const glm::vec2& origin,
-                const glm::vec2& size, float radians,
-                const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
+                const vec2f& position, const vec2f& origin,
+                const vec2f& size, float radians,
+                const vec4f& color = vec4f{1.0f, 1.0f, 1.0f, 1.0f},
                 float hue = 0.f) noexcept
             {
                 // Reset `model` to identity matrix.
@@ -274,21 +274,21 @@ namespace vrm
                 // They will occur in the opposite order below.
 
                 // Translate to `position`.
-                _model = glm::translate(_model, glm::vec3(position, 0.0f));
+                _model = glm::translate(_model, vec3f(position, 0.0f));
 
                 // Rotate around origin.
                 _model =
-                    glm::rotate(_model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
+                    glm::rotate(_model, radians, vec3f(0.0f, 0.0f, 1.0f));
 
                 // Set origin to the center of the quad.
-                _model = glm::translate(_model, glm::vec3(-origin, 0.0f));
+                _model = glm::translate(_model, vec3f(-origin, 0.0f));
 
                 // Set origin back to `(0, 0)`.
                 _model = glm::translate(
-                    _model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
+                    _model, vec3f(-0.5f * size.x, -0.5f * size.y, 0.0f));
 
                 // Scale to `size`.
-                _model = glm::scale(_model, glm::vec3(size, 1.0f));
+                _model = glm::scale(_model, vec3f(size, 1.0f));
 
                 // Set model/view/projection uniform matrices.
                 _u_projection_view_model.matrix4fv(
@@ -316,12 +316,12 @@ namespace vrm
     {
         struct bsr_vertex
         {
-            glm::vec4 _pos_tex_coords;
-            glm::vec4 _color;
+            vec4f _pos_tex_coords;
+            vec4f _color;
             float _hue;
 
             // Required to avoid temporary with `emplace_back`.
-            bsr_vertex(const glm::vec4& pos_tex_coords, const glm::vec4& color,
+            bsr_vertex(const vec4f& pos_tex_coords, const vec4f& color,
                 float hue) noexcept : _pos_tex_coords(pos_tex_coords),
                                       _color(color),
                                       _hue(hue)
@@ -453,8 +453,8 @@ namespace vrm
 
 
             void draw_sprite(const impl::gltexture2d& t,
-                const glm::vec2& position, const glm::vec2& origin,
-                const glm::vec2& size, float radians, const glm::vec4& color,
+                const vec2f& position, const vec2f& origin,
+                const vec2f& size, float radians, const vec4f& color,
                 float hue) noexcept
             {
                 /*
@@ -468,48 +468,48 @@ namespace vrm
                 // They will occur in the opposite order below.
 
                 // Translate to `position`.
-                _model = glm::translate(_model, glm::vec3(position, 0.0f));
+                _model = glm::translate(_model, vec3f(position, 0.0f));
 
                 // Rotate around origin.
                 _model =
-                    glm::rotate(_model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
+                    glm::rotate(_model, radians, vec3f(0.0f, 0.0f, 1.0f));
 
                 // Set origin to the center of the quad.
-                _model = glm::translate(_model, glm::vec3(-origin, 0.0f));
+                _model = glm::translate(_model, vec3f(-origin, 0.0f));
 
                 // Set origin back to `(0, 0)`.
                 _model = glm::translate(
-                    _model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
+                    _model, vec3f(-0.5f * size.x, -0.5f * size.y, 0.0f));
 
                 // Scale to `size`.
-                _model = glm::scale(_model, glm::vec3(size, 1.0f));
+                _model = glm::scale(_model, vec3f(size, 1.0f));
 
-                glm::vec4 pos0(0.f, 1.f, 0.f, 1.f);
-                glm::vec4 pos1(0.f, 0.f, 0.f, 1.f);
-                glm::vec4 pos2(1.f, 0.f, 0.f, 1.f);
-                glm::vec4 pos3(1.f, 1.f, 0.f, 1.f);
+                vec4f pos0(0.f, 1.f, 0.f, 1.f);
+                vec4f pos1(0.f, 0.f, 0.f, 1.f);
+                vec4f pos2(1.f, 0.f, 0.f, 1.f);
+                vec4f pos3(1.f, 1.f, 0.f, 1.f);
 
-                glm::vec4 comp0(_model * pos0);
-                glm::vec4 comp1(_model * pos1);
-                glm::vec4 comp2(_model * pos2);
-                glm::vec4 comp3(_model * pos3);
+                vec4f comp0(_model * pos0);
+                vec4f comp1(_model * pos1);
+                vec4f comp2(_model * pos2);
+                vec4f comp3(_model * pos3);
 
-                glm::vec4 pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
-                glm::vec4 pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
-                glm::vec4 pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
-                glm::vec4 pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
+                vec4f pos_tex_coords_0(comp0.x, comp0.y, 0.f, 1.f);
+                vec4f pos_tex_coords_1(comp1.x, comp1.y, 0.f, 0.f);
+                vec4f pos_tex_coords_2(comp2.x, comp2.y, 1.f, 0.f);
+                vec4f pos_tex_coords_3(comp3.x, comp3.y, 1.f, 1.f);
                 */
 
 
 
                 /*
-                glm::vec3 pos0(position.x + size.x * 0.f, position.y + size.y *
+                vec3f pos0(position.x + size.x * 0.f, position.y + size.y *
                 1.f, 1.f);
-                glm::vec3 pos1(position.x + size.x * 0.f, position.y + size.y *
+                vec3f pos1(position.x + size.x * 0.f, position.y + size.y *
                 0.f, 1.f);
-                glm::vec3 pos2(position.x + size.x * 1.f, position.y + size.y *
+                vec3f pos2(position.x + size.x * 1.f, position.y + size.y *
                 0.f, 1.f);
-                glm::vec3 pos3(position.x + size.x * 1.f, position.y + size.y *
+                vec3f pos3(position.x + size.x * 1.f, position.y + size.y *
                 1.f, 1.f);
                 */
 
@@ -603,10 +603,10 @@ namespace vrm
 
                 // std::cout << comp0.xy() << "\n";
 
-                glm::vec4 pos_tex_coords_0(comp0.x(), comp0.y(), 0.f, 1.f);
-                glm::vec4 pos_tex_coords_1(comp1.x(), comp1.y(), 0.f, 0.f);
-                glm::vec4 pos_tex_coords_2(comp2.x(), comp2.y(), 1.f, 0.f);
-                glm::vec4 pos_tex_coords_3(comp3.x(), comp3.y(), 1.f, 1.f);
+                vec4f pos_tex_coords_0(comp0.x(), comp0.y(), 0.f, 1.f);
+                vec4f pos_tex_coords_1(comp1.x(), comp1.y(), 0.f, 0.f);
+                vec4f pos_tex_coords_2(comp2.x(), comp2.y(), 1.f, 0.f);
+                vec4f pos_tex_coords_3(comp3.x(), comp3.y(), 1.f, 1.f);
 
                 // TODO: compute color + hue on CPU ?
 
@@ -838,12 +838,12 @@ constexpr int e_type_count{3};
 struct my_game_entity
 {
     e_type type;
-    glm::vec2 _pos, _origin, _size;
+    vec2f _pos, _origin, _size;
     float _radians{0.f}, _opacity{1.f};
     float _hitbox_radius;
     bool alive{false};
 
-    glm::vec2 vel;
+    vec2f vel;
     float speed, hue{0.f}, curve, life;
     int dir;
 
@@ -1037,9 +1037,9 @@ struct my_game
         entity_type e;
         e.type = e_type::soul;
         e._pos = pos;
-        e._origin = glm::vec2{0, 0};
+        e._origin = vec2f{0, 0};
 
-        e._size = glm::vec2{texture(e_type::soul)->size()};
+        e._size = vec2f{texture(e_type::soul)->size()};
         e._hitbox_radius = 3.f;
 
         return e;
@@ -1074,10 +1074,10 @@ struct my_game
         e.type = e_type::fireball;
         e._pos = pos;
         e._radians = static_cast<float>(rand() % 6280) / 1000.f;
-        e._origin = glm::vec2{0, 0};
+        e._origin = vec2f{0, 0};
 
         e._size =
-            glm::vec2{texture(e_type::fireball)->size()} * rndf(0.9f, 1.2f);
+            vec2f{texture(e_type::fireball)->size()} * rndf(0.9f, 1.2f);
         e._hitbox_radius = 3.f;
         e._opacity = 0.f;
         e.vel = vel;
@@ -1117,7 +1117,7 @@ struct my_game
     auto sprite_draw(const entity_type& x)
     {
         sr.draw_sprite(*texture(x.type), x._pos, x._origin, x._size, x._radians,
-            glm::vec4{1.f, 0.f, 1.f, x._opacity}, x.hue);
+            vec4f{1.f, 0.f, 1.f, x._opacity}, x.hue);
     }
 
     auto make_toriel(game_state_type& state, sdl::vec2f pos)
@@ -1125,8 +1125,8 @@ struct my_game
         entity_type e;
         e.type = e_type::toriel;
         e._pos = pos;
-        e._origin = glm::vec2{0, 0};
-        e._size = glm::vec2{texture(e_type::toriel)->size()};
+        e._origin = vec2f{0, 0};
+        e._size = vec2f{texture(e_type::toriel)->size()};
         e._hitbox_radius = 30.f;
 
 
@@ -1148,7 +1148,7 @@ struct my_game
 
                     auto angle(rndf(0.f, sdl::tau));
                     auto speed(rndf(0.1f, 3.f));
-                    auto unit_vec(glm::vec2(std::cos(angle), std::sin(angle)));
+                    auto unit_vec(vec2f(std::cos(angle), std::sin(angle)));
                     auto vel(unit_vec * speed);
 
                     state.add(this->make_fireball(

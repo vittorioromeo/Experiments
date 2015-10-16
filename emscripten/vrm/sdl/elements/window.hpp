@@ -19,7 +19,7 @@ VRM_SDL_NAMESPACE
     class window : public impl::sdl_element<SDL_Window>
     {
     private:
-        glm::vec2 _size;
+        vec2f _size;
         window_mode _mode;
 
     public:
@@ -50,29 +50,29 @@ VRM_SDL_NAMESPACE
         {
             int rx, ry;
             SDL_GetWindowSize(*this, &rx, &ry);
-            return glm::vec2(rx, ry);
+            return vec2f(rx, ry);
         }
 
-        void scissor(const glm::vec2& position, const glm::vec2& size) const
+        void scissor(const vec2f& position, const vec2f& size) const
             noexcept
         {
             glScissor(position.x, position.y, size.x, size.y);
         }
 
-        void viewport(const glm::vec2& position, const glm::vec2& size) const
+        void viewport(const vec2f& position, const vec2f& size) const
             noexcept
         {
             glViewport(position.x, position.y, size.x, size.y);
         }
 
         void scissor_and_viewport(
-            const glm::vec2& position, const glm::vec2& size) const noexcept
+            const vec2f& position, const vec2f& size) const noexcept
         {
             scissor(position, size);
             viewport(position, size);
         }
 
-        void clear(const glm::vec4& color) noexcept
+        void clear(const vec4f& color) noexcept
         {
             glClearColor(color.x, color.y, color.z, color.w);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT |

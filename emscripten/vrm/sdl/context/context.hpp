@@ -186,7 +186,7 @@ VRM_SDL_NAMESPACE
             context& operator=(context&&) = default;
 
             void run();
-            void clear(const glm::vec4& color) noexcept;
+            void clear(const vec4f& color) noexcept;
 
             const auto& update_duration() const noexcept;
             const auto& draw_duration() const noexcept;

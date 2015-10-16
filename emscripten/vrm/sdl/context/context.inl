@@ -305,7 +305,7 @@ VRM_SDL_NAMESPACE
 
                             _draw_duration = time_dur([this]
                                 {
-                                    //clear(glm::vec4{0.f, 0.f, 0.f, 1.f});
+                                    //clear(vec4f{0.f, 0.f, 0.f, 1.f});
                                     _engine->run_draw();
 
                                     SDL_GL_SwapWindow(*_window);
@@ -317,7 +317,7 @@ VRM_SDL_NAMESPACE
         }
 
         template <typename TSettings>
-        void context<TSettings>::clear(const glm::vec4& color) noexcept
+        void context<TSettings>::clear(const vec4f& color) noexcept
         {
             (*_window).clear(color);
         }

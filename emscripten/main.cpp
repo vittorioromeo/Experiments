@@ -61,8 +61,8 @@ namespace vrm
                 return glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
             }
 
-            auto trasform_matrix_2d(const glm::vec2& position,
-                const glm::vec2& origin, const glm::vec2& size, float radians,
+            auto trasform_matrix_2d(const vec2f& position,
+                const vec2f& origin, const vec2f& size, float radians,
                 float shear_x, float shear_y) noexcept
             {
                 glm::mat3 translation{
@@ -119,8 +119,8 @@ namespace vrm
             }
 
             template <typename TFX, typename TFY>
-            auto ratio_scale_impl(const glm::vec2& original_size,
-                const glm::vec2& container_size, TFX&& step_x_fn,
+            auto ratio_scale_impl(const vec2f& original_size,
+                const vec2f& container_size, TFX&& step_x_fn,
                 TFY&& step_y_fn) noexcept
             {
                 const auto& os(original_size);
@@ -133,7 +133,7 @@ namespace vrm
 
                     auto r_width = ws.y * original_ratio;
                     step_x_fn(r_width);
-                    return glm::vec2(r_width, r_width / original_ratio);
+                    return vec2f(r_width, r_width / original_ratio);
                 }
                 else
                 {
@@ -141,7 +141,7 @@ namespace vrm
 
                     auto r_height = ws.x / original_ratio;
                     step_y_fn(r_height);
-                    return glm::vec2(r_height * original_ratio, r_height);
+                    return vec2f(r_height * original_ratio, r_height);
                 }
             }
 
@@ -150,8 +150,8 @@ namespace vrm
                 return std::floor(value / increment) * increment;
             }
 
-            auto discrete_ratio_scale(const glm::vec2& original_size,
-                const glm::vec2& container_size, float x_increment,
+            auto discrete_ratio_scale(const vec2f& original_size,
+                const vec2f& container_size, float x_increment,
                 float y_increment) noexcept
             {
                 return ratio_scale_impl(original_size, container_size,
@@ -165,8 +165,8 @@ namespace vrm
                     });
             }
 
-            auto ratio_scale(const glm::vec2& original_size,
-                const glm::vec2& container_size) noexcept
+            auto ratio_scale(const vec2f& original_size,
+                const vec2f& container_size) noexcept
             {
                 return ratio_scale_impl(original_size, container_size,
                     [](auto&)
@@ -177,8 +177,8 @@ namespace vrm
                     });
             }
 
-            auto ratio_scale_margin(const glm::vec2& scaled_size,
-                const glm::vec2& container_size) noexcept
+            auto ratio_scale_margin(const vec2f& scaled_size,
+                const vec2f& container_size) noexcept
             {
                 return (container_size - scaled_size) / 2.f;
             }
@@ -188,7 +188,7 @@ namespace vrm
         {
             auto fixed() noexcept
             {
-                return [](const glm::vec2& original_size, const glm::vec2&)
+                return [](const vec2f& original_size, const vec2f&)
                 {
                     return original_size;
                 };
@@ -196,7 +196,7 @@ namespace vrm
 
             auto stretch() noexcept
             {
-                return [](const glm::vec2&, const glm::vec2& window_size)
+                return [](const vec2f&, const vec2f& window_size)
                 {
                     return window_size;
                 };
@@ -204,17 +204,17 @@ namespace vrm
 
             auto ratio_aware() noexcept
             {
-                return [](const glm::vec2& original_size,
-                    const glm::vec2& window_size)
+                return [](const vec2f& original_size,
+                    const vec2f& window_size)
                 {
                     return impl::ratio_scale(original_size, window_size);
                 };
             }
 
-            auto discrete_ratio_aware(const glm::vec2& increment) noexcept
+            auto discrete_ratio_aware(const vec2f& increment) noexcept
             {
-                return [=](const glm::vec2& original_size,
-                    const glm::vec2& window_size)
+                return [=](const vec2f& original_size,
+                    const vec2f& window_size)
                 {
                     return impl::discrete_ratio_scale(
                         original_size, window_size, increment.x, increment.y);
@@ -223,8 +223,8 @@ namespace vrm
 
             auto pixel_perfect() noexcept
             {
-                return [=](const glm::vec2& original_size,
-                    const glm::vec2& window_size)
+                return [=](const vec2f& original_size,
+                    const vec2f& window_size)
                 {
                     return impl::discrete_ratio_scale(original_size,
                         window_size, original_size.x, original_size.y);
@@ -236,12 +236,12 @@ namespace vrm
         {
         private:
             using scale_fn_type =
-                std::function<glm::vec2(const glm::vec2&, const glm::vec2&)>;
+                std::function<vec2f(const vec2f&, const vec2f&)>;
 
             sdl::window& _window;
             scale_fn_type _scale_fn{screen_scale::fixed()};
             glm::mat4 _projection;
-            glm::vec2 _original_size;
+            vec2f _original_size;
             float _original_ratio;
 
             void refresh_projection()
@@ -259,7 +259,7 @@ namespace vrm
                 refresh_projection();
             }
 
-            void resize(const glm::vec2& new_original_size) noexcept
+            void resize(const vec2f& new_original_size) noexcept
             {
                 _original_size = new_original_size;
                 refresh_projection();
@@ -316,18 +316,18 @@ namespace vrm
                 _window.scissor_and_viewport(margin(), scaled_size());
             }
 
-            void clear(const glm::vec4& color) noexcept
+            void clear(const vec4f& color) noexcept
             {
                 _window.clear(color);
             }
 
-            void use_and_clear_background(const glm::vec4& color) noexcept
+            void use_and_clear_background(const vec4f& color) noexcept
             {
                 use_background();
                 clear(color);
             }
 
-            void use_and_clear_foreground(const glm::vec4& color) noexcept
+            void use_and_clear_foreground(const vec4f& color) noexcept
             {
                 use_foreground();
                 clear(color);
@@ -341,7 +341,7 @@ namespace vrm
         {
         private:
             screen_2d& _screen;
-            glm::vec2 _offset;
+            vec2f _offset;
             float _scale{1.f};
             float _radians{0.f};
 
@@ -358,7 +358,7 @@ namespace vrm
                 noexcept
             {
                 view = glm::translate(
-                    view, glm::vec3(position().xy() * direction, 0.f));
+                    view, vec3f(position().xy() * direction, 0.f));
             }
 
         public:
@@ -374,13 +374,13 @@ namespace vrm
             {
                 radians += _radians;
 
-                _offset += glm::vec2(
+                _offset += vec2f(
                     speed * std::cos(radians), speed * std::sin(radians));
 
                 return *this;
             }
 
-            auto& move_towards_point(const glm::vec2& point, float speed)
+            auto& move_towards_point(const vec2f& point, float speed)
             {
                 auto direction((point - position()));
                 auto angle(std::atan2(direction.y, direction.x));
@@ -388,7 +388,7 @@ namespace vrm
             }
 
 
-            auto& move(glm::vec2 offset) noexcept
+            auto& move(vec2f offset) noexcept
             {
                 auto speed(glm::length(offset));
 
@@ -416,7 +416,7 @@ namespace vrm
             {
                 glm::mat4 result;
 
-                result = glm::translate(result, glm::vec3{-_offset, 0.f});
+                result = glm::translate(result, vec3f{-_offset, 0.f});
 
                 translate_to_origin(result, 1.f);
                 {
@@ -425,10 +425,10 @@ namespace vrm
 
                     auto sc(_scale);
 
-                    result = glm::scale(result, glm::vec3(sc, sc, 1.0f));
+                    result = glm::scale(result, vec3f(sc, sc, 1.0f));
 
                     result = glm::rotate(
-                        result, -_radians, glm::vec3(0.f, 0.f, 1.f));
+                        result, -_radians, vec3f(0.f, 0.f, 1.f));
                 }
                 translate_to_origin(result, -1.f);
 
@@ -548,10 +548,10 @@ namespace vrm
         struct sprite_data
         {
             impl::gltexture2d _texture;
-            glm::vec2 _position;
-            glm::vec2 _origin;
-            glm::vec2 _size;
-            glm::vec4 _color;
+            vec2f _position;
+            vec2f _origin;
+            vec2f _size;
+            vec4f _color;
             float _radians;
             float _hue;
         };
@@ -572,12 +572,12 @@ namespace vrm
 
         struct bsr_vertex
         {
-            glm::vec4 _pos_tex_coords;
-            glm::vec4 _color;
+            vec4f _pos_tex_coords;
+            vec4f _color;
             float _hue;
 
             // Required to avoid temporary with `emplace_back`.
-            bsr_vertex(const glm::vec4& pos_tex_coords, const glm::vec4& color,
+            bsr_vertex(const vec4f& pos_tex_coords, const vec4f& color,
                 float hue) noexcept : _pos_tex_coords(pos_tex_coords),
                                       _color(color),
                                       _hue(hue)
@@ -697,30 +697,30 @@ namespace vrm
 
         public:
             void draw_sprite(const impl::gltexture2d& t,
-                const glm::vec2& position, const glm::vec2& origin,
-                const glm::vec2& size, float radians, const glm::vec4& color,
+                const vec2f& position, const vec2f& origin,
+                const vec2f& size, float radians, const vec4f& color,
                 float hue) noexcept
             {
                 auto shear_x = 0.f;
                 auto shear_y = 0.f;
 
-                const glm::vec3 pos0(0.f, 1.f, 1.f);
-                const glm::vec3 pos1(0.f, 0.f, 1.f);
-                const glm::vec3 pos2(1.f, 0.f, 1.f);
-                const glm::vec3 pos3(1.f, 1.f, 1.f);
+                const vec3f pos0(0.f, 1.f, 1.f);
+                const vec3f pos1(0.f, 0.f, 1.f);
+                const vec3f pos2(1.f, 0.f, 1.f);
+                const vec3f pos3(1.f, 1.f, 1.f);
 
                 auto transform(impl::trasform_matrix_2d(
                     position, origin, size, radians, shear_x, shear_y));
 
-                glm::vec3 comp0(transform * pos0);
-                glm::vec3 comp1(transform * pos1);
-                glm::vec3 comp2(transform * pos2);
-                glm::vec3 comp3(transform * pos3);
+                vec3f comp0(transform * pos0);
+                vec3f comp1(transform * pos1);
+                vec3f comp2(transform * pos2);
+                vec3f comp3(transform * pos3);
 
-                glm::vec4 pos_tex_coords_0(comp0.xy(), 0.f, 1.f);
-                glm::vec4 pos_tex_coords_1(comp1.xy(), 0.f, 0.f);
-                glm::vec4 pos_tex_coords_2(comp2.xy(), 1.f, 0.f);
-                glm::vec4 pos_tex_coords_3(comp3.xy(), 1.f, 1.f);
+                vec4f pos_tex_coords_0(comp0.xy(), 0.f, 1.f);
+                vec4f pos_tex_coords_1(comp1.xy(), 0.f, 0.f);
+                vec4f pos_tex_coords_2(comp2.xy(), 1.f, 0.f);
+                vec4f pos_tex_coords_3(comp3.xy(), 1.f, 1.f);
 
                 enqueue_v(pos_tex_coords_0, color, hue);
                 enqueue_v(pos_tex_coords_1, color, hue);
@@ -951,12 +951,12 @@ constexpr int e_type_count{3};
 struct my_game_entity
 {
     e_type type;
-    glm::vec2 _pos, _origin, _size;
+    sdl::vec2f _pos, _origin, _size;
     float _radians{0.f}, _opacity{1.f};
     float _hitbox_radius;
     bool alive{false};
 
-    glm::vec2 vel;
+    sdl::vec2f vel;
     float speed, hue{0.f}, curve, life;
     int dir;
 
@@ -1156,9 +1156,9 @@ struct my_game
         entity_type e;
         e.type = e_type::soul;
         e._pos = pos;
-        e._origin = glm::vec2{0, 0};
+        e._origin = sdl::vec2f{0, 0};
 
-        e._size = glm::vec2{texture(e_type::soul)->size()};
+        e._size = sdl::vec2f{texture(e_type::soul)->size()};
         e._hitbox_radius = 3.f;
 
         return e;
@@ -1193,10 +1193,10 @@ struct my_game
         e.type = e_type::fireball;
         e._pos = pos;
         e._radians = rndf(0.f, sdl::tau);
-        e._origin = glm::vec2{0, 0};
+        e._origin = sdl::vec2f{0, 0};
 
         e._size =
-            glm::vec2{texture(e_type::fireball)->size()} * rndf(0.9f, 1.2f);
+            sdl::vec2f{texture(e_type::fireball)->size()} * rndf(0.9f, 1.2f);
         e._hitbox_radius = 3.f;
         e._opacity = 0.f;
         e.vel = vel;
@@ -1237,7 +1237,7 @@ struct my_game
     auto sprite_draw(const entity_type& x)
     {
         sr.draw_sprite(*texture(x.type), x._pos, x._origin, x._size, x._radians,
-            glm::vec4{1.f, 0.f, 1.f, x._opacity}, x.hue);
+            sdl::vec4f{1.f, 0.f, 1.f, x._opacity}, x.hue);
     }
 
     auto make_toriel(game_state_type& state, sdl::vec2f pos)
@@ -1245,8 +1245,8 @@ struct my_game
         entity_type e;
         e.type = e_type::toriel;
         e._pos = pos;
-        e._origin = glm::vec2{0, 0};
-        e._size = glm::vec2{texture(e_type::toriel)->size()};
+        e._origin = sdl::vec2f{0, 0};
+        e._size = sdl::vec2f{texture(e_type::toriel)->size()};
         e._hitbox_radius = 30.f;
 
 
@@ -1268,7 +1268,7 @@ struct my_game
 
                     auto angle(rndf(0.f, sdl::tau));
                     auto speed(rndf(0.1f, 3.f));
-                    auto unit_vec(glm::vec2(tbl_cos(angle), tbl_sin(angle)));
+                    auto unit_vec(sdl::vec2f(tbl_cos(angle), tbl_sin(angle)));
                     auto vel(unit_vec * speed);
 
                     state.add(this->make_fireball(
@@ -1440,7 +1440,7 @@ int main()
 {
 // std::cout << sdl::impl::n_components_for<glm::tvec4<float,
 // glm::precision::highp>> << "\n";
-// std::cout << sdl::impl::attrib_type_for<glm::vec4> << "\n";
+// std::cout << sdl::impl::attrib_type_for<vec4f> << "\n";
 //    std::cout << GL_FLOAT << "\n";
 
 // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);

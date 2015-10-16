@@ -6,6 +6,7 @@
 #pragma once
 
 #include <vrm/sdl/common.hpp>
+#include <vrm/sdl/math.hpp>
 #include <vrm/sdl/context.hpp>
 #include <vrm/sdl/gl/check.hpp>
 #include <vrm/sdl/gl/shader.hpp>
@@ -72,17 +73,17 @@ VRM_SDL_NAMESPACE
             VRM_SDL_GLCHECK(glUniform1f(_location, x));
         }
 
-        void vec2(const glm::vec2& x) noexcept
+        void vec2(const vec2f& x) noexcept
         {
             VRM_SDL_GLCHECK(glUniform2f(_location, x.x, x.y));
         }
 
-        void vec3(const glm::vec3& x) noexcept
+        void vec3(const vec3f& x) noexcept
         {
             VRM_SDL_GLCHECK(glUniform3f(_location, x.x, x.y, x.z));
         }
 
-        void vec4(const glm::vec4& x) noexcept
+        void vec4(const vec4f& x) noexcept
         {
             VRM_SDL_GLCHECK(glUniform4f(_location, x.x, x.y, x.z, x.w));
         }
