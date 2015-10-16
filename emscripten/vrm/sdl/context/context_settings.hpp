@@ -13,57 +13,55 @@
 #include <vrm/sdl/elements.hpp>
 #include <vrm/sdl/context/unique_sdl_resources.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    template <typename TTimer, typename TGameState>
+    struct interpolated_engine_settings
     {
-        template <typename TTimer, typename TGameState>
-        struct interpolated_engine_settings
+        using timer_type = TTimer;
+        using state_type = TGameState;
+
+        using update_fn_type = std::function<void(state_type&, ft)>;
+
+        using draw_fn_type = std::function<void(const state_type&)>;
+
+        using interpolate_fn_type = std::function<void(
+            state_type&, const state_type&, const state_type&, float)>;
+
+        static auto& null_update_fn() noexcept
         {
-            using timer_type = TTimer;
-            using state_type = TGameState;
+            static update_fn_type result([](auto&, auto)
+                {
+                    // return state;
+                });
+            return result;
+        }
 
-            using update_fn_type = std::function<void(state_type&, ft)>;
-
-            using draw_fn_type = std::function<void(const state_type&)>;
-
-            using interpolate_fn_type = std::function<void(
-                state_type&, const state_type&, const state_type&, float)>;
-
-            static auto& null_update_fn() noexcept
-            {
-                static update_fn_type result([](auto&, auto)
-                    {
-                        // return state;
-                    });
-                return result;
-            }
-
-            static auto& null_draw_fn() noexcept
-            {
-                static draw_fn_type result([](const auto&)
-                    {
-                    });
-                return result;
-            }
-
-            static auto& null_interpolate_fn() noexcept
-            {
-                static interpolate_fn_type result(
-                    [](auto&, const auto&, const auto&, float)
-                    {
-                        // return state;
-                    });
-
-                return result;
-            }
-        };
-
-        template <typename TEngine>
-        struct context_settings
+        static auto& null_draw_fn() noexcept
         {
-            using engine_type = TEngine;
-            using timer_type = typename engine_type::timer_type;
-        };
-    }
+            static draw_fn_type result([](const auto&)
+                {
+                });
+            return result;
+        }
+
+        static auto& null_interpolate_fn() noexcept
+        {
+            static interpolate_fn_type result(
+                [](auto&, const auto&, const auto&, float)
+                {
+                    // return state;
+                });
+
+            return result;
+        }
+    };
+
+    template <typename TEngine>
+    struct context_settings
+    {
+        using engine_type = TEngine;
+        using timer_type = typename engine_type::timer_type;
+    };
 }
+VRM_SDL_NAMESPACE_END

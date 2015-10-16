@@ -5,6 +5,13 @@
 
 #pragma once
 
+#define VRM_SDL_NAMESPACE \
+    namespace vrm         \
+    {                     \
+    namespace sdl
+
+#define VRM_SDL_NAMESPACE_END }
+
 #define VRM_SDL_API_HEADERONLY 1
 
 #if defined(VRM_SDL_API_HEADERONLY)

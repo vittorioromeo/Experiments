@@ -14,46 +14,44 @@
 #include <vrm/sdl/context/unique_sdl_resources.hpp>
 #include <vrm/sdl/context/context_settings.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    namespace impl
     {
-        namespace impl
+        class static_timer
         {
-            class static_timer
+        public:
+            ft _step, _time_slice, _time{0};
+            float _interp_t{0};
+            sz_t _max_loops, _loops{0};
+
+        public:
+            static_timer(ft step = 1.f, ft time_slice = 16.f,
+                sz_t max_loops = 50) noexcept : _step{step},
+                                                _time_slice{time_slice},
+                                                _max_loops{max_loops}
             {
-            public:
-                ft _step, _time_slice, _time{0};
-                float _interp_t{0};
-                sz_t _max_loops, _loops{0};
+            }
 
-            public:
-                static_timer(ft step = 1.f, ft time_slice = 16.f,
-                    sz_t max_loops = 50) noexcept : _step{step},
-                                                    _time_slice{time_slice},
-                                                    _max_loops{max_loops}
+            template <typename TF>
+            void run(ft frame_time, TF&& f) noexcept(noexcept(f(_step)))
+            {
+                _loops = 0;
+                _time += frame_time;
+
+                while(_time >= _time_slice && _loops < _max_loops)
                 {
+                    f(_step);
+                    _time -= _time_slice;
+                    ++_loops;
                 }
 
-                template <typename TF>
-                void run(ft frame_time, TF&& f) noexcept(noexcept(f(_step)))
-                {
-                    _loops = 0;
-                    _time += frame_time;
+                _interp_t = _time / _time_slice;
+            }
 
-                    while(_time >= _time_slice && _loops < _max_loops)
-                    {
-                        f(_step);
-                        _time -= _time_slice;
-                        ++_loops;
-                    }
-
-                    _interp_t = _time / _time_slice;
-                }
-
-                const auto& interp_t() const noexcept { return _interp_t; }
-                const auto& time_slice() const noexcept { return _time_slice; }
-            };
-        }
+            const auto& interp_t() const noexcept { return _interp_t; }
+            const auto& time_slice() const noexcept { return _time_slice; }
+        };
     }
 }
+VRM_SDL_NAMESPACE_END

@@ -8,9 +8,7 @@
 #include <cassert>
 #include <vrm/sdl/common.hpp>
 
-namespace vrm
-{
-    namespace sdl
+VRM_SDL_NAMESPACE
     {
         constexpr float pi{3.14159265f};
         constexpr float pi_half{pi / 2.f};
@@ -64,4 +62,4 @@ namespace vrm
             }
         };
     }
-}
+VRM_SDL_NAMESPACE_END

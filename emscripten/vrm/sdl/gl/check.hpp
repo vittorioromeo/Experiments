@@ -55,72 +55,69 @@
 
 #endif
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    namespace impl
     {
-        namespace impl
+        void gl_check_error(
+            const char* file, unsigned int line, const char* expression)
         {
-            void gl_check_error(
-                const char* file, unsigned int line, const char* expression)
+            auto errorCode(glGetError());
+            if(errorCode == GL_NO_ERROR) return;
+
+            std::string fileString = file;
+            std::string error = "Unknown error";
+            std::string description = "No description";
+
+            // Decode the error code
+            switch(errorCode)
             {
-                auto errorCode(glGetError());
-                if(errorCode == GL_NO_ERROR) return;
-
-                std::string fileString = file;
-                std::string error = "Unknown error";
-                std::string description = "No description";
-
-                // Decode the error code
-                switch(errorCode)
+                case GL_INVALID_ENUM:
                 {
-                    case GL_INVALID_ENUM:
-                    {
-                        error = "GL_INVALID_ENUM";
-                        description =
-                            "An unacceptable value has been specified for "
-                            "an enumerated argument.";
-                        break;
-                    }
-
-                    case GL_INVALID_VALUE:
-                    {
-                        error = "GL_INVALID_VALUE";
-                        description = "A numeric argument is out of range.";
-                        break;
-                    }
-
-                    case GL_INVALID_OPERATION:
-                    {
-                        error = "GL_INVALID_OPERATION";
-                        description =
-                            "The specified operation is not allowed in the "
-                            "current state.";
-                        break;
-                    }
-
-                    case GL_OUT_OF_MEMORY:
-                    {
-                        error = "GL_OUT_OF_MEMORY";
-                        description =
-                            "There is not enough memory left to execute "
-                            "the command.";
-                        break;
-                    }
+                    error = "GL_INVALID_ENUM";
+                    description =
+                        "An unacceptable value has been specified for "
+                        "an enumerated argument.";
+                    break;
                 }
 
-                // Log the error
-                std::cout << "An internal OpenGL call failed in "
-                          << fileString.substr(
-                                 fileString.find_last_of("\\/") + 1)
-                          << "(" << line << ")."
-                          << "\nExpression:\n   " << expression
-                          << "\nError description:\n   " << error << "\n   "
-                          << description << "\n" << std::endl;
+                case GL_INVALID_VALUE:
+                {
+                    error = "GL_INVALID_VALUE";
+                    description = "A numeric argument is out of range.";
+                    break;
+                }
 
-                int temp;
-                std::cin >> temp;
+                case GL_INVALID_OPERATION:
+                {
+                    error = "GL_INVALID_OPERATION";
+                    description =
+                        "The specified operation is not allowed in the "
+                        "current state.";
+                    break;
+                }
+
+                case GL_OUT_OF_MEMORY:
+                {
+                    error = "GL_OUT_OF_MEMORY";
+                    description =
+                        "There is not enough memory left to execute "
+                        "the command.";
+                    break;
+                }
             }
+
+            // Log the error
+            std::cout << "An internal OpenGL call failed in "
+                      << fileString.substr(fileString.find_last_of("\\/") + 1)
+                      << "(" << line << ")."
+                      << "\nExpression:\n   " << expression
+                      << "\nError description:\n   " << error << "\n   "
+                      << description << "\n" << std::endl;
+
+            int temp;
+            std::cin >> temp;
         }
     }
 }
+VRM_SDL_NAMESPACE_END

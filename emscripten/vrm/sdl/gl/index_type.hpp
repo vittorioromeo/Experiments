@@ -7,29 +7,26 @@
 
 #include <vrm/sdl/common.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    enum class index_type
     {
-        enum class index_type
-        {
-            ui_byte,
-            ui_short,
-            ui_int
-        };
+        ui_byte,
+        ui_short,
+        ui_int
+    };
 
-        namespace impl
-        {
-            template <index_type TP>
-            constexpr GLenum index_type_value{GL_UNSIGNED_BYTE};
+    namespace impl
+    {
+        template <index_type TP>
+        constexpr GLenum index_type_value{GL_UNSIGNED_BYTE};
 
-            template <>
-            constexpr GLenum index_type_value<index_type::ui_short>{
-                GL_UNSIGNED_SHORT};
+        template <>
+        constexpr GLenum index_type_value<index_type::ui_short>{
+            GL_UNSIGNED_SHORT};
 
-            template <>
-            constexpr GLenum index_type_value<index_type::ui_int>{
-                GL_UNSIGNED_INT};
-        }
+        template <>
+        constexpr GLenum index_type_value<index_type::ui_int>{GL_UNSIGNED_INT};
     }
 }
+VRM_SDL_NAMESPACE_END

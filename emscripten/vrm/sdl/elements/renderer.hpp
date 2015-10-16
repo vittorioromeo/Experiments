@@ -9,34 +9,31 @@
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/elements/sdl_element.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    class renderer : public impl::sdl_element<SDL_Renderer>
     {
-        class renderer : public impl::sdl_element<SDL_Renderer>
-        {
-        public:
-            using base_type =
-                impl::sdl_element<SDL_Renderer>;
-            renderer(window& w) noexcept;
+    public:
+        using base_type = impl::sdl_element<SDL_Renderer>;
+        renderer(window& w) noexcept;
 
-            void draw_color(int r, int g, int b, int a) noexcept;
+        void draw_color(int r, int g, int b, int a) noexcept;
 
-            void clear() noexcept;
-            void clear(int r, int g, int b, int a) noexcept;
+        void clear() noexcept;
+        void clear(int r, int g, int b, int a) noexcept;
 
-            void blend_mode(SDL_BlendMode m) noexcept;
+        void blend_mode(SDL_BlendMode m) noexcept;
 
-            void present() noexcept;
+        void present() noexcept;
 
-            void target(std::nullptr_t) noexcept;
-            void target(texture& t) noexcept;
+        void target(std::nullptr_t) noexcept;
+        void target(texture& t) noexcept;
 
-            void clear_texture(texture& t, int r, int g, int b, int a) noexcept;
+        void clear_texture(texture& t, int r, int g, int b, int a) noexcept;
 
-            void draw(texture& t) noexcept;
-            void draw(texture& t, const vec2f& pos) noexcept;
-            void draw(sprite& s) noexcept;
-        };
-    }
+        void draw(texture& t) noexcept;
+        void draw(texture& t, const vec2f& pos) noexcept;
+        void draw(sprite& s) noexcept;
+    };
 }
+VRM_SDL_NAMESPACE_END

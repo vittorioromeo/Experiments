@@ -8,16 +8,14 @@
 #include <vrm/sdl/dependencies.hpp>
 #include <vrm/sdl/common/typedefs.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    namespace impl
     {
-        namespace impl
-        {
-            auto& null_key_event_handler() noexcept;
-            auto& null_btn_event_handler() noexcept;
-       //     auto& null_update_fn() noexcept;
+        auto& null_key_event_handler() noexcept;
+        auto& null_btn_event_handler() noexcept;
+        //     auto& null_update_fn() noexcept;
         //    auto& null_draw_fn() noexcept;
-        }
     }
 }
+VRM_SDL_NAMESPACE_END

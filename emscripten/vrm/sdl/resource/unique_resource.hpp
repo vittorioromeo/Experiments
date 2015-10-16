@@ -7,75 +7,73 @@
 
 #include <utility>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    namespace impl
     {
-        namespace impl
+        template <typename T, typename TDeleter>
+        class unique_resource
         {
-            template <typename T, typename TDeleter>
-            class unique_resource
+        private:
+            T _res;
+            TDeleter _deleter;
+            bool _must_delete;
+
+        public:
+            void reset() noexcept
             {
-            private:
-                T _res;
-                TDeleter _deleter;
-                bool _must_delete;
+                if(!_must_delete) return;
 
-            public:
-                void reset() noexcept
-                {
-                    if(!_must_delete) return;
+                _deleter(_res);
+                _must_delete = false;
+            }
 
-                    _deleter(_res);
-                    _must_delete = false;
-                }
+            void reset(T&& r) noexcept
+            {
+                reset();
+                _res = std::move(r);
+                _must_delete = true;
+            }
 
-                void reset(T&& r) noexcept
-                {
-                    reset();
-                    _res = std::move(r);
-                    _must_delete = true;
-                }
+            void release() noexcept { _must_delete = false; }
 
-                void release() noexcept { _must_delete = false; }
+            template <typename... Ts>
+            unique_resource(Ts&&... xs) noexcept(noexcept(T(FWD(xs)...)))
+                : _res(FWD(xs)...), _must_delete{true}
+            {
+            }
 
-                template <typename... Ts>
-                unique_resource(Ts&&... xs) noexcept(noexcept(T(FWD(xs)...)))
-                    : _res(FWD(xs)...), _must_delete{true}
-                {
-                }
+            unique_resource(const unique_resource&) = delete;
+            unique_resource& operator=(const unique_resource&) = delete;
 
-                unique_resource(const unique_resource&) = delete;
-                unique_resource& operator=(const unique_resource&) = delete;
+            unique_resource(unique_resource&& s) noexcept
+                : _res{std::move(s._res)},
+                  _deleter{std::move(s._deleter)},
+                  _must_delete{s._must_delete}
+            {
+                // reset();
+                s.release();
+            }
+            unique_resource& operator=(unique_resource&& s) noexcept
+            {
+                reset();
 
-                unique_resource(unique_resource&& s) noexcept
-                    : _res{std::move(s._res)},
-                      _deleter{std::move(s._deleter)},
-                      _must_delete{s._must_delete}
-                {
-                    // reset();
-                    s.release();
-                }
-                unique_resource& operator=(unique_resource&& s) noexcept
-                {
-                    reset();
+                _res = std::move(s._res);
+                _deleter = std::move(s._deleter);
+                _must_delete = s._must_delete;
 
-                    _res = std::move(s._res);
-                    _deleter = std::move(s._deleter);
-                    _must_delete = s._must_delete;
+                s.release();
+                return *this;
+            }
 
-                    s.release();
-                    return *this;
-                }
+            ~unique_resource() noexcept { reset(); }
 
-                ~unique_resource() noexcept { reset(); }
+            auto operator-> () noexcept { return &_res; }
+            auto operator-> () const noexcept { return &_res; }
 
-                auto operator-> () noexcept { return &_res; }
-                auto operator-> () const noexcept { return &_res; }
-
-                auto& operator*() noexcept { return _res; }
-                const auto& operator*() const noexcept { return _res; }
-            };
-        }
+            auto& operator*() noexcept { return _res; }
+            const auto& operator*() const noexcept { return _res; }
+        };
     }
 }
+VRM_SDL_NAMESPACE_END

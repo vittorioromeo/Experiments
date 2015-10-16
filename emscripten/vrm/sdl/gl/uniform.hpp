@@ -10,83 +10,84 @@
 #include <vrm/sdl/gl/check.hpp>
 #include <vrm/sdl/gl/shader.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    class uniform
     {
-        class uniform
+    private:
+        GLuint _location;
+
+    public:
+        uniform() = default;
+        uniform(GLuint location) noexcept : _location{location} {}
+
+    private:
+        void matrix2fv(
+            sz_t count, bool transpose, const GLfloat* value) noexcept
         {
-        private:
-            GLuint _location;
+            VRM_SDL_GLCHECK(
+                glUniformMatrix2fv(_location, count, transpose, value));
+        }
 
-        public:
-            uniform() = default;
-            uniform(GLuint location) noexcept : _location{location} {}
+        void matrix3fv(
+            sz_t count, bool transpose, const GLfloat* value) noexcept
+        {
+            VRM_SDL_GLCHECK(
+                glUniformMatrix3fv(_location, count, transpose, value));
+        }
 
-        private:
-            void matrix2fv(
-                sz_t count, bool transpose, const GLfloat* value) noexcept
-            {
-                VRM_SDL_GLCHECK(
-                    glUniformMatrix2fv(_location, count, transpose, value));
-            }
+        void matrix4fv(
+            sz_t count, bool transpose, const GLfloat* value) noexcept
+        {
+            VRM_SDL_GLCHECK(
+                glUniformMatrix4fv(_location, count, transpose, value));
+        }
 
-            void matrix3fv(
-                sz_t count, bool transpose, const GLfloat* value) noexcept
-            {
-                VRM_SDL_GLCHECK(
-                    glUniformMatrix3fv(_location, count, transpose, value));
-            }
+    public:
+        void mat2(
+            const glm::mat2& m, sz_t count = 1, bool transpose = false) noexcept
+        {
+            matrix2fv(count, transpose, glm::value_ptr(m));
+        }
 
-            void matrix4fv(
-                sz_t count, bool transpose, const GLfloat* value) noexcept
-            {
-                VRM_SDL_GLCHECK(
-                    glUniformMatrix4fv(_location, count, transpose, value));
-            }
+        void mat3(
+            const glm::mat3& m, sz_t count = 1, bool transpose = false) noexcept
+        {
+            matrix3fv(count, transpose, glm::value_ptr(m));
+        }
 
-        public:
-            void mat2(const glm::mat2& m, sz_t count = 1, bool transpose = false) noexcept
-            {
-                matrix2fv(count, transpose, glm::value_ptr(m));
-            }
+        void mat4(
+            const glm::mat4& m, sz_t count = 1, bool transpose = false) noexcept
+        {
+            matrix4fv(count, transpose, glm::value_ptr(m));
+        }
 
-            void mat3(const glm::mat3& m, sz_t count = 1, bool transpose = false) noexcept
-            {
-                matrix3fv(count, transpose, glm::value_ptr(m));
-            }
+        void integer(int x) noexcept
+        {
+            VRM_SDL_GLCHECK(glUniform1i(_location, x));
+        }
 
-            void mat4(const glm::mat4& m, sz_t count = 1, bool transpose = false) noexcept
-            {
-                matrix4fv(count, transpose, glm::value_ptr(m));
-            }
+        void floating(float x) noexcept
+        {
+            VRM_SDL_GLCHECK(glUniform1f(_location, x));
+        }
 
-            void integer(int x) noexcept
-            {
-                VRM_SDL_GLCHECK(glUniform1i(_location, x));
-            }
+        void vec2(const glm::vec2& x) noexcept
+        {
+            VRM_SDL_GLCHECK(glUniform2f(_location, x.x, x.y));
+        }
 
-            void floating(float x) noexcept
-            {
-                VRM_SDL_GLCHECK(glUniform1f(_location, x));
-            }
+        void vec3(const glm::vec3& x) noexcept
+        {
+            VRM_SDL_GLCHECK(glUniform3f(_location, x.x, x.y, x.z));
+        }
 
-            void vec2(const glm::vec2& x) noexcept
-            {
-                VRM_SDL_GLCHECK(glUniform2f(_location, x.x, x.y));
-            }
+        void vec4(const glm::vec4& x) noexcept
+        {
+            VRM_SDL_GLCHECK(glUniform4f(_location, x.x, x.y, x.z, x.w));
+        }
 
-            void vec3(const glm::vec3& x) noexcept
-            {
-                VRM_SDL_GLCHECK(glUniform3f(_location, x.x, x.y, x.z));
-            }
-
-            void vec4(const glm::vec4& x) noexcept
-            {
-                VRM_SDL_GLCHECK(glUniform4f(_location, x.x, x.y, x.z, x.w));
-            }
-
-            auto location() const noexcept { return _location; }
-        };
-    }
+        auto location() const noexcept { return _location; }
+    };
 }
+VRM_SDL_NAMESPACE_END

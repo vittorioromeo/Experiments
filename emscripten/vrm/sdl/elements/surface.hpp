@@ -9,36 +9,34 @@
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/elements/sdl_element.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    class surface : public impl::sdl_element<SDL_Surface>
     {
-        class surface : public impl::sdl_element<SDL_Surface>
-        {
-        private:
-            SDL_Rect _rect;
+    private:
+        SDL_Rect _rect;
 
-        public:
-            using base_type = impl::sdl_element<SDL_Surface>;
+    public:
+        using base_type = impl::sdl_element<SDL_Surface>;
 
-            auto width() const noexcept;
-            auto height() const noexcept;
-            auto size() const noexcept;
-            const auto& rect() const noexcept;
+        auto width() const noexcept;
+        auto height() const noexcept;
+        auto size() const noexcept;
+        const auto& rect() const noexcept;
 
-            surface(const std::string& path) noexcept;
-            surface(SDL_Surface* p) noexcept;
+        surface(const std::string& path) noexcept;
+        surface(SDL_Surface* p) noexcept;
 
 
-            auto pixels() const noexcept;
-            auto format() const noexcept;
+        auto pixels() const noexcept;
+        auto format() const noexcept;
 
-            void clear(int r, int g, int b) noexcept;
+        void clear(int r, int g, int b) noexcept;
 
-            void blit(const surface& s, const SDL_Rect& src_rect,
-                const SDL_Rect& dest_rect) noexcept;
+        void blit(const surface& s, const SDL_Rect& src_rect,
+            const SDL_Rect& dest_rect) noexcept;
 
-            void blit(const surface& i, int x, int y) noexcept;
-        };
-    }
+        void blit(const surface& i, int x, int y) noexcept;
+    };
 }
+VRM_SDL_NAMESPACE_END

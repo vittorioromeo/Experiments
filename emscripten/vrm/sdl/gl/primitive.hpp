@@ -7,48 +7,43 @@
 
 #include <vrm/sdl/common.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    enum class primitive
     {
-        enum class primitive
-        {
-            points,
-            lines,
-            line_strip,
-            line_loop,
-            triangles,
-            triangle_strip,
-            triangle_fan
-        };
+        points,
+        lines,
+        line_strip,
+        line_loop,
+        triangles,
+        triangle_strip,
+        triangle_fan
+    };
 
-        namespace impl
-        {
-            template <primitive TP>
-            constexpr GLenum primitive_value{GL_POINTS};
+    namespace impl
+    {
+        template <primitive TP>
+        constexpr GLenum primitive_value{GL_POINTS};
 
-            template <>
-            constexpr GLenum primitive_value<primitive::lines>{GL_LINES};
+        template <>
+        constexpr GLenum primitive_value<primitive::lines>{GL_LINES};
 
-            template <>
-            constexpr GLenum primitive_value<primitive::line_strip>{
-                GL_LINE_STRIP};
+        template <>
+        constexpr GLenum primitive_value<primitive::line_strip>{GL_LINE_STRIP};
 
-            template <>
-            constexpr GLenum primitive_value<primitive::line_loop>{
-                GL_LINE_LOOP};
+        template <>
+        constexpr GLenum primitive_value<primitive::line_loop>{GL_LINE_LOOP};
 
-            template <>
-            constexpr GLenum primitive_value<primitive::triangles>{
-                GL_TRIANGLES};
+        template <>
+        constexpr GLenum primitive_value<primitive::triangles>{GL_TRIANGLES};
 
-            template <>
-            constexpr GLenum primitive_value<primitive::triangle_strip>{
-                GL_TRIANGLE_STRIP};
+        template <>
+        constexpr GLenum primitive_value<primitive::triangle_strip>{
+            GL_TRIANGLE_STRIP};
 
-            template <>
-            constexpr GLenum primitive_value<primitive::triangle_fan>{
-                GL_TRIANGLE_FAN};
-        }
+        template <>
+        constexpr GLenum primitive_value<primitive::triangle_fan>{
+            GL_TRIANGLE_FAN};
     }
 }
+VRM_SDL_NAMESPACE_END

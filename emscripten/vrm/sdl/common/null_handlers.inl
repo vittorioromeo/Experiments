@@ -10,44 +10,42 @@
 #include <vrm/sdl/common/mbtn.hpp>
 #include <vrm/sdl/common/null_handlers.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    namespace impl
     {
-        namespace impl
+        auto& null_key_event_handler() noexcept
         {
-            auto& null_key_event_handler() noexcept
-            {
-                static key_event_handler result([](auto)
-                    {
-                    });
-                return result;
-            }
-
-            auto& null_btn_event_handler() noexcept
-            {
-                static btn_event_handler result([](auto)
-                    {
-                    });
-                return result;
-            }
-/*
-            auto& null_update_fn() noexcept
-            {
-                static update_fn result([](auto)
-                    {
-                    });
-                return result;
-            }
-
-            auto& null_draw_fn() noexcept
-            {
-                static draw_fn result([]
-                    {
-                    });
-                return result;
-            }
-            */
+            static key_event_handler result([](auto)
+                {
+                });
+            return result;
         }
+
+        auto& null_btn_event_handler() noexcept
+        {
+            static btn_event_handler result([](auto)
+                {
+                });
+            return result;
+        }
+        /*
+                    auto& null_update_fn() noexcept
+                    {
+                        static update_fn result([](auto)
+                            {
+                            });
+                        return result;
+                    }
+
+                    auto& null_draw_fn() noexcept
+                    {
+                        static draw_fn result([]
+                            {
+                            });
+                        return result;
+                    }
+                    */
     }
 }
+VRM_SDL_NAMESPACE_END

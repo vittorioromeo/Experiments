@@ -54,7 +54,6 @@ namespace vrm
 {
     namespace sdl
     {
-
         namespace impl
         {
             auto make_2d_projection(float width, float height)
@@ -118,92 +117,248 @@ namespace vrm
                 return translation * rotation * origining * centering *
                        scaling * shearing_x * shearing_y;
             }
+
+            template <typename TFX, typename TFY>
+            auto ratio_scale_impl(const glm::vec2& original_size,
+                const glm::vec2& container_size, TFX&& step_x_fn,
+                TFY&& step_y_fn) noexcept
+            {
+                const auto& os(original_size);
+                const auto& ws(container_size);
+                auto original_ratio(os.x / os.y);
+
+                if(ws.y * original_ratio <= ws.x)
+                {
+                    // the width is the boss
+
+                    auto r_width = ws.y * original_ratio;
+                    step_x_fn(r_width);
+                    return glm::vec2(r_width, r_width / original_ratio);
+                }
+                else
+                {
+                    // the height is the boss
+
+                    auto r_height = ws.x / original_ratio;
+                    step_y_fn(r_height);
+                    return glm::vec2(r_height * original_ratio, r_height);
+                }
+            }
+
+            auto discrete_ratio_step(float value, float increment) noexcept
+            {
+                return std::floor(value / increment) * increment;
+            }
+
+            auto discrete_ratio_scale(const glm::vec2& original_size,
+                const glm::vec2& container_size, float x_increment,
+                float y_increment) noexcept
+            {
+                return ratio_scale_impl(original_size, container_size,
+                    [=](auto& x)
+                    {
+                        x = discrete_ratio_step(x, x_increment);
+                    },
+                    [=](auto& y)
+                    {
+                        y = discrete_ratio_step(y, y_increment);
+                    });
+            }
+
+            auto ratio_scale(const glm::vec2& original_size,
+                const glm::vec2& container_size) noexcept
+            {
+                return ratio_scale_impl(original_size, container_size,
+                    [](auto&)
+                    {
+                    },
+                    [](auto&)
+                    {
+                    });
+            }
+
+            auto ratio_scale_margin(const glm::vec2& scaled_size,
+                const glm::vec2& container_size) noexcept
+            {
+                return (container_size - scaled_size) / 2.f;
+            }
+        }
+
+        namespace screen_scale
+        {
+            auto fixed() noexcept
+            {
+                return [](const glm::vec2& original_size, const glm::vec2&)
+                {
+                    return original_size;
+                };
+            }
+
+            auto stretch() noexcept
+            {
+                return [](const glm::vec2&, const glm::vec2& window_size)
+                {
+                    return window_size;
+                };
+            }
+
+            auto ratio_aware() noexcept
+            {
+                return [](const glm::vec2& original_size,
+                    const glm::vec2& window_size)
+                {
+                    return impl::ratio_scale(original_size, window_size);
+                };
+            }
+
+            auto discrete_ratio_aware(const glm::vec2& increment) noexcept
+            {
+                return [=](const glm::vec2& original_size,
+                    const glm::vec2& window_size)
+                {
+                    return impl::discrete_ratio_scale(
+                        original_size, window_size, increment.x, increment.y);
+                };
+            }
+
+            auto pixel_perfect() noexcept
+            {
+                return [=](const glm::vec2& original_size,
+                    const glm::vec2& window_size)
+                {
+                    return impl::discrete_ratio_scale(original_size,
+                        window_size, original_size.x, original_size.y);
+                };
+            }
         }
 
         class screen_2d
         {
         private:
-            glm::mat4 _projection;
-            float _width;
-            float _height;
+            using scale_fn_type =
+                std::function<glm::vec2(const glm::vec2&, const glm::vec2&)>;
 
-        public:
-            screen_2d(float width, float height) noexcept
-                : _projection{impl::make_2d_projection(width, height)},
-                  _width{width},
-                  _height{height}
+            sdl::window& _window;
+            scale_fn_type _scale_fn{screen_scale::fixed()};
+            glm::mat4 _projection;
+            glm::vec2 _original_size;
+            float _original_ratio;
+
+            void refresh_projection()
             {
+                _projection = impl::make_2d_projection(
+                    _original_size.x, _original_size.y);
             }
 
-            const auto& width() const noexcept { return _width; }
-            const auto& height() const noexcept { return _height; }
+        public:
+            screen_2d(sdl::window& window, float width, float height) noexcept
+                : _window{window},
+                  _original_size{width, height},
+                  _original_ratio{width / height}
+            {
+                refresh_projection();
+            }
+
+            void resize(const glm::vec2& new_original_size) noexcept
+            {
+                _original_size = new_original_size;
+                refresh_projection();
+            }
+
+            template <typename TF>
+            void scale_fn(TF&& fn) noexcept
+            {
+                _scale_fn = FWD(fn);
+            }
+
+            void mode(window_mode x) noexcept { _window.mode(x); }
+            const auto& mode() const noexcept { return _window.mode(); }
+
+            auto& window() noexcept { return _window; }
+            const auto& window() const noexcept { return _window; }
+
+            const auto& original_size() const noexcept
+            {
+                return _original_size;
+            }
+            const auto& original_ratio() const noexcept
+            {
+                return _original_ratio;
+            }
+
+            // TODO:
+            // comment everything
+            // think about "screen" and "camera"
+            // let user choose stuff
+
+            auto scaled_size() const noexcept
+            {
+                return _scale_fn(_original_size, _window.size());
+            }
+
+            auto scaling_factor() const noexcept
+            {
+                return scaled_size().x / _original_size.x;
+            }
+
+            auto margin() const noexcept
+            {
+                return impl::ratio_scale_margin(scaled_size(), _window.size());
+            }
+
+            void use_background() noexcept
+            {
+                _window.scissor_and_viewport({0.f, 0.f}, _window.size());
+            }
+
+            void use_foreground() noexcept
+            {
+                _window.scissor_and_viewport(margin(), scaled_size());
+            }
+
+            void clear(const glm::vec4& color) noexcept
+            {
+                _window.clear(color);
+            }
+
+            void use_and_clear_background(const glm::vec4& color) noexcept
+            {
+                use_background();
+                clear(color);
+            }
+
+            void use_and_clear_foreground(const glm::vec4& color) noexcept
+            {
+                use_foreground();
+                clear(color);
+            }
 
             const auto& projection() const noexcept { return _projection; }
         };
 
-        auto make_screen_2d(float width, float height)
-        {
-            return screen_2d{width, height};
-        }
 
         class camera_2d
         {
         private:
             screen_2d& _screen;
-            glm::vec2 _position;
+            glm::vec2 _offset;
             float _scale{1.f};
             float _radians{0.f};
 
-            const auto& screen_width() const noexcept
+            auto origin() const noexcept
             {
-                return _screen.width();
-            }
-
-            const auto& screen_height() const noexcept
-            {
-                return _screen.height();
-            }
-
-            auto half_screen_width() const noexcept
-            {
-                return screen_width() / 2.f;
-            }
-
-            auto half_screen_height() const noexcept
-            {
-                return screen_height() / 2.f;
+                return _screen.original_size() / 2.f;
             }
 
         public:
-            // TODO:
-            // this is actually "position"
-            auto origin() const noexcept 
-            {
-                auto origin_x(_position.x + half_screen_width());
-                auto origin_y(_position.y + half_screen_height());
+            auto position() const noexcept { return _offset + origin(); }
 
-                return glm::vec2(origin_x, origin_y);
-            }
-
-            private:
+        private:
             void translate_to_origin(glm::mat4& view, float direction) const
                 noexcept
             {
-                
-
-                view = glm::translate(view,
-                    glm::vec3(origin().x * direction, origin().y * direction, 0.f));
-            }
-
-            void translate_to_offset(float direction) noexcept
-            {
-                //  _view = glm::translate(
-                //      _view, glm::vec3(_view().xy() , 0.f));
-            }
-
-            void scale_xy(float factor) noexcept
-            {
-                //  _view = glm::scale(_view, glm::vec3(factor, factor, 1.0f));
+                view = glm::translate(
+                    view, glm::vec3(position().xy() * direction, 0.f));
             }
 
         public:
@@ -219,8 +374,7 @@ namespace vrm
             {
                 radians += _radians;
 
-                //  _view = glm::translate(_view, glm::vec3(-offset, 0.f));
-                _position += glm::vec2(
+                _offset += glm::vec2(
                     speed * std::cos(radians), speed * std::sin(radians));
 
                 return *this;
@@ -228,7 +382,7 @@ namespace vrm
 
             auto& move_towards_point(const glm::vec2& point, float speed)
             {
-                auto direction((point - origin()));
+                auto direction((point - position()));
                 auto angle(std::atan2(direction.y, direction.x));
                 return move_towards_angle(angle - _radians, speed);
             }
@@ -244,15 +398,11 @@ namespace vrm
                 return move_towards_angle(direction, speed);
             }
 
-            // TODO:
-            // this is actually "offset"
-            auto& position() noexcept { return _position; }
-            const auto& position() const noexcept { return _position; }
+            auto& offset() noexcept { return _offset; }
+            const auto& offset() const noexcept { return _offset; }
 
             auto& angle() noexcept { return _radians; }
             const auto& angle() const noexcept { return _radians; }
-
-
 
             auto& rotate(float radians) noexcept
             {
@@ -260,21 +410,22 @@ namespace vrm
                 return *this;
             }
 
-            const auto& projection() const noexcept
-            {
-                return _screen.projection();
-            }
+            auto projection() const noexcept { return _screen.projection(); }
 
             auto view() const noexcept
             {
                 glm::mat4 result;
 
-                result = glm::translate(result, glm::vec3{-_position, 0.f});
+                result = glm::translate(result, glm::vec3{-_offset, 0.f});
 
                 translate_to_origin(result, 1.f);
                 {
-                    result =
-                        glm::scale(result, glm::vec3(_scale, _scale, 1.0f));
+                    // std::cout << _screen.scaling_factor() << "\n";
+                    // auto sc(_scale * _screen.scaling_factor());
+
+                    auto sc(_scale);
+
+                    result = glm::scale(result, glm::vec3(sc, sc, 1.0f));
 
                     result = glm::rotate(
                         result, -_radians, glm::vec3(0.f, 0.f, 1.f));
@@ -404,156 +555,6 @@ namespace vrm
             float _radians;
             float _hue;
         };
-
-        struct sprite_renderer
-        {
-            program _program{impl::make_sprite_renderer_program()};
-            sdl::impl::unique_vao _vao;
-
-            sdl::impl::unique_vbo<buffer_target::array> _vbo0;
-            sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
-
-            glm::mat4 _model;
-            glm::mat4 _view;
-            glm::mat4 _projection;
-
-            sdl::uniform _u_projection_view_model;
-            sdl::uniform _u_texture;
-            sdl::uniform _u_color;
-            sdl::uniform _u_hue;
-
-            texture_cache<impl::get_valid_texture_unit_count(500)>
-                _texture_cache;
-
-            float _vertices[16]{
-                0.f, 1.f, // sw
-                0.f, 1.f, // sw
-
-                0.f, 0.f, // ne
-                0.f, 0.f, // ne
-
-                1.f, 0.f, // nw
-                1.f, 0.f, // nw
-
-                1.f, 1.f, // se
-                1.f, 1.f, // se
-            };
-
-            GLubyte _indices[6]{
-                0, 1, 2, // first triangle
-                0, 2, 3  // second triangle
-            };
-
-            sprite_renderer()
-            {
-                _projection = impl::make_2d_projection(1000.f, 600.f);
-                init_render_data();
-            }
-
-            void do_it() {}
-
-            void init_render_data() noexcept
-            {
-                // TODO: required?
-                _program.use();
-
-                _vao = make_vao(1);
-
-                _vbo0 = sdl::make_vbo<buffer_target::array>(1);
-                _vbo0->with([&, this]
-                    {
-                        _vbo0->buffer_data_items<buffer_usage::static_draw>(
-                            _vertices);
-
-                        _vao->with([&, this]
-                            {
-                                _program.nth_attribute(0)
-                                    .enable()
-                                    .vertex_attrib_pointer_float(4, false, 0);
-                            });
-                    });
-
-                _vbo1 = sdl::make_vbo<buffer_target::element_array>(1);
-                _vbo1->with([&, this]
-                    {
-                        _vbo1->buffer_data_items<buffer_usage::static_draw>(
-                            _indices);
-                    });
-
-                // Set model/view/projection uniform matrices.
-                _u_projection_view_model =
-                    _program.uniform("u_projection_view_model");
-
-                _u_texture = _program.uniform("u_texture");
-                _u_color = _program.uniform("u_color");
-                _u_hue = _program.uniform("u_hue");
-            }
-
-            void use()
-            {
-                _program.use();
-
-                _vao->bind();
-                _vbo0->bind();
-                _vbo1->bind();
-
-                // _texture_cache.clear();
-            }
-
-
-
-            void draw_sprite(const impl::gltexture2d& t,
-                const glm::vec2& position, const glm::vec2& origin,
-                const glm::vec2& size, float radians,
-                const glm::vec4& color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
-                float hue = 0.f) noexcept
-            {
-                // Reset `model` to identity matrix.
-                _model = glm::mat4{};
-
-                // Tranformation order:
-                // 1) Scale.
-                // 2) Rotate.
-                // 3) Translate.
-
-                // They will occur in the opposite order below.
-
-                // Translate to `position`.
-                _model = glm::translate(_model, glm::vec3(position, 0.0f));
-
-                // Rotate around origin.
-                _model =
-                    glm::rotate(_model, radians, glm::vec3(0.0f, 0.0f, 1.0f));
-
-                // Set origin to the center of the quad.
-                _model = glm::translate(_model, glm::vec3(-origin, 0.0f));
-
-                // Set origin back to `(0, 0)`.
-                _model = glm::translate(
-                    _model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f));
-
-                // Scale to `size`.
-                _model = glm::scale(_model, glm::vec3(size, 1.0f));
-
-                // Set model/view/projection uniform matrices.
-                _u_projection_view_model.mat4(_projection * _view * _model);
-
-                // Gets the texture unit index from the cache and uses it.
-                _u_texture.integer(_texture_cache.use(t));
-                _u_color.vec4(color);
-                _u_hue.floating(hue);
-
-                // Assumes the VBOs, VAO, and texture unit are bound.
-                _vao->draw_elements<primitive::triangles, index_type::ui_byte>(
-                    6);
-            }
-
-            void draw_sprite(const sprite_data& d) noexcept
-            {
-                draw_sprite(d._texture, d._position, d._origin, d._size,
-                    d._radians, d._color, d._hue);
-            }
-        };
     }
 
     namespace sdl
@@ -597,15 +598,6 @@ namespace vrm
             sdl::impl::unique_vbo<buffer_target::array> _vbo0;
             sdl::impl::unique_vbo<buffer_target::element_array> _vbo1;
 
-            // glm::mat4 _view;
-            // glm::mat4 _projection;
-
-            // glm::mat4 _projection_view;
-
-            sdl::attribute _a_pos_tex_coords;
-            sdl::attribute _a_color;
-            sdl::attribute _a_hue;
-
             sdl::uniform _u_texture;
             sdl::uniform _u_projection_view;
 
@@ -624,13 +616,17 @@ namespace vrm
             void init_render_data() noexcept
             {
                 _vao = sdl::make_vao();
+
+                // The VAO "contains" the VBOs.
+                _vao->bind();
+
                 _vbo0 = sdl::make_vbo<buffer_target::array>();
                 _vbo1 = sdl::make_vbo<buffer_target::element_array>();
 
                 // Get attributes.
-                _a_pos_tex_coords = _program.attribute("a_pos_tex_coords");
-                _a_color = _program.attribute("a_color");
-                _a_hue = _program.attribute("a_hue");
+                auto _a_pos_tex_coords = _program.attribute("a_pos_tex_coords");
+                auto _a_color = _program.attribute("a_color");
+                auto _a_hue = _program.attribute("a_hue");
 
                 // Get uniforms.
                 _u_texture = _program.uniform("u_texture");
@@ -650,8 +646,6 @@ namespace vrm
                 _vbo1->allocate_buffer_items<buffer_usage::dynamic_draw,
                     gl_index_type>(index_count);
 
-                _vao->bind();
-
                 VRM_SDL_AUTO_VERTEX_ATTRIB_POINTER(
                     _a_pos_tex_coords, bsr_vertex, _pos_tex_coords, true);
 
@@ -665,19 +659,6 @@ namespace vrm
             void use(const glm::mat4& projection_view) noexcept
             {
                 _program.use();
-
-                _vao->bind();
-                _vbo0->bind();
-                _vbo1->bind();
-
-                /*
-                _view = glm::translate(_view, glm::vec3(500.f, 300.f, 0.f));
-                _view = glm::scale(_view, glm::vec3(0.995f, 0.995f, 1.0f));
-                _view = glm::translate(_view, glm::vec3(-500.f, -300.f, 0.f));
-                */
-
-                // TODO: camera_2d class
-                // _projection_view = _projection * _view;
                 _u_projection_view.mat4(projection_view);
             }
 
@@ -752,8 +733,6 @@ namespace vrm
             void do_it()
             {
                 _vao->bind();
-                _vbo0->bind();
-                _vbo1->bind();
 
                 // TODO:
                 _u_texture.integer(0);
@@ -1157,7 +1136,7 @@ struct my_game
 
     std::array<sdl::impl::unique_gltexture2d, e_type_count> _texture_array;
 
-    sdl::screen_2d _screen{1000.f, 600.f};
+    sdl::screen_2d _screen{_context.window(), 320.f, 240.f};
     sdl::camera_2d _camera{_screen};
 
     auto& texture(e_type type) noexcept
@@ -1354,7 +1333,9 @@ struct my_game
             if(_context.key(sdl::kkey::z)) _camera.zoom(-0.05f * step);
             if(_context.key(sdl::kkey::x)) _camera.zoom(0.05f * step);
 
-            _camera.move_towards_point(soul._pos, (4.f * (glm::length(soul._pos - _camera.origin()) * 0.01f) * step));
+            _camera.move_towards_point(soul._pos,
+                (4.f * (glm::length(soul._pos - _camera.position()) * 0.01f) *
+                                           step));
 
             // if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
             // if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
@@ -1394,11 +1375,10 @@ struct my_game
 
         _engine.draw_fn() = [&, this](const auto& state)
         {
-
+            _screen.use_and_clear_background({0.5f, 0.5f, 0.5f, 1.0f});
+            _screen.use_and_clear_foreground({0.f, 0.f, 0.f, 1.0f});
 
             sr.use(_camera);
-
-
 
             this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
             state.for_alive([this](const auto& e)

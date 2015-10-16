@@ -8,49 +8,53 @@
 #include <vrm/sdl/math.hpp>
 #include <vrm/sdl/common.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    namespace impl
     {
-        namespace impl  
+        template <typename TSettings>
+        class context;
+
+        class input_state
         {
-            template<typename TSettings>
-            class context;
+            template <typename TSettings>
+            friend class ::vrm::sdl::impl::context;
 
-            class input_state
+        private:
+            std::bitset<impl::kkey_count> _keys;
+            std::bitset<impl::mbtn_count> _btns;
+            mouse_coord _mouse_x{0};
+            mouse_coord _mouse_y{0};
+
+            void key(kkey k, bool x) noexcept
             {
-                template <typename TSettings>
-                friend class ::vrm::sdl::impl::context;
+                _keys[static_cast<sz_t>(k)] = x;
+            }
+            void btn(mbtn b, bool x) noexcept
+            {
+                _btns[static_cast<sz_t>(b)] = x;
+            }
 
-            private:
-                std::bitset<impl::kkey_count> _keys;
-                std::bitset<impl::mbtn_count> _btns;
-                mouse_coord _mouse_x{0};
-                mouse_coord _mouse_y{0};
+            void mouse_x(mouse_coord c) noexcept { _mouse_x = c; }
+            void mouse_y(mouse_coord c) noexcept { _mouse_y = c; }
 
-                void key(kkey k, bool x) noexcept { _keys[static_cast<sz_t>(k)] = x; }
-                void btn(mbtn b, bool x) noexcept { _btns[static_cast<sz_t>(b)] = x; }
+        public:
+            auto key(kkey k) const noexcept
+            {
+                return _keys[static_cast<sz_t>(k)];
+            }
+            auto btn(mbtn b) const noexcept
+            {
+                return _btns[static_cast<sz_t>(b)];
+            }
 
-                void mouse_x(mouse_coord c) noexcept { _mouse_x = c; }
-                void mouse_y(mouse_coord c) noexcept { _mouse_y = c; }
-
-            public:
-                auto key(kkey k) const noexcept
-                {
-                    return _keys[static_cast<sz_t>(k)];
-                }
-                auto btn(mbtn b) const noexcept
-                {
-                    return _btns[static_cast<sz_t>(b)];
-                }
-
-                auto mouse_x() const noexcept { return _mouse_x; }
-                auto mouse_y() const noexcept { return _mouse_y; }
-                auto mouse_pos() const noexcept
-                {
-                    return make_vec2(mouse_x(), mouse_y());
-                }
-            };
-        }
+            auto mouse_x() const noexcept { return _mouse_x; }
+            auto mouse_y() const noexcept { return _mouse_y; }
+            auto mouse_pos() const noexcept
+            {
+                return make_vec2(mouse_x(), mouse_y());
+            }
+        };
     }
 }
+VRM_SDL_NAMESPACE_END

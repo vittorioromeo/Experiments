@@ -7,25 +7,24 @@
 
 #include <vrm/sdl/common/typedefs.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
-    {
-        enum class mbtn : sz_t
-        {
-            left = 1,
-            middle = 2,
-            right = 3,
-            wheelup = 4,
-            wheeldown = 5,
-            x1 = 6,
-            x2 = 7
-        };
 
-        namespace impl
-        {
-            constexpr sz_t mbtn_count{8};
-            using btn_event_handler = std::function<void(mbtn)>;
-        }
+    enum class mbtn : sz_t
+    {
+        left = 1,
+        middle = 2,
+        right = 3,
+        wheelup = 4,
+        wheeldown = 5,
+        x1 = 6,
+        x2 = 7
+    };
+
+    namespace impl
+    {
+        constexpr sz_t mbtn_count{8};
+        using btn_event_handler = std::function<void(mbtn)>;
     }
 }
+VRM_SDL_NAMESPACE_END

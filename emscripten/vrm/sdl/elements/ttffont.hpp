@@ -7,21 +7,17 @@
 
 #include <vrm/sdl/elements/sdl_element.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    class ttffont : public impl::sdl_element<TTF_Font>
     {
-        class ttffont
-            : public impl::sdl_element<TTF_Font>
+    public:
+        using base_type = impl::sdl_element<TTF_Font>;
+
+        ttffont(const std::string& path, sz_t font_size) noexcept
+            : base_type{TTF_OpenFont(path.c_str(), font_size)}
         {
-        public:
-            using base_type =
-                impl::sdl_element<TTF_Font>;
-            
-            ttffont(const std::string& path, sz_t font_size) noexcept
-                : base_type{TTF_OpenFont(path.c_str(), font_size)}
-            {
-            }
-        };
-    }
+        }
+    };
 }
+VRM_SDL_NAMESPACE_END

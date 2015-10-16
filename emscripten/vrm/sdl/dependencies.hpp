@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <vrm/sdl/internal.hpp>
 #include <vrm/sdl/dependencies/standard.hpp>
 
 #ifdef __EMSCRIPTEN__

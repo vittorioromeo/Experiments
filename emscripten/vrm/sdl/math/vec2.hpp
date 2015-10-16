@@ -9,28 +9,43 @@
 #include <ostream>
 #include <vrm/sdl/dependencies.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    template <typename T>
+    using vec2 = glm::tvec2<T>;
+
+    template <typename T>
+    using vec3 = glm::tvec3<T>;
+
+    template <typename T>
+    using vec4 = glm::tvec4<T>;
+
+    using vec2d = vec2<double>;
+    using vec2f = vec2<float>;
+    using vec2i = vec2<int>;
+    using vec2u = vec2<unsigned int>;
+
+    using vec3d = vec3<double>;
+    using vec3f = vec3<float>;
+    using vec3i = vec3<int>;
+    using vec3u = vec3<unsigned int>;
+
+    using vec4d = vec4<double>;
+    using vec4f = vec4<float>;
+    using vec4i = vec4<int>;
+    using vec4u = vec4<unsigned int>;
+
+    template <typename T0, typename T1>
+    auto make_vec2(T0 x, T1 y) noexcept
     {
-        template <typename T>
-        using vec2 = glm::tvec2<T>;
+        return vec2<std::common_type_t<T0, T1>>(x, y);
+    }
 
-        using vec2f = vec2<float>;
-        using vec2i = vec2<int>;
-        using vec2u = vec2<unsigned int>;
-
-        template <typename T0, typename T1>
-        auto make_vec2(T0 x, T1 y) noexcept
-        {
-            return vec2<std::common_type_t<T0, T1>>(x, y);
-        }
-
-        template <typename T>
-        auto& operator<<(std::ostream& o, const vec2<T>& v)
-        {
-            o << "(" << v.x << ", " << v.y << ")";
-            return o;
-        }
+    template <typename T>
+    auto& operator<<(std::ostream & o, const vec2<T>& v)
+    {
+        o << "(" << v.x << ", " << v.y << ")";
+        return o;
     }
 }
+VRM_SDL_NAMESPACE_END

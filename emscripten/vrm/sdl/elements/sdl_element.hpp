@@ -8,56 +8,54 @@
 #include <vrm/sdl/common.hpp>
 #include <vrm/sdl/math.hpp>
 
-namespace vrm
+VRM_SDL_NAMESPACE
 {
-    namespace sdl
+    namespace impl
     {
-        namespace impl
+        template <typename T>
+        class sdl_element
         {
-            template <typename T>
-            class sdl_element
+        private:
+            T* _ptr{nullptr};
+
+            void check_error() noexcept
             {
-            private:
-                T* _ptr{nullptr};
-
-                void check_error() noexcept
-                {
 #ifndef NDEBUG
-                    if(_ptr != nullptr) return;
+                if(_ptr != nullptr) return;
 
-                    impl::log_sdl_error(impl::error_title_for<T>());
-                    std::terminate();
+                impl::log_sdl_error(impl::error_title_for<T>());
+                std::terminate();
 #endif
-                }
+            }
 
-            public:
-                using element_type = T;
+        public:
+            using element_type = T;
 
-                sdl_element() = default;
-                sdl_element(T* p) noexcept : _ptr{p} { check_error(); }
+            sdl_element() = default;
+            sdl_element(T* p) noexcept : _ptr{p} { check_error(); }
 
-                sdl_element(const sdl_element&) = default;
-                sdl_element& operator=(const sdl_element&) = default;
+            sdl_element(const sdl_element&) = default;
+            sdl_element& operator=(const sdl_element&) = default;
 
-                sdl_element(sdl_element&&) = default;
-                sdl_element& operator=(sdl_element&&) = default;
+            sdl_element(sdl_element&&) = default;
+            sdl_element& operator=(sdl_element&&) = default;
 
-                auto ptr() noexcept { return _ptr; }
-                auto ptr() const noexcept { return _ptr; }
+            auto ptr() noexcept { return _ptr; }
+            auto ptr() const noexcept { return _ptr; }
 
-                auto& get() noexcept
-                {
-                    assert(_ptr != nullptr);
-                    return *ptr();
-                }
-                const auto& get() const noexcept
-                {
-                    assert(_ptr != nullptr);
-                    return *ptr();
-                }
+            auto& get() noexcept
+            {
+                assert(_ptr != nullptr);
+                return *ptr();
+            }
+            const auto& get() const noexcept
+            {
+                assert(_ptr != nullptr);
+                return *ptr();
+            }
 
-                operator T*() noexcept { return ptr(); }
-            };
-        }
+            operator T*() noexcept { return ptr(); }
+        };
     }
 }
+VRM_SDL_NAMESPACE_END

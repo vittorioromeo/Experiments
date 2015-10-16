@@ -4,10 +4,3 @@
 // http://vittorioromeo.info | vittorio.romeo@outlook.com
 
 #pragma once
-
-namespace vrm
-{
-    namespace sdl
-    {
-    }
-}
