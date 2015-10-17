@@ -68,7 +68,7 @@ VRM_SDL_NAMESPACE
         auto size(ifs.tellg());
         ifs.seekg(0, std::ios::beg);
 
-        auto buffer(std::make_unique<char[]>(static_cast<sz_t>(size) + 1));
+        auto buffer(std::make_unique<char[]>(to_num<sz_t>(size) + 1));
         ifs.read(&buffer[0], size);
         buffer[size] = '\0';
 

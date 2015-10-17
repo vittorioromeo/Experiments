@@ -29,23 +29,6 @@ VRM_SDL_NAMESPACE
                 });
             return result;
         }
-        /*
-                    auto& null_update_fn() noexcept
-                    {
-                        static update_fn result([](auto)
-                            {
-                            });
-                        return result;
-                    }
-
-                    auto& null_draw_fn() noexcept
-                    {
-                        static draw_fn result([]
-                            {
-                            });
-                        return result;
-                    }
-                    */
     }
 }
 VRM_SDL_NAMESPACE_END

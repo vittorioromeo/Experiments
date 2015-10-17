@@ -26,33 +26,22 @@ VRM_SDL_NAMESPACE
             mouse_coord _mouse_x{0};
             mouse_coord _mouse_y{0};
 
-            void key(kkey k, bool x) noexcept
-            {
-                _keys[static_cast<sz_t>(k)] = x;
-            }
-            void btn(mbtn b, bool x) noexcept
-            {
-                _btns[static_cast<sz_t>(b)] = x;
-            }
+            void key(kkey k, bool x) noexcept { _keys[from_enum(k)] = x; }
+            void btn(mbtn b, bool x) noexcept { _btns[from_enum(b)] = x; }
 
             void mouse_x(mouse_coord c) noexcept { _mouse_x = c; }
             void mouse_y(mouse_coord c) noexcept { _mouse_y = c; }
 
         public:
-            auto key(kkey k) const noexcept
-            {
-                return _keys[static_cast<sz_t>(k)];
-            }
-            auto btn(mbtn b) const noexcept
-            {
-                return _btns[static_cast<sz_t>(b)];
-            }
+            auto key(kkey k) const noexcept { return _keys[from_enum(k)]; }
+            auto btn(mbtn b) const noexcept { return _btns[from_enum(b)]; }
 
-            auto mouse_x() const noexcept { return _mouse_x; }
-            auto mouse_y() const noexcept { return _mouse_y; }
+            const auto& mouse_x() const noexcept { return _mouse_x; }
+            const auto& mouse_y() const noexcept { return _mouse_y; }
+
             auto mouse_pos() const noexcept
             {
-                return make_vec2(mouse_x(), mouse_y());
+                return make_vec(mouse_x(), mouse_y());
             }
         };
     }

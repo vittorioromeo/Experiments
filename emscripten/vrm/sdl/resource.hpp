@@ -5,4 +5,6 @@
 
 #pragma once
 
+#include <vrm/sdl/utils.hpp>
+
 #include <vrm/sdl/resource/unique_resource.hpp>

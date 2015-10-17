@@ -14,8 +14,6 @@ VRM_SDL_NAMESPACE
     {
         auto& null_key_event_handler() noexcept;
         auto& null_btn_event_handler() noexcept;
-        //     auto& null_update_fn() noexcept;
-        //    auto& null_draw_fn() noexcept;
     }
 }
 VRM_SDL_NAMESPACE_END

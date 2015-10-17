@@ -15,7 +15,7 @@ VRM_SDL_NAMESPACE
     {
     public:
         using base_type = impl::sdl_element<SDL_Renderer>;
-        renderer(window& w) noexcept;
+        renderer(sdl_window& w) noexcept;
 
         void draw_color(int r, int g, int b, int a) noexcept;
 
@@ -27,13 +27,6 @@ VRM_SDL_NAMESPACE
         void present() noexcept;
 
         void target(std::nullptr_t) noexcept;
-        void target(texture& t) noexcept;
-
-        void clear_texture(texture& t, int r, int g, int b, int a) noexcept;
-
-        void draw(texture& t) noexcept;
-        void draw(texture& t, const vec2f& pos) noexcept;
-        void draw(sprite& s) noexcept;
     };
 }
 VRM_SDL_NAMESPACE_END

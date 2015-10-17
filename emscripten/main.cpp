@@ -14,424 +14,10 @@
 
 namespace sdl = vrm::sdl;
 
-namespace impl
-{
-    static constexpr sdl::sz_t trig_table_precision{628};
-
-    inline const auto& sin_table() noexcept
-    {
-        static sdl::trig_table<trig_table_precision> result{[](auto x)
-            {
-                return std::sin(x);
-            }};
-
-        return result;
-    }
-    inline const auto& cos_table() noexcept
-    {
-        static sdl::trig_table<trig_table_precision> result{[](auto x)
-            {
-                return std::cos(x);
-            }};
-
-        return result;
-    }
-}
-
-inline auto tbl_sin(float mX) noexcept
-{
-    // return std::sin(mX);
-    // return sin_table().get(wrap_radians(mX));
-    return impl::sin_table().get(mX);
-}
-
-inline auto tbl_cos(float mX) noexcept
-{
-    // return std::cos(mX);
-    // return cos_table().get(wrap_radians(mX));
-    return impl::cos_table().get(mX);
-}
-
 VRM_SDL_NAMESPACE
 {
     namespace impl
     {
-        auto make_2d_projection(float width, float height)
-        {
-            return glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
-        }
-
-        auto trasform_matrix_2d(const vec2f& position, const vec2f& origin,
-            const vec2f& size, float radians, float shear_x,
-            float shear_y) noexcept
-        {
-            mat3f translation{
-                // .
-                1.f, 0.f, 0.f,              // .
-                0.f, 1.f, 0.f,              // .
-                position.x, position.y, 1.f // .
-            };
-
-            mat3f rotation{
-                // .
-                tbl_cos(radians), tbl_sin(radians), 0.f,  // .
-                -tbl_sin(radians), tbl_cos(radians), 0.f, // .
-                0.f, 0.f, 1.f                             // .
-            };
-
-            mat3f origining{
-                // .
-                1.f, 0.f, 0.f,          // .
-                0.f, 1.f, 0.f,          // .
-                origin.x, origin.y, 1.f // .
-            };
-
-            mat3f centering{
-                // .
-                1.f, 0.f, 0.f,                    // .
-                0.f, 1.f, 0.f,                    // .
-                -size.x * 0.5, -size.y * 0.5, 1.f // .
-            };
-
-            mat3f scaling{
-                // .
-                size.x, 0.f, 0.f, // .
-                0.f, size.y, 0.f, // .
-                0.f, 0.f, 1.f     // .
-            };
-
-            mat3f shearing_x{
-                // .
-                1.f, 0.f, 0.f,      // .
-                -shear_x, 1.f, 0.f, // .
-                0.f, 0.f, 1.f       // .
-            };
-
-            mat3f shearing_y{
-                // .
-                1.f, shear_y, 0.f, // .
-                0.f, 1.f, 0.f,     // .
-                0.f, 0.f, 1.f      // .
-            };
-
-            return translation * rotation * origining * centering * scaling *
-                   shearing_x * shearing_y;
-        }
-
-        template <typename TFX, typename TFY>
-        auto ratio_scale_impl(const vec2f& original_size,
-            const vec2f& container_size, TFX&& step_x_fn,
-            TFY&& step_y_fn) noexcept
-        {
-            const auto& os(original_size);
-            const auto& ws(container_size);
-            auto original_ratio(os.x / os.y);
-
-            if(ws.y * original_ratio <= ws.x)
-            {
-                // the width is the boss
-
-                auto r_width = ws.y * original_ratio;
-                step_x_fn(r_width);
-                return vec2f(r_width, r_width / original_ratio);
-            }
-            else
-            {
-                // the height is the boss
-
-                auto r_height = ws.x / original_ratio;
-                step_y_fn(r_height);
-                return vec2f(r_height * original_ratio, r_height);
-            }
-        }
-
-        auto discrete_ratio_step(float value, float increment) noexcept
-        {
-            return std::floor(value / increment) * increment;
-        }
-
-        auto discrete_ratio_scale(const vec2f& original_size,
-            const vec2f& container_size, float x_increment,
-            float y_increment) noexcept
-        {
-            return ratio_scale_impl(original_size, container_size,
-                [=](auto& x)
-                {
-                    x = discrete_ratio_step(x, x_increment);
-                },
-                [=](auto& y)
-                {
-                    y = discrete_ratio_step(y, y_increment);
-                });
-        }
-
-        auto ratio_scale(
-            const vec2f& original_size, const vec2f& container_size) noexcept
-        {
-            return ratio_scale_impl(original_size, container_size,
-                [](auto&)
-                {
-                },
-                [](auto&)
-                {
-                });
-        }
-
-        auto ratio_scale_margin(
-            const vec2f& scaled_size, const vec2f& container_size) noexcept
-        {
-            return (container_size - scaled_size) / 2.f;
-        }
-    }
-
-    namespace screen_scale
-    {
-        auto fixed() noexcept
-        {
-            return [](const vec2f& original_size, const vec2f&)
-            {
-                return original_size;
-            };
-        }
-
-        auto stretch() noexcept
-        {
-            return [](const vec2f&, const vec2f& window_size)
-            {
-                return window_size;
-            };
-        }
-
-        auto ratio_aware() noexcept
-        {
-            return [](const vec2f& original_size, const vec2f& window_size)
-            {
-                return impl::ratio_scale(original_size, window_size);
-            };
-        }
-
-        auto discrete_ratio_aware(const vec2f& increment) noexcept
-        {
-            return [=](const vec2f& original_size, const vec2f& window_size)
-            {
-                return impl::discrete_ratio_scale(
-                    original_size, window_size, increment.x, increment.y);
-            };
-        }
-
-        auto pixel_perfect() noexcept
-        {
-            return [=](const vec2f& original_size, const vec2f& window_size)
-            {
-                return impl::discrete_ratio_scale(original_size, window_size,
-                    original_size.x, original_size.y);
-            };
-        }
-    }
-
-    class screen_2d
-    {
-    private:
-        using scale_fn_type = std::function<vec2f(const vec2f&, const vec2f&)>;
-
-        sdl::window& _window;
-        scale_fn_type _scale_fn{screen_scale::fixed()};
-        mat4f _projection;
-        vec2f _original_size;
-        float _original_ratio;
-
-        void refresh_projection()
-        {
-            _projection =
-                impl::make_2d_projection(_original_size.x, _original_size.y);
-        }
-
-    public:
-        screen_2d(sdl::window& window, float width, float height) noexcept
-            : _window{window},
-              _original_size{width, height},
-              _original_ratio{width / height}
-        {
-            refresh_projection();
-        }
-
-        void resize(const vec2f& new_original_size) noexcept
-        {
-            _original_size = new_original_size;
-            refresh_projection();
-        }
-
-        template <typename TF>
-        void scale_fn(TF&& fn) noexcept
-        {
-            _scale_fn = FWD(fn);
-        }
-
-        void mode(window_mode x) noexcept { _window.mode(x); }
-        const auto& mode() const noexcept { return _window.mode(); }
-
-        auto& window() noexcept { return _window; }
-        const auto& window() const noexcept { return _window; }
-
-        const auto& original_size() const noexcept { return _original_size; }
-        const auto& original_ratio() const noexcept { return _original_ratio; }
-
-        // TODO:
-        // comment everything
-        // think about "screen" and "camera"
-        // let user choose stuff
-
-        auto scaled_size() const noexcept
-        {
-            return _scale_fn(_original_size, _window.size());
-        }
-
-        auto scaling_factor() const noexcept
-        {
-            return scaled_size().x / _original_size.x;
-        }
-
-        auto margin() const noexcept
-        {
-            return impl::ratio_scale_margin(scaled_size(), _window.size());
-        }
-
-        void use_background() noexcept
-        {
-            _window.scissor_and_viewport({0.f, 0.f}, _window.size());
-        }
-
-        void use_foreground() noexcept
-        {
-            _window.scissor_and_viewport(margin(), scaled_size());
-        }
-
-        void clear(const vec4f& color) noexcept { _window.clear(color); }
-
-        void use_and_clear_background(const vec4f& color) noexcept
-        {
-            use_background();
-            clear(color);
-        }
-
-        void use_and_clear_foreground(const vec4f& color) noexcept
-        {
-            use_foreground();
-            clear(color);
-        }
-
-        const auto& projection() const noexcept { return _projection; }
-    };
-
-
-    class camera_2d
-    {
-    private:
-        screen_2d& _screen;
-        vec2f _offset;
-        float _scale{1.f};
-        float _radians{0.f};
-
-        auto origin() const noexcept { return _screen.original_size() / 2.f; }
-
-    public:
-        auto position() const noexcept { return _offset + origin(); }
-
-    private:
-        void translate_to_origin(mat4f& view, float direction) const noexcept
-        {
-            view =
-                glm::translate(view, vec3f(position().xy() * direction, 0.f));
-        }
-
-    public:
-        camera_2d(screen_2d& screen) noexcept : _screen{screen} {}
-
-        auto& zoom(float factor) noexcept
-        {
-            _scale += factor;
-            return *this;
-        }
-
-        auto& move_towards_angle(float radians, float speed)
-        {
-            radians += _radians;
-
-            _offset +=
-                vec2f(speed * std::cos(radians), speed * std::sin(radians));
-
-            return *this;
-        }
-
-        auto& move_towards_point(const vec2f& point, float speed)
-        {
-            auto direction((point - position()));
-            auto angle(std::atan2(direction.y, direction.x));
-            return move_towards_angle(angle - _radians, speed);
-        }
-
-
-        auto& move(vec2f offset) noexcept
-        {
-            auto speed(glm::length(offset));
-
-            offset = glm::normalize(offset);
-            auto direction(std::atan2(offset.y, offset.x));
-
-            return move_towards_angle(direction, speed);
-        }
-
-        auto& offset() noexcept { return _offset; }
-        const auto& offset() const noexcept { return _offset; }
-
-        auto& angle() noexcept { return _radians; }
-        const auto& angle() const noexcept { return _radians; }
-
-        auto& rotate(float radians) noexcept
-        {
-            _radians += radians;
-            return *this;
-        }
-
-        auto projection() const noexcept { return _screen.projection(); }
-
-        auto view() const noexcept
-        {
-            mat4f result;
-
-            result = glm::translate(result, vec3f{-_offset, 0.f});
-
-            translate_to_origin(result, 1.f);
-            {
-                // std::cout << _screen.scaling_factor() << "\n";
-                // auto sc(_scale * _screen.scaling_factor());
-
-                auto sc(_scale);
-
-                result = glm::scale(result, vec3f(sc, sc, 1.0f));
-
-                result = glm::rotate(result, -_radians, vec3f(0.f, 0.f, 1.f));
-            }
-            translate_to_origin(result, -1.f);
-
-            return result;
-        }
-
-        auto projection_view() const noexcept { return projection() * view(); }
-    };
-
-
-
-    namespace impl
-    {
-        auto make_program_from_file(
-            const char* vert_path, const char* frag_path)
-        {
-            auto v_sh(make_shader_from_file<shader_t::vertex>(vert_path));
-            auto f_sh(make_shader_from_file<shader_t::fragment>(frag_path));
-            return make_program(*v_sh, *f_sh);
-        }
-
         auto make_sprite_renderer_program()
         {
             constexpr auto v_sh_path("vrm/sdl/glsl/sprite.vert");
@@ -444,30 +30,6 @@ VRM_SDL_NAMESPACE
             constexpr auto v_sh_path("vrm/sdl/glsl/batched_sprite.vert");
             constexpr auto f_sh_path("vrm/sdl/glsl/batched_sprite.frag");
             return make_program_from_file(v_sh_path, f_sh_path);
-        }
-    }
-
-    namespace impl
-    {
-        auto get_texture_unit_idx(GLenum texture_unit) noexcept
-        {
-            return static_cast<sz_t>(texture_unit) -
-                   static_cast<sz_t>(GL_TEXTURE0);
-        }
-
-        auto get_texture_unit(sz_t idx) noexcept
-        {
-            return static_cast<GLenum>(static_cast<sz_t>(GL_TEXTURE0) + idx);
-        }
-
-        constexpr auto get_max_texture_unit_count() noexcept
-        {
-            return GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
-        }
-
-        constexpr auto get_valid_texture_unit_count(int desired) noexcept
-        {
-            return std::min(desired, get_max_texture_unit_count());
         }
     }
 
@@ -661,8 +223,7 @@ VRM_SDL_NAMESPACE
             const vec2f& origin, const vec2f& size, float radians,
             const vec4f& color, float hue) noexcept
         {
-            auto shear_x = 0.f;
-            auto shear_y = 0.f;
+            vec2f shear(0.f, 0.f);
 
             const vec3f pos0(0.f, 1.f, 1.f);
             const vec3f pos1(0.f, 0.f, 1.f);
@@ -670,7 +231,7 @@ VRM_SDL_NAMESPACE
             const vec3f pos3(1.f, 1.f, 1.f);
 
             auto transform(impl::trasform_matrix_2d(
-                position, origin, size, radians, shear_x, shear_y));
+                position, origin, size, radians, shear));
 
             vec3f comp0(transform * pos0);
             vec3f comp1(transform * pos1);
@@ -762,138 +323,7 @@ auto rndf = [](auto min, auto max)
     return dist_t(min, max)(rnd_gen);
 };
 
-template <typename T, std::size_t TSize>
-class sparse_int_set
-{
-private:
-    std::vector<T> _dense;
-    std::vector<T*> _sparse;
-    T* _end;
 
-public:
-    sparse_int_set() noexcept
-    {
-        _dense.resize(TSize);
-        _sparse.resize(TSize);
-        clear();
-    }
-
-    sparse_int_set(const sparse_int_set& rhs)
-        : _dense(rhs._dense), _sparse(rhs._sparse), _end(rhs._end)
-    {
-    }
-
-    sparse_int_set& operator=(const sparse_int_set& rhs)
-    {
-        _dense = rhs._dense;
-        _sparse = rhs._sparse;
-        _end = rhs._end;
-
-        return *this;
-    }
-
-    sparse_int_set(sparse_int_set&&) = default;
-    sparse_int_set& operator=(sparse_int_set&&) = default;
-
-    bool has(const T& x) const noexcept
-    {
-        assert(x < TSize);
-        return _sparse[x] != nullptr;
-    }
-
-    bool add(const T& x) noexcept
-    {
-        assert(x < TSize);
-        if(has(x)) return false;
-
-        assert(size() < TSize);
-        *_end = x;
-
-        _sparse[x] = _end;
-        ++_end;
-
-        return true;
-    }
-
-    bool erase(const T& x) noexcept
-    {
-        assert(x < TSize);
-        if(!has(x)) return false;
-
-        auto& ptr(_sparse[x]);
-        assert(size() > 0);
-
-        auto last(back());
-        assert(ptr != nullptr);
-
-        if(*ptr != last)
-        {
-            *ptr = last;
-            _sparse[last] = ptr;
-        }
-
-        assert(has(x));
-        ptr = nullptr;
-
-        assert(size() > 0);
-        --_end;
-
-        return true;
-    }
-
-    void clear() noexcept
-    {
-        for(auto& p : _sparse) p = nullptr;
-        _end = _dense.data();
-    }
-
-    bool empty() const noexcept { return _end == _dense.data(); }
-
-    void pop_back() noexcept
-    {
-        assert(size() > 0);
-        erase(back());
-    }
-
-    auto back() const noexcept
-    {
-        assert(size() > 0);
-
-        assert(has(*(_end - 1)));
-        return *(_end - 1);
-    }
-
-    template <typename TF>
-    void for_each(TF&& f) const noexcept
-    {
-        assert(size() <= TSize);
-
-        for(auto p(_dense.data()); p != _end; ++p)
-        {
-            assert(has(*p));
-            f(*p);
-        }
-    }
-
-    auto operator[](std::size_t i) const noexcept
-    {
-        assert(i < size());
-
-        assert(has(_dense[i]));
-        return _dense[i];
-    }
-
-    auto size() const noexcept
-    {
-        return static_cast<sdl::sz_t>(end() - begin());
-    }
-
-    decltype(auto) begin() noexcept { return _dense.data(); }
-    decltype(auto) begin() const noexcept { return _dense.data(); }
-
-    decltype(auto) end() noexcept { return _end; }
-    decltype(auto) end() const noexcept { return _end; }
-};
 
 constexpr sdl::sz_t my_max_entities{100000};
 
@@ -930,7 +360,7 @@ struct my_game_entity
 
 struct my_game_state
 {
-    using my_intset = sparse_int_set<std::size_t, my_max_entities>;
+    using my_intset = sdl::fixed_sparse_int_set<std::size_t, my_max_entities>;
     using entity_type = my_game_entity;
 
     // std::array<entity_type, my_max_entities> _entities;
@@ -1094,12 +524,12 @@ struct my_game
 
     std::array<sdl::impl::unique_gltexture2d, e_type_count> _texture_array;
 
-    sdl::screen_2d _screen{_context.window(), 320.f, 240.f};
-    sdl::camera_2d _camera{_screen};
+    sdl::window& _window{*sdl::impl::global_window};
+    sdl::camera_2d _camera{_window};
 
     auto& texture(e_type type) noexcept
     {
-        return _texture_array[static_cast<int>(type)];
+        return _texture_array[from_enum(type)];
     }
 
 
@@ -1226,7 +656,8 @@ struct my_game
 
                     auto angle(rndf(0.f, sdl::tau));
                     auto speed(rndf(0.1f, 3.f));
-                    auto unit_vec(sdl::vec2f(tbl_cos(angle), tbl_sin(angle)));
+                    auto unit_vec(
+                        sdl::vec2f(sdl::tbl_cos(angle), sdl::tbl_sin(angle)));
                     auto vel(unit_vec * speed);
 
                     state.add(this->make_fireball(
@@ -1252,9 +683,8 @@ struct my_game
             auto& state(_engine.current_state());
             auto& entities(state._entities);
 
-            state.add(make_toriel(state, sdl::make_vec2(500.f, 100.f)));
-            state._soul_idx =
-                state.add(make_soul(sdl::make_vec2(500.f, 500.f)));
+            state.add(make_toriel(state, sdl::make_vec(500.f, 100.f)));
+            state._soul_idx = state.add(make_soul(sdl::make_vec(500.f, 500.f)));
         }
 
         _engine.update_fn() = [&, this](auto& state, auto step)
@@ -1333,8 +763,8 @@ struct my_game
 
         _engine.draw_fn() = [&, this](const auto& state)
         {
-            _screen.use_and_clear_background({0.5f, 0.5f, 0.5f, 1.0f});
-            _screen.use_and_clear_foreground({0.f, 0.f, 0.f, 1.0f});
+            _window.use_and_clear_background({0.5f, 0.5f, 0.5f, 1.0f});
+            _window.use_and_clear_foreground({0.f, 0.f, 0.f, 1.0f});
 
             sr.use(_camera);
 
@@ -1379,7 +809,6 @@ struct my_game
                     ei._opacity = lerp(e0._opacity, e1._opacity);
                     ei.hue = e0.hue;
                 });
-
         };
     }
 };
@@ -1389,10 +818,9 @@ using my_timer = sdl::impl::static_timer;
 using my_engine_settings =
     sdl::interpolated_engine_settings<my_timer, my_game_state>;
 
-using my_interpolated_engine =
-    sdl::impl::non_interpolated_engine<my_engine_settings>;
+using my_engine = sdl::impl::non_interpolated_engine<my_engine_settings>;
 
-using my_context_settings = sdl::context_settings<my_interpolated_engine>;
+using my_context_settings = sdl::context_settings<my_engine>;
 
 int main()
 {
@@ -1414,10 +842,10 @@ int main()
     // TODO:
 
     my_timer timer;
-    my_interpolated_engine engine;
+    my_engine engine;
 
-    auto c_handle(
-        sdl::make_global_context<my_context_settings>("test game", 1000, 600));
+    auto c_handle(sdl::make_global_window_and_context<my_context_settings>(
+        "test game", 1000.f, 600.f));
 
     auto& c(*c_handle);
     engine._timer = &timer;

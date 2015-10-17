@@ -99,6 +99,27 @@ VRM_SDL_NAMESPACE
 
         using unique_gltexture2d =
             unique_resource<impl::gltexture2d, gltexture2d_deleter>;
+
+        constexpr auto get_texture_unit_idx(GLenum texture_unit) noexcept
+        {
+            return to_num<sz_t>(texture_unit) - to_num<sz_t>(GL_TEXTURE0);
+        }
+
+        constexpr auto get_texture_unit(sz_t idx) noexcept
+        {
+            return static_cast<GLenum>(static_cast<sz_t>(GL_TEXTURE0) + idx);
+        }
+
+        constexpr auto get_max_texture_unit_count() noexcept
+        {
+            return GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+        }
+
+        constexpr auto get_valid_texture_unit_count(sz_t desired) noexcept
+        {
+            return std::min(
+                desired, to_num<sz_t>(get_max_texture_unit_count()));
+        }
     }
 
     auto make_gltexture2d(surface & s) noexcept

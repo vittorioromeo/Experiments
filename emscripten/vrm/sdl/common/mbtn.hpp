@@ -9,7 +9,6 @@
 
 VRM_SDL_NAMESPACE
 {
-
     enum class mbtn : sz_t
     {
         left = 1,

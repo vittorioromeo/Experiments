@@ -127,13 +127,8 @@ VRM_SDL_NAMESPACE
             using timer_type = typename settings_type::timer_type;
             using engine_type = typename settings_type::engine_type;
 
-            const sz_t _width;
-            const sz_t _height;
-
             engine_type* _engine;
-
-            unique_window _window;
-            unique_glcontext _glcontext;
+            window& _window;
 
             SDL_Event _event;
 
@@ -168,16 +163,15 @@ VRM_SDL_NAMESPACE
             template <typename T>
             auto ms_from_duration(const T& duration) const noexcept;
 
-            auto& window() noexcept { return *_window; }
-            const auto& window() const noexcept { return *_window; }
+            auto& window() noexcept { return _window; }
+            const auto& window() const noexcept { return _window; }
 
         public:
             float fps_limit{144.0};
 
             float ms_limit() const noexcept { return 1000.f / fps_limit; }
 
-            context(const std::string& title, std::size_t width,
-                std::size_t height);
+            context(class window& window);
 
             context(const context&) = delete;
             context& operator=(const context&) = delete;

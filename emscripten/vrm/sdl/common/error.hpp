@@ -13,47 +13,25 @@ VRM_SDL_NAMESPACE
     namespace impl
     {
         template <typename T>
-        auto error_title_for() noexcept
-        {
-            return "";
-        }
+        constexpr const char* error_title_for{""};
 
         template <>
-        auto error_title_for<SDL_Renderer>() noexcept
-        {
-            return "renderer";
-        }
+        constexpr const char* error_title_for<SDL_Renderer>{"renderer"};
 
         template <>
-        auto error_title_for<SDL_Window>() noexcept
-        {
-            return "window";
-        }
+        constexpr const char* error_title_for<SDL_Window>{"window"};
 
         template <>
-        auto error_title_for<SDL_Texture>() noexcept
-        {
-            return "texture";
-        }
+        constexpr const char* error_title_for<SDL_Texture>{"texture"};
 
         template <>
-        auto error_title_for<SDL_Surface>() noexcept
-        {
-            return "surface";
-        }
-
+        constexpr const char* error_title_for<SDL_Surface>{"surface"};
 
         template <>
-        auto error_title_for<SDL_GLContext>() noexcept
-        {
-            return "glcontext";
-        }
+        constexpr const char* error_title_for<SDL_GLContext>{"glcontext"};
 
         template <>
-        auto error_title_for<TTF_Font>() noexcept
-        {
-            return "ttffont";
-        };
+        constexpr const char* error_title_for<TTF_Font>{"ttffont"};
 
         void log_sdl_error(const char* title = "unknown") noexcept
         {

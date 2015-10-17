@@ -17,7 +17,7 @@ VRM_SDL_NAMESPACE
         SDL_GLContext _glcontext;
 
     public:
-        glcontext(window& w) noexcept
+        glcontext(sdl_window& w) noexcept
         {
             _glcontext = SDL_GL_CreateContext(w);
 
@@ -35,5 +35,18 @@ VRM_SDL_NAMESPACE
 
         auto context() const noexcept { return _glcontext; }
     };
+
+    namespace impl
+    {
+        struct glcontext_deleter
+        {
+            void operator()(glcontext& p) noexcept
+            {
+                SDL_GL_DeleteContext(p.context());
+            }
+        };
+
+        using unique_glcontext = unique_resource<glcontext, glcontext_deleter>;
+    }
 }
 VRM_SDL_NAMESPACE_END

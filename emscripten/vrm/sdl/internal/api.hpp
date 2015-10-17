@@ -12,11 +12,13 @@
 
 #define VRM_SDL_NAMESPACE_END }
 
+#define VRM_SDL_ALWAYS_INLINE __attribute__((always_inline)) inline
+
 #define VRM_SDL_API_HEADERONLY 1
 
 #if defined(VRM_SDL_API_HEADERONLY)
 #define VRM_SDL_API_INLINE inline
 #else
 // TODO:
-#define VRM_SDL_API_INLINE inline
+#error "TODO:"
 #endif

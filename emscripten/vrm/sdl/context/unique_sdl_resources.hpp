@@ -16,10 +16,7 @@ VRM_SDL_NAMESPACE
 {
     namespace impl
     {
-        struct window_deleter
-        {
-            void operator()(window& p) noexcept { SDL_DestroyWindow(p.ptr()); }
-        };
+
 
         struct renderer_deleter
         {
@@ -34,13 +31,7 @@ VRM_SDL_NAMESPACE
             void operator()(surface& p) noexcept { SDL_FreeSurface(p.ptr()); }
         };
 
-        struct glcontext_deleter
-        {
-            void operator()(glcontext& p) noexcept
-            {
-                SDL_GL_DeleteContext(p.context());
-            }
-        };
+
 
         struct ttffont_deleter
         {
@@ -57,13 +48,13 @@ VRM_SDL_NAMESPACE
             void operator()(GLint id) noexcept { glDeleteProgram(id); }
         };
 
-        using unique_window = unique_resource<window, window_deleter>;
+
 
         using unique_renderer = unique_resource<renderer, renderer_deleter>;
 
         using unique_surface = unique_resource<surface, surface_deleter>;
 
-        using unique_glcontext = unique_resource<glcontext, glcontext_deleter>;
+
 
         using unique_ttffont = unique_resource<ttffont, ttffont_deleter>;
 

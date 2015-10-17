@@ -16,6 +16,7 @@
 #include <vrm/sdl/gl/index_type.hpp>
 #include <vrm/sdl/gl/vao.hpp>
 #include <vrm/sdl/gl/vbo.hpp>
+#include <vrm/sdl/gl/fbo.hpp>
 #include <vrm/sdl/gl/attribute.hpp>
 #include <vrm/sdl/gl/uniform.hpp>
 #include <vrm/sdl/gl/program.hpp>

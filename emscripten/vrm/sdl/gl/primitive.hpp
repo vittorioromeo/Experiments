@@ -9,41 +9,15 @@
 
 VRM_SDL_NAMESPACE
 {
-    enum class primitive
+    enum class primitive : GLenum
     {
-        points,
-        lines,
-        line_strip,
-        line_loop,
-        triangles,
-        triangle_strip,
-        triangle_fan
+        points = GL_POINTS,
+        lines = GL_LINES,
+        line_strip = GL_LINE_STRIP,
+        line_loop = GL_LINE_LOOP,
+        triangles = GL_TRIANGLES,
+        triangle_strip = GL_TRIANGLE_STRIP,
+        triangle_fan = GL_TRIANGLE_FAN
     };
-
-    namespace impl
-    {
-        template <primitive TP>
-        constexpr GLenum primitive_value{GL_POINTS};
-
-        template <>
-        constexpr GLenum primitive_value<primitive::lines>{GL_LINES};
-
-        template <>
-        constexpr GLenum primitive_value<primitive::line_strip>{GL_LINE_STRIP};
-
-        template <>
-        constexpr GLenum primitive_value<primitive::line_loop>{GL_LINE_LOOP};
-
-        template <>
-        constexpr GLenum primitive_value<primitive::triangles>{GL_TRIANGLES};
-
-        template <>
-        constexpr GLenum primitive_value<primitive::triangle_strip>{
-            GL_TRIANGLE_STRIP};
-
-        template <>
-        constexpr GLenum primitive_value<primitive::triangle_fan>{
-            GL_TRIANGLE_FAN};
-    }
 }
 VRM_SDL_NAMESPACE_END

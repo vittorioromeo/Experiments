@@ -5,10 +5,12 @@
 
 #pragma once
 
+#include <vrm/sdl/common.hpp>
+
 VRM_SDL_NAMESPACE
 {
     template <typename TF, typename... Ts>
-    void for_args(TF && fn, Ts && ... xs) noexcept(
+    VRM_SDL_ALWAYS_INLINE void for_args(TF && fn, Ts && ... xs) noexcept(
         noexcept((void)((int[]){(fn(FWD(xs)), 0)...})))
     {
         using swallow = int[];

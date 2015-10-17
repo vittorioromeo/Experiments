@@ -16,19 +16,19 @@ VRM_SDL_NAMESPACE
     constexpr float rad_deg_ratio{pi / 180.f};
 
     template <typename T>
-    constexpr auto to_rad(const T& x) noexcept
+    constexpr VRM_SDL_ALWAYS_INLINE auto to_rad(const T& x) noexcept
     {
         return x * rad_deg_ratio;
     }
 
     template <typename T>
-    constexpr auto to_deg(const T& x) noexcept
+    constexpr VRM_SDL_ALWAYS_INLINE auto to_deg(const T& x) noexcept
     {
         return x / rad_deg_ratio;
     }
 
     template <typename T>
-    auto wrap_rad(const T& x) noexcept
+    VRM_SDL_ALWAYS_INLINE auto wrap_rad(const T& x) noexcept
     {
         assert(x >= -sdl::tau && x <= 2.f * sdl::tau);
 
@@ -37,29 +37,5 @@ VRM_SDL_NAMESPACE
 
         return x;
     }
-
-    template <sz_t TPrecision>
-    struct trig_table
-    {
-    private:
-        static constexpr sz_t count{TPrecision};
-        static constexpr float ratio{TPrecision / tau};
-        std::array<float, count> arr;
-
-    public:
-        template <typename TF>
-        inline trig_table(TF&& mFn) noexcept
-        {
-            for(auto i(0u); i < count; ++i) arr[i] = mFn(i / ratio);
-        }
-
-        inline auto get(float mX) const noexcept
-        {
-            auto idx(static_cast<sz_t>(mX * ratio));
-            assert(idx < count);
-
-            return arr[idx];
-        }
-    };
 }
 VRM_SDL_NAMESPACE_END

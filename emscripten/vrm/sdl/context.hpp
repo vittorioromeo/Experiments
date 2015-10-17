@@ -7,6 +7,7 @@
 
 #include <vrm/sdl/resource.hpp>
 #include <vrm/sdl/elements.hpp>
+#include <vrm/sdl/window.hpp>
 
 #include <vrm/sdl/context/unique_sdl_resources.hpp>
 #include <vrm/sdl/context/context_settings.hpp>

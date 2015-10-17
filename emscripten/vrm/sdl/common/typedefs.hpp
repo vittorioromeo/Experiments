@@ -26,15 +26,10 @@ VRM_SDL_NAMESPACE
         using key_code = SDL_Keycode;
         using mouse_coord = Sint32;
         using mouse_btn = Uint8;
-        // using update_fn = std::function<void(ft)>;
-        // using draw_fn = std::function<void()>;
     }
 
     template <typename TSettings>
     class context;
-
-    class texture;
-    class sprite;
 
     using namespace std::literals;
 }

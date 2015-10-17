@@ -460,9 +460,9 @@ int main(int argc, char** argv)
         auto c_y = rndf(0.f, 1000.f);
         auto sz = rndf(1.01f, 50.05f);
 
-        auto p0 = sdl::make_vec2(c_x - sz, c_y - sz);
-        auto p1 = sdl::make_vec2(c_x + sz, c_y - sz);
-        auto p2 = sdl::make_vec2(c_x + sz, c_y);
+        auto p0 = sdl::make_vec(c_x - sz, c_y - sz);
+        auto p1 = sdl::make_vec(c_x + sz, c_y - sz);
+        auto p2 = sdl::make_vec(c_x + sz, c_y);
 
         auto v0 = sdl::vertex2{p0, rnd_color()};
         auto v1 = sdl::vertex2{p1, rnd_color()};
@@ -688,7 +688,7 @@ int main_old(int argc, char** argv)
                 for(int i = 0; i < 30; ++i)
                     if(entities.size() < max_entities)
                         entities.emplace_back(make_fireball(x._pos,
-                            sdl::make_vec2(-2.f + (rand() % 500) / 100.f, 2.f),
+                            sdl::make_vec(-2.f + (rand() % 500) / 100.f, 2.f),
                             1.f + (rand() % 100) / 80.f));
             }
         };
@@ -702,8 +702,8 @@ int main_old(int argc, char** argv)
         return e;
     };
 
-    entities.emplace_back(make_toriel(sdl::make_vec2(500.f, 100.f)));
-    entities.emplace_back(make_soul(sdl::make_vec2(500.f, 500.f)));
+    entities.emplace_back(make_toriel(sdl::make_vec(500.f, 100.f)));
+    entities.emplace_back(make_soul(sdl::make_vec(500.f, 500.f)));
 
     c.update_fn() = [&](auto ft)
     {

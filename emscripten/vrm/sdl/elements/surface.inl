@@ -12,7 +12,7 @@ VRM_SDL_NAMESPACE
     auto surface::width() const noexcept { return get().w; }
     auto surface::height() const noexcept { return get().h; }
 
-    auto surface::size() const noexcept { return make_vec2(width(), height()); }
+    auto surface::size() const noexcept { return make_vec(width(), height()); }
 
     const auto& surface::rect() const noexcept { return _rect; }
 

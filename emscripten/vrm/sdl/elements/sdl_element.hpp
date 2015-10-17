@@ -23,7 +23,7 @@ VRM_SDL_NAMESPACE
 #ifndef NDEBUG
                 if(_ptr != nullptr) return;
 
-                impl::log_sdl_error(impl::error_title_for<T>());
+                impl::log_sdl_error(impl::error_title_for<T>);
                 std::terminate();
 #endif
             }
@@ -55,6 +55,12 @@ VRM_SDL_NAMESPACE
             }
 
             operator T*() noexcept { return ptr(); }
+
+            auto operator-> () noexcept { return ptr(); }
+            auto operator-> () const noexcept { return ptr(); }
+
+            auto& operator*() noexcept { return get(); }
+            const auto& operator*() const noexcept { return get(); }
         };
     }
 }

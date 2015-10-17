@@ -14,15 +14,20 @@ VRM_SDL_NAMESPACE
 {
     namespace impl
     {
+        std::unique_ptr<window> global_window;
         std::function<void()> global_context_fn;
         void run_global_context_loop() noexcept { global_context_fn(); }
     }
 
     template <typename TSettings, typename... Ts>
-    auto make_global_context(Ts && ... xs)
+    auto make_global_window_and_context(Ts && ... xs)
     {
         // assert(impl::global_context == nullptr);
-        auto uptr(std::make_unique<impl::context<TSettings>>(FWD(xs)...));
+        impl::global_window = std::make_unique<window>(FWD(xs)...);
+
+        auto uptr(
+            std::make_unique<impl::context<TSettings>>(*impl::global_window));
+
         auto ptr(uptr.get());
 
         impl::global_context_fn = [ptr]

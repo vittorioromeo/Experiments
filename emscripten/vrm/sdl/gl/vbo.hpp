@@ -85,6 +85,7 @@ VRM_SDL_NAMESPACE
 
             void generate() noexcept
             {
+                assert(_n == 1);
                 VRM_SDL_GLCHECK(glGenBuffers(_n, &_id));
             }
 
@@ -128,7 +129,7 @@ VRM_SDL_NAMESPACE
             void sub_buffer_data_items(const T* data_ptr, sz_t item_count,
                 sz_t vbo_byte_offset = 0) noexcept
             {
-                sub_buffer_data_bytes(static_cast<const void*>(data_ptr),
+                sub_buffer_data_bytes(to_void_ptr(data_ptr),
                     item_count * sizeof(T), vbo_byte_offset);
             }
 
@@ -164,7 +165,7 @@ VRM_SDL_NAMESPACE
             void buffer_data_items(const T* data_ptr, sz_t item_count) noexcept
             {
                 buffer_data_bytes<TUsage>(
-                    static_cast<const void*>(data_ptr), sizeof(T) * item_count);
+                    to_void_ptr(data_ptr), sizeof(T) * item_count);
             }
 
             template <buffer_usage TUsage, typename T, sz_t TN>

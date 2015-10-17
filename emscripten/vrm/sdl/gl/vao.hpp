@@ -29,7 +29,7 @@ VRM_SDL_NAMESPACE
                 VRM_SDL_GLCHECK(
                     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &result));
 
-                return result == static_cast<GLint>(_id);
+                return result == to_num<GLint>(_id);
 #else
                 return true;
 #endif
@@ -42,6 +42,7 @@ VRM_SDL_NAMESPACE
 
             void generate() noexcept
             {
+                assert(_n == 1);
                 VRM_SDL_GLCHECK(glGenVertexArraysOES(_n, &_id));
             }
 
@@ -81,9 +82,8 @@ VRM_SDL_NAMESPACE
             {
                 assert(bound());
 
-                VRM_SDL_GLCHECK(glDrawElements(impl::primitive_value<TP>,
-                    index_count, impl::index_type_value<TI>,
-                    (const void*)vbo_offset_byte));
+                VRM_SDL_GLCHECK(glDrawElements(from_enum(TP), index_count,
+                    impl::index_type_value<TI>, to_void_ptr(vbo_offset_byte)));
             }
 
             template <primitive TP, typename... Ts>

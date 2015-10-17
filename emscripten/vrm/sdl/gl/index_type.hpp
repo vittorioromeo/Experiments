@@ -9,24 +9,11 @@
 
 VRM_SDL_NAMESPACE
 {
-    enum class index_type
+    enum class index_type : GLenum
     {
-        ui_byte,
-        ui_short,
-        ui_int
+        ui_byte = GL_UNSIGNED_BYTE,
+        ui_short = GL_UNSIGNED_SHORT,
+        ui_int = GL_UNSIGNED_INT
     };
-
-    namespace impl
-    {
-        template <index_type TP>
-        constexpr GLenum index_type_value{GL_UNSIGNED_BYTE};
-
-        template <>
-        constexpr GLenum index_type_value<index_type::ui_short>{
-            GL_UNSIGNED_SHORT};
-
-        template <>
-        constexpr GLenum index_type_value<index_type::ui_int>{GL_UNSIGNED_INT};
-    }
 }
 VRM_SDL_NAMESPACE_END

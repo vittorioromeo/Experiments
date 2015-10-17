@@ -140,20 +140,19 @@ VRM_SDL_NAMESPACE
                 {
                     case SDL_KEYDOWN:
                         on_key_down()(
-                            static_cast<kkey>(_event.key.keysym.scancode));
+                            to_enum<kkey>(_event.key.keysym.scancode));
                         break;
 
                     case SDL_KEYUP:
-                        on_key_up()(
-                            static_cast<kkey>(_event.key.keysym.scancode));
+                        on_key_up()(to_enum<kkey>(_event.key.keysym.scancode));
                         break;
 
                     case SDL_MOUSEBUTTONDOWN:
-                        on_btn_down()(static_cast<mbtn>(_event.button.button));
+                        on_btn_down()(to_enum<mbtn>(_event.button.button));
                         break;
 
                     case SDL_MOUSEBUTTONUP:
-                        on_btn_up()(static_cast<mbtn>(_event.button.button));
+                        on_btn_up()(to_enum<mbtn>(_event.button.button));
                         break;
 
                     case SDL_MOUSEMOTION:
@@ -176,10 +175,8 @@ VRM_SDL_NAMESPACE
 
 
         template <typename TSettings>
-        context<TSettings>::context(
-            const std::string& title, std::size_t width, std::size_t height)
-            : _width{width}, _height{height}, _window{title, width, height},
-              _glcontext{*_window}
+        context<TSettings>::context(class window& window)
+            : _window{window}
         {
             if(TTF_Init() != 0)
             {
@@ -308,7 +305,7 @@ VRM_SDL_NAMESPACE
                                     // clear(vec4f{0.f, 0.f, 0.f, 1.f});
                                     _engine->run_draw();
 
-                                    SDL_GL_SwapWindow(*_window);
+                                    window().display();
                                 });
                         });
 
@@ -319,7 +316,7 @@ VRM_SDL_NAMESPACE
         template <typename TSettings>
         void context<TSettings>::clear(const vec4f& color) noexcept
         {
-            (*_window).clear(color);
+            window().clear(color);
         }
 
 
@@ -339,7 +336,7 @@ VRM_SDL_NAMESPACE
             // return seconds_ft_ratio / total_ms();
             // return total_duration().count();
 
-            return static_cast<int>(1000.f / real_ms());
+            return to_num<int>(1000.f / real_ms());
         }
 
         template <typename TSettings>
@@ -382,7 +379,7 @@ VRM_SDL_NAMESPACE
         template <typename TSettings>
         void context<TSettings>::title(const std::string& s) noexcept
         {
-            this->_window->title(s);
+            window().title(s);
         }
     }
 }

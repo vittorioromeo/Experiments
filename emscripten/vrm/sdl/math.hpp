@@ -5,5 +5,12 @@
 
 #pragma once
 
+#include <vrm/sdl/common.hpp>
+
 #include <vrm/sdl/math/angle.hpp>
-#include <vrm/sdl/math/vec2.hpp>
+#include <vrm/sdl/math/trig_table.hpp>
+#include <vrm/sdl/math/sin_cos_table.hpp>
+#include <vrm/sdl/math/vec.hpp>
+#include <vrm/sdl/math/mat.hpp>
+#include <vrm/sdl/math/transform_2d.hpp>
+#include <vrm/sdl/math/ratio_scale.hpp>

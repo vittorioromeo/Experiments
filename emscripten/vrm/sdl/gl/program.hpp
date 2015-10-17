@@ -100,5 +100,12 @@ VRM_SDL_NAMESPACE
 
         return p;
     }
+
+    auto make_program_from_file(const char* vert_path, const char* frag_path)
+    {
+        auto v_sh(make_shader_from_file<shader_t::vertex>(vert_path));
+        auto f_sh(make_shader_from_file<shader_t::fragment>(frag_path));
+        return make_program(*v_sh, *f_sh);
+    }
 }
 VRM_SDL_NAMESPACE_END

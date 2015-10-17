@@ -1204,9 +1204,8 @@ struct my_game
             auto& state(_context.current_state());
             auto& entities(state._entities);
 
-            state.add(make_toriel(state, sdl::make_vec2(500.f, 100.f)));
-            state._soul_idx =
-                state.add(make_soul(sdl::make_vec2(500.f, 500.f)));
+            state.add(make_toriel(state, sdl::make_vec(500.f, 100.f)));
+            state._soul_idx = state.add(make_soul(sdl::make_vec(500.f, 500.f)));
         }
 
         _context.update_fn() = [&, this](auto& state, auto step)
@@ -1244,7 +1243,7 @@ struct my_game
             {
                 auto fps_str(std::to_string(_context.fps()));
                 auto fps_limit_str(
-                    std::to_string(static_cast<int>(_context.fps_limit)));
+                    std::to_string(to_num<int>(_context.fps_limit)));
                 auto update_ms_str(std::to_string(_context.update_ms()));
                 auto draw_ms_str(std::to_string(_context.draw_ms()));
 

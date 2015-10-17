@@ -58,8 +58,7 @@ VRM_SDL_NAMESPACE
             static_assert(std::is_standard_layout<T>{}, "");
 
             return vertex_attrib_pointer(n_components, type, normalized,
-                sizeof(T), reinterpret_cast<const void*>(offset),
-                layout_offset);
+                sizeof(T), to_void_ptr(offset), layout_offset);
         }
 
         template <typename T, typename TValue>
