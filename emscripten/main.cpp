@@ -1,4 +1,5 @@
 #include <cfenv>
+#include <sstream>
 #include <stdio.h>
 #include <iostream>
 #include <memory>
@@ -40,6 +41,7 @@ VRM_SDL_NAMESPACE
     private:
         std::vector<atlas_builder_input> _in;
         sz_t _capacity;
+        vec2i _spacing{2, 2};
 
     public:
         atlas_builder(sz_t capacity) : _capacity{capacity}
@@ -66,9 +68,11 @@ VRM_SDL_NAMESPACE
                 auto sw(i._surface->width());
                 auto sh(i._surface->height());
 
-                target_size.x += sw;
+                target_size.x += sw + _spacing.x;
                 if(sh > target_size.y) target_size.y = sh;
             }
+
+            // target_size.y += _spacing.y;
 
             target.generate_blank(target_size);
             target.bind();
@@ -99,7 +103,7 @@ VRM_SDL_NAMESPACE
                     atlas_builder_output{_tx0, _tx1, _tx2, _tx3});
 
                 target.sub_image_2d(current_offset, *(i._surface));
-                current_offset.x += sw;
+                current_offset.x += sw + _spacing.x;
             }
 
             return result;
@@ -681,12 +685,12 @@ struct my_game
         e._radians = rndf(0.f, sdl::tau);
         e._origin = sdl::vec2f{0, 0};
 
-        e._size = texture_size(e_type::fireball) * rndf(0.9f, 1.2f);
+        e._size = texture_size(e_type::fireball) * rndf(0.5f, 3.2f);
         e._hitbox_radius = 3.f;
         e._opacity = 0.f;
         e.vel = vel;
         e.speed = speed;
-        e.hue = rndf(-0.6f, 1.1f);
+        e.hue = rndf(-0.f, 360.f);
         e.curve = rndf(-1.f, 1.f);
         e.dir = rand() % 2;
         e.life = 100.f;
@@ -744,14 +748,14 @@ struct my_game
         {
             x.curve = 10.f;
 
-            for(int i = 0; i < 10000; ++i)
+            for(int i = 0; i < 10; ++i)
             {
                 if(state._free.empty()) break;
 
                 auto angle(rndf(0.f, sdl::tau));
-                auto speed(rndf(0.1f, 3.f));
-                auto unit_vec(
-                    sdl::vec2f(sdl::tbl_cos(angle), sdl::tbl_sin(angle)));
+                auto speed(rndf(0.1f, 250.f));
+                auto unit_vec(sdl::vec2f(std::cos(angle), std::sin(angle)));
+                // sdl::vec2f(sdl::tbl_cos(angle), sdl::tbl_sin(angle)));
                 auto vel(unit_vec * speed);
 
                 state.add(
@@ -844,9 +848,11 @@ struct my_game
             if(_context.key(sdl::kkey::z)) _camera.zoom(-0.05f * step);
             if(_context.key(sdl::kkey::x)) _camera.zoom(0.05f * step);
 
+            /*
             _camera.move_towards_point(soul._pos,
                 (4.f * (glm::length(soul._pos - _camera.position()) * 0.01f) *
                                            step));
+                                           */
 
             // if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
             // if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
@@ -855,6 +861,8 @@ struct my_game
             {
                 sdl::stop_global_context();
             }
+
+            soul._pos = _camera.window_to_world(_context.mouse_pos());
 
             if(rand() % 100 < 30)
             {
@@ -970,11 +978,12 @@ int main()
     my_engine engine;
 
     auto c_handle(sdl::make_global_window_and_context<my_context_settings>(
-        "test game", 1000.f, 600.f));
+        "test game", 1440.f, 900.f));
 
     auto& c(*c_handle);
     engine._timer = &timer;
     c._engine = &engine;
+    c.window().mode(sdl::window_mode::windowed);
 
     auto game(std::make_unique<my_game<decltype(c)>>(c));
     sdl::run_global_context();

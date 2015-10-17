@@ -19,7 +19,7 @@ VRM_SDL_NAMESPACE
         impl::unique_sdl_window _sdl_window;
         impl::unique_glcontext _glcontext;
 
-        scale_fn_type _scale_fn{window_scale::pixel_perfect()};
+        scale_fn_type _scale_fn{window_scale::ratio_aware()};
         vec2f _original_size;
         float _original_ratio;
 
