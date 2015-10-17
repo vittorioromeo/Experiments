@@ -50,7 +50,7 @@ VRM_SDL_NAMESPACE
 
         auto& zoom(float factor) noexcept
         {
-            _scale += factor;
+            _scale *= factor;
             return *this;
         }
 
@@ -123,15 +123,19 @@ VRM_SDL_NAMESPACE
             const auto& w_m(_window.margin());
             const auto& w_ss(_window.scaled_size());
 
+            // Magic.
             vec3f p(point.x - w_m.x, -point.y + w_ss.y + w_m.y, 1.f);
             vec4f viewport(0.f, 0.f, w_ss.x, w_ss.y);
 
+            // Clamp X.
             if(p.x < 0) p.x = 0;
             if(p.x > w_ss.x) p.x = w_ss.x;
 
+            // Clamp Y.
             if(p.y < 0) p.y = 0;
             if(p.y > w_ss.y) p.y = w_ss.y;
 
+            // Magic.
             return glm::unProject(p, view(), projection(), viewport).xy();
         }
     };

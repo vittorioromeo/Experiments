@@ -289,13 +289,13 @@ VRM_SDL_NAMESPACE
 
     private:
         template <typename... Ts>
-        void enqueue_v(Ts&&... xs) noexcept
+        VRM_SDL_ALWAYS_INLINE void enqueue_v(Ts&&... xs) noexcept
         {
             _data.emplace_back(FWD(xs)...);
         }
 
         template <typename... Ts>
-        void enqueue_i(Ts&&... xs) noexcept
+        VRM_SDL_ALWAYS_INLINE void enqueue_i(Ts&&... xs) noexcept
         {
             sdl::for_args(
                 [this](auto&& i)
@@ -748,7 +748,7 @@ struct my_game
         {
             x.curve = 10.f;
 
-            for(int i = 0; i < 10; ++i)
+            for(int i = 0; i < 10000; ++i)
             {
                 if(state._free.empty()) break;
 
@@ -845,8 +845,8 @@ struct my_game
             if(_context.key(sdl::kkey::q)) _camera.rotate(-0.05f * step);
             if(_context.key(sdl::kkey::e)) _camera.rotate(0.05f * step);
 
-            if(_context.key(sdl::kkey::z)) _camera.zoom(-0.05f * step);
-            if(_context.key(sdl::kkey::x)) _camera.zoom(0.05f * step);
+            if(_context.key(sdl::kkey::z)) _camera.zoom(0.9f * step);
+            if(_context.key(sdl::kkey::x)) _camera.zoom(1.1f * step);
 
             /*
             _camera.move_towards_point(soul._pos,
