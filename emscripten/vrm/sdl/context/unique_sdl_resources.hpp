@@ -38,9 +38,6 @@ VRM_SDL_NAMESPACE
             void operator()(ttffont& p) noexcept { TTF_CloseFont(p.ptr()); }
         };
 
-        
-
-        
 
 
         using unique_renderer = unique_resource<renderer, renderer_deleter>;
@@ -50,10 +47,6 @@ VRM_SDL_NAMESPACE
 
 
         using unique_ttffont = unique_resource<ttffont, ttffont_deleter>;
-
-
-
-        
     }
 }
 VRM_SDL_NAMESPACE_END

@@ -309,7 +309,8 @@ VRM_SDL_NAMESPACE
         }
 
     public:
-        void draw_sprite(const impl::gltexture2d& t, const atlas_builder_output& tex_coords, const vec2f& position,
+        void draw_sprite(const impl::gltexture2d& t,
+            const atlas_builder_output& tex_coords, const vec2f& position,
             const vec2f& origin, const vec2f& size, float radians,
             const vec4f& color, float hue) noexcept
         {
@@ -618,12 +619,12 @@ struct my_game
     sdl::window& _window{*sdl::impl::global_window};
     sdl::camera_2d _camera{_window};
 
-    
+
     auto& texture_size(e_type type) noexcept
     {
         return _texture_size_array[sdl::from_enum(type)];
     }
-    
+
 
     auto& texture_coords(e_type type) noexcept
     {
@@ -680,7 +681,7 @@ struct my_game
         e._radians = rndf(0.f, sdl::tau);
         e._origin = sdl::vec2f{0, 0};
 
-        e._size =  texture_size(e_type::fireball) * rndf(0.9f, 1.2f);
+        e._size = texture_size(e_type::fireball) * rndf(0.9f, 1.2f);
         e._hitbox_radius = 3.f;
         e._opacity = 0.f;
         e.vel = vel;
@@ -718,8 +719,9 @@ struct my_game
 
     auto sprite_draw(const entity_type& x)
     {
-        sr.draw_sprite(*_test_atlas, _texture_coords_array[sdl::from_enum(x.type)], x._pos, x._origin, x._size, x._radians,
-            sdl::vec4f{1.f, 0.f, 1.f, x._opacity}, x.hue);
+        sr.draw_sprite(*_test_atlas,
+            _texture_coords_array[sdl::from_enum(x.type)], x._pos, x._origin,
+            x._size, x._radians, sdl::vec4f{1.f, 0.f, 1.f, x._opacity}, x.hue);
     }
 
     auto make_toriel(game_state_type& state, sdl::vec2f pos)
@@ -767,8 +769,10 @@ struct my_game
     {
         // texture(e_type::soul) = make_texture_from_image("files/soul.png");
 
-        // texture(e_type::fireball) = make_texture_from_image("files/fireball.png");
-       // texture(e_type::toriel) = make_texture_from_image("files/toriel.png");
+        // texture(e_type::fireball) =
+        // make_texture_from_image("files/fireball.png");
+        // texture(e_type::toriel) =
+        // make_texture_from_image("files/toriel.png");
 
         auto s0 = make_surface_from_image("files/soul.png");
         auto s1 = make_surface_from_image("files/fireball.png");
@@ -784,8 +788,10 @@ struct my_game
 
         for(const auto& x : _test_atlas_output)
         {
-            std::cout << "ne: " << x._tx0 << " | " << "nw: " << x._tx1 << " | ";
-            std::cout << "se: " << x._tx2 << " | " << "sw: " << x._tx3 << "\n";
+            std::cout << "ne: " << x._tx0 << " | "
+                      << "nw: " << x._tx1 << " | ";
+            std::cout << "se: " << x._tx2 << " | "
+                      << "sw: " << x._tx3 << "\n";
         }
 
         _texture_size_array[0] = sdl::vec2f(s0->width(), s0->height());

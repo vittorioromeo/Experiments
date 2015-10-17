@@ -126,8 +126,8 @@ VRM_SDL_NAMESPACE
             {
                 assert(bound());
 
-                VRM_SDL_GLCHECK(glBufferData(target_value, byte_count, data_ptr,
-                    from_enum(TUsage)));
+                VRM_SDL_GLCHECK(glBufferData(
+                    target_value, byte_count, data_ptr, from_enum(TUsage)));
             }
 
             template <buffer_usage TUsage>
