@@ -72,8 +72,8 @@ VRM_SDL_NAMESPACE
             {
                 assert(bound());
 
-                VRM_SDL_GLCHECK(glDrawArrays(
-                    impl::primitive_value<TP>, first_index, index_count));
+                VRM_SDL_GLCHECK(
+                    glDrawArrays(from_enum(TP), first_index, index_count));
             }
 
             template <primitive TP, index_type TI>
@@ -83,7 +83,7 @@ VRM_SDL_NAMESPACE
                 assert(bound());
 
                 VRM_SDL_GLCHECK(glDrawElements(from_enum(TP), index_count,
-                    impl::index_type_value<TI>, to_void_ptr(vbo_offset_byte)));
+                    from_enum(TI), to_void_ptr(vbo_offset_byte)));
             }
 
             template <primitive TP, typename... Ts>

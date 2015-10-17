@@ -5,7 +5,9 @@
 
 #pragma once
 
-#include <vrm/sdl/math.hpp>
+#include <vrm/sdl/resource.hpp>
+#include <vrm/sdl/elements.hpp>
+#include <vrm/sdl/gl.hpp>
 
-#include <vrm/sdl/utils/for_args.hpp>
-#include <vrm/sdl/utils/fixed_sparse_int_set.hpp>
+#include <vrm/sdl/window/window_scale.hpp>
+#include <vrm/sdl/window/window.hpp>

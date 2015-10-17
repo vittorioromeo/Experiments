@@ -9,6 +9,7 @@
 
 #include <vrm/sdl/common/macros.hpp>
 #include <vrm/sdl/common/typedefs.hpp>
+#include <vrm/sdl/common/cast.hpp>
 #include <vrm/sdl/common/error.hpp>
 #include <vrm/sdl/common/null_handlers.hpp>
 #include <vrm/sdl/common/kkey.hpp>

@@ -529,7 +529,7 @@ struct my_game
 
     auto& texture(e_type type) noexcept
     {
-        return _texture_array[from_enum(type)];
+        return _texture_array[sdl::from_enum(type)];
     }
 
 
