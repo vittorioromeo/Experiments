@@ -594,3 +594,4 @@ void desired_main() {}
 //       manually-made wrapper
 //       unique_ptr
 //       ...
+//       constexpr lambdas would helptwi
