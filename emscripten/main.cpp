@@ -768,6 +768,136 @@ struct my_game
     sdl::impl::unique_gltexture2d _test_atlas;
     std::vector<sdl::atlas_builder_output> _test_atlas_output;
 
+    void update(my_game_state& state, sdl::ft step)
+    {
+        const auto& entities(state._entities);
+        auto& soul(state.soul());
+
+        state.for_alive([this, &state, step](auto& e)
+            {
+                if(e.type == e_type::soul)
+                {
+                    this->soul_update(e, state, step);
+                }
+                else if(e.type == e_type::fireball)
+                {
+                    this->fireball_update(e, state, step);
+                }
+                else if(e.type == e_type::toriel)
+                {
+                    this->toriel_update(e, state, step);
+                }
+            });
+
+        state.reclaim();
+
+        if(_context.key(sdl::kkey::w)) _camera.move({0.f, -3.f * step});
+        if(_context.key(sdl::kkey::s)) _camera.move({0.f, 3.f * step});
+        if(_context.key(sdl::kkey::a)) _camera.move({-3.f * step, 0.f});
+        if(_context.key(sdl::kkey::d)) _camera.move({3.f * step, 0.f});
+
+        if(_context.key(sdl::kkey::q)) _camera.rotate(-0.05f * step);
+        if(_context.key(sdl::kkey::e)) _camera.rotate(0.05f * step);
+
+        if(_context.key(sdl::kkey::z)) _camera.zoom(0.9f * step);
+        if(_context.key(sdl::kkey::x)) _camera.zoom(1.1f * step);
+
+        /*
+        _camera.move_towards_point(soul._pos,
+            (4.f * (glm::length(soul._pos - _camera.position()) * 0.01f) *
+                                       step));
+                                       */
+
+        // if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
+        // if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
+
+        if(_context.key(sdl::kkey::escape))
+        {
+            sdl::stop_global_context();
+        }
+
+        soul._pos = _camera.window_to_world(_context.mouse_pos());
+
+        if(rand() % 100 < 30)
+        {
+            auto alive_str(std::to_string(state._alive.size()));
+            auto fps_str(std::to_string(_context.fps()));
+            auto fps_limit_str(
+                std::to_string(static_cast<int>(_context.fps_limit)));
+            auto update_ms_str(std::to_string(_context.update_ms()));
+            auto draw_ms_str(std::to_string(_context.draw_ms()));
+
+            _context.title(alive_str + " |\tFPS: " + fps_str + "/" +
+                           fps_limit_str + "\tU: " + update_ms_str + "\tD: " +
+                           draw_ms_str);
+        }
+
+
+        /*
+        if(rand() % 100 < 30)
+        {
+            _context.title(std::to_string(entities.size()) + " ||| " +
+                           std::to_string(_context.fps_limit) + " | " +
+                           std::to_string(_context._static_timer._loops) +
+                           " ||| " + std::to_string(_context.fps()) +
+                           " | " + std::to_string(_context.real_ms()) +
+                           " | " + std::to_string(_context.update_ms()));
+        }
+        */
+    }
+
+    void draw(const my_game_state& state)
+    {
+        _window.use_and_clear_background({0.5f, 0.5f, 0.5f, 1.0f});
+        _window.use_and_clear_foreground({0.f, 0.f, 0.f, 1.0f});
+
+        sr.use(_camera);
+
+        // this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
+        _test_atlas->activate_and_bind(GL_TEXTURE0);
+
+        state.for_alive([this](const auto& e)
+            {
+                // TODO: slow
+                // this->texture(e.type)->activate_and_bind(GL_TEXTURE0);
+                // ----------
+
+                this->sprite_draw(e);
+            });
+
+
+        sr.do_it();
+
+        //  std::cout << "\n\ndraw end\n";
+    }
+
+    void interpolate(my_game_state& interpolated, const my_game_state& s0,
+        const my_game_state& s1, sdl::ft t)
+    {
+        auto lerp = [t](const auto& v0, const auto& v1)
+        {
+            return (1.f - t) * v0 + t * v1;
+        };
+
+        auto& in_entities(interpolated._entities);
+
+        interpolated._alive = s0._alive;
+        interpolated.for_alive_indices([&](auto i)
+            {
+                const auto& e0(s0._entities[i]);
+                const auto& e1(s1._entities[i]);
+                auto& ei(in_entities[i]);
+
+                ei._pos = lerp(e0._pos, e1._pos);
+                ei.type = e1.type;
+                ei._origin = lerp(e0._origin, e1._origin);
+                ei._size = lerp(e0._size, e1._size);
+                ei._radians = e0._radians; // TODO: lerpradians
+                ei._opacity = lerp(e0._opacity, e1._opacity);
+                ei.hue = e0.hue;
+            });
+    }
+
     my_game(TContext&& context)
         : _context(FWD(context)), _engine(*_context._engine)
     {
@@ -814,134 +944,20 @@ struct my_game
             state._soul_idx = state.add(make_soul(sdl::make_vec(500.f, 500.f)));
         }
 
-        _engine.update_fn() = [&, this](auto& state, auto step)
+        _engine.update_fn() = [this](auto& state, auto step)
         {
-            const auto& entities(state._entities);
-            auto& soul(state.soul());
-
-            state.for_alive([this, &state, step](auto& e)
-                {
-                    if(e.type == e_type::soul)
-                    {
-                        this->soul_update(e, state, step);
-                    }
-                    else if(e.type == e_type::fireball)
-                    {
-                        this->fireball_update(e, state, step);
-                    }
-                    else if(e.type == e_type::toriel)
-                    {
-                        this->toriel_update(e, state, step);
-                    }
-                });
-
-            state.reclaim();
-
-            if(_context.key(sdl::kkey::w)) _camera.move({0.f, -3.f * step});
-            if(_context.key(sdl::kkey::s)) _camera.move({0.f, 3.f * step});
-            if(_context.key(sdl::kkey::a)) _camera.move({-3.f * step, 0.f});
-            if(_context.key(sdl::kkey::d)) _camera.move({3.f * step, 0.f});
-
-            if(_context.key(sdl::kkey::q)) _camera.rotate(-0.05f * step);
-            if(_context.key(sdl::kkey::e)) _camera.rotate(0.05f * step);
-
-            if(_context.key(sdl::kkey::z)) _camera.zoom(0.9f * step);
-            if(_context.key(sdl::kkey::x)) _camera.zoom(1.1f * step);
-
-            /*
-            _camera.move_towards_point(soul._pos,
-                (4.f * (glm::length(soul._pos - _camera.position()) * 0.01f) *
-                                           step));
-                                           */
-
-            // if(_context.key(sdl::kkey::q)) _context.fps_limit += step;
-            // if(_context.key(sdl::kkey::e)) _context.fps_limit -= step;
-
-            if(_context.key(sdl::kkey::escape))
-            {
-                sdl::stop_global_context();
-            }
-
-            soul._pos = _camera.window_to_world(_context.mouse_pos());
-
-            if(rand() % 100 < 30)
-            {
-                auto alive_str(std::to_string(state._alive.size()));
-                auto fps_str(std::to_string(_context.fps()));
-                auto fps_limit_str(
-                    std::to_string(static_cast<int>(_context.fps_limit)));
-                auto update_ms_str(std::to_string(_context.update_ms()));
-                auto draw_ms_str(std::to_string(_context.draw_ms()));
-
-                _context.title(alive_str + " |\tFPS: " + fps_str + "/" +
-                               fps_limit_str + "\tU: " + update_ms_str +
-                               "\tD: " + draw_ms_str);
-            }
-
-
-            /*
-            if(rand() % 100 < 30)
-            {
-                _context.title(std::to_string(entities.size()) + " ||| " +
-                               std::to_string(_context.fps_limit) + " | " +
-                               std::to_string(_context._static_timer._loops) +
-                               " ||| " + std::to_string(_context.fps()) +
-                               " | " + std::to_string(_context.real_ms()) +
-                               " | " + std::to_string(_context.update_ms()));
-            }
-            */
+            this->update(state, step);
         };
 
-        _engine.draw_fn() = [&, this](const auto& state)
+        _engine.draw_fn() = [this](const auto& state)
         {
-            _window.use_and_clear_background({0.5f, 0.5f, 0.5f, 1.0f});
-            _window.use_and_clear_foreground({0.f, 0.f, 0.f, 1.0f});
-
-            sr.use(_camera);
-
-            // this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
-            _test_atlas->activate_and_bind(GL_TEXTURE0);
-
-            state.for_alive([this](const auto& e)
-                {
-                    // TODO: slow
-                    // this->texture(e.type)->activate_and_bind(GL_TEXTURE0);
-                    // ----------
-
-                    this->sprite_draw(e);
-                });
-
-
-            sr.do_it();
-
-            //  std::cout << "\n\ndraw end\n";
+            this->draw(state);
         };
 
-        _engine.interpolate_fn() = [&, this](
+        _engine.interpolate_fn() = [this](
             auto& interpolated, const auto& s0, const auto& s1, float t)
         {
-            auto lerp = [t](const auto& v0, const auto& v1)
-            {
-                return (1.f - t) * v0 + t * v1;
-            };
-
-            auto& in_entities(interpolated._entities);
-
-            interpolated._alive = s0._alive;
-            interpolated.for_alive_indices([&](auto i)
-                {
-                    const auto& e0(s0._entities[i]);
-                    const auto& e1(s1._entities[i]);
-                    auto& ei(in_entities[i]);
-
-                    ei._pos = lerp(e0._pos, e1._pos);
-                    ei.type = e1.type;
-                    ei._origin = lerp(e0._origin, e1._origin);
-                    ei._size = lerp(e0._size, e1._size);
-                    ei._radians = e0._radians; // TODO: lerpradians
-                    ei._opacity = lerp(e0._opacity, e1._opacity);
-                    ei.hue = e0.hue;
-                });
+            this->interpolate(interpolated, s0, s1, t);
         };
     }
 };
