@@ -38,16 +38,9 @@ VRM_SDL_NAMESPACE
             void operator()(ttffont& p) noexcept { TTF_CloseFont(p.ptr()); }
         };
 
-        struct gl_shader_deleter
-        {
-            void operator()(GLint id) noexcept { glDeleteShader(id); }
-        };
+        
 
-        struct gl_program_deleter
-        {
-            void operator()(GLint id) noexcept { glDeleteProgram(id); }
-        };
-
+        
 
 
         using unique_renderer = unique_resource<renderer, renderer_deleter>;
@@ -58,9 +51,9 @@ VRM_SDL_NAMESPACE
 
         using unique_ttffont = unique_resource<ttffont, ttffont_deleter>;
 
-        using unique_shader = unique_resource<GLint, gl_shader_deleter>;
 
-        using unique_program = unique_resource<GLint, gl_program_deleter>;
+
+        
     }
 }
 VRM_SDL_NAMESPACE_END

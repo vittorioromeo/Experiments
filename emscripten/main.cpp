@@ -16,6 +16,96 @@ namespace sdl = vrm::sdl;
 
 VRM_SDL_NAMESPACE
 {
+    template <typename T>
+    VRM_SDL_ALWAYS_INLINE auto nearest_power_of_two(const T& x) noexcept
+    {
+        return std::pow(2, std::ceil(std::log(x) / std::log(2)));
+    }
+
+    struct atlas_builder_input
+    {
+        surface* _surface;
+    };
+
+    struct atlas_builder_output
+    {
+        vec2f _tx0; // (0.f, 1.f) (NE)
+        vec2f _tx1; // (0.f, 0.f) (NW)
+        vec2f _tx2; // (1.f, 0.f) (SE)
+        vec2f _tx3; // (1.f, 1.f) (SW)
+    };
+
+    class atlas_builder
+    {
+    private:
+        std::vector<atlas_builder_input> _in;
+        sz_t _capacity;
+
+    public:
+        atlas_builder(sz_t capacity) : _capacity{capacity}
+        {
+            _in.reserve(capacity);
+        }
+
+        template <typename... Ts>
+        void add(Ts&&... xs)
+        {
+            assert(_in.size() < _capacity);
+            _in.emplace_back(atlas_builder_input{FWD(xs)...});
+        }
+
+        auto build(impl::gltexture2d& target)
+        {
+            std::vector<atlas_builder_output> result;
+            result.reserve(_capacity);
+
+            vec2i target_size{0, 0};
+
+            for(auto& i : _in)
+            {
+                auto sw(i._surface->width());
+                auto sh(i._surface->height());
+
+                target_size.x += sw;
+                if(sh > target_size.y) target_size.y = sh;
+            }
+
+            target.generate_blank(target_size);
+            target.bind();
+
+            auto to_tex_coords([&](const vec2f& v)
+                {
+                    // return v;
+                    return vec2f(v.x / target_size.x, v.y / target_size.y);
+                });
+
+            vec2i current_offset{0, 0};
+            for(auto& i : _in)
+            {
+                auto sw(i._surface->width());
+                auto sh(i._surface->height());
+
+                float w(current_offset.x);
+                float e(current_offset.x + sw);
+                float n(current_offset.y);
+                float s(current_offset.y + sh);
+
+                vec2f _tx0 = to_tex_coords(vec2f(e, n)); // (0.f, 1.f) (NE)
+                vec2f _tx1 = to_tex_coords(vec2f(w, n)); // (0.f, 0.f) (NW)
+                vec2f _tx2 = to_tex_coords(vec2f(e, s)); // (1.f, 0.f) (SE)
+                vec2f _tx3 = to_tex_coords(vec2f(w, s)); // (1.f, 1.f) (SW)
+
+                result.emplace_back(
+                    atlas_builder_output{_tx0, _tx1, _tx2, _tx3});
+
+                target.sub_image_2d(current_offset, *(i._surface));
+                current_offset.x += sw;
+            }
+
+            return result;
+        }
+    };
+
     namespace impl
     {
         auto make_sprite_renderer_program()
@@ -219,7 +309,7 @@ VRM_SDL_NAMESPACE
         }
 
     public:
-        void draw_sprite(const impl::gltexture2d& t, const vec2f& position,
+        void draw_sprite(const impl::gltexture2d& t, const atlas_builder_output& tex_coords, const vec2f& position,
             const vec2f& origin, const vec2f& size, float radians,
             const vec4f& color, float hue) noexcept
         {
@@ -238,10 +328,10 @@ VRM_SDL_NAMESPACE
             vec3f comp2(transform * pos2);
             vec3f comp3(transform * pos3);
 
-            vec4f pos_tex_coords_0(comp0.xy(), 0.f, 1.f);
-            vec4f pos_tex_coords_1(comp1.xy(), 0.f, 0.f);
-            vec4f pos_tex_coords_2(comp2.xy(), 1.f, 0.f);
-            vec4f pos_tex_coords_3(comp3.xy(), 1.f, 1.f);
+            vec4f pos_tex_coords_0(comp0.xy(), tex_coords._tx2);
+            vec4f pos_tex_coords_1(comp1.xy(), tex_coords._tx0);
+            vec4f pos_tex_coords_2(comp2.xy(), tex_coords._tx1);
+            vec4f pos_tex_coords_3(comp3.xy(), tex_coords._tx3);
 
             enqueue_v(pos_tex_coords_0, color, hue);
             enqueue_v(pos_tex_coords_1, color, hue);
@@ -520,18 +610,30 @@ struct my_game
     engine_type& _engine;
 
     sdl::batched_sprite_renderer sr;
-    // sdl::sprite_renderer sr;
 
-    std::array<sdl::impl::unique_gltexture2d, e_type_count> _texture_array;
+    // std::array<sdl::impl::unique_gltexture2d, e_type_count> _texture_array;
+    std::array<sdl::vec2f, e_type_count> _texture_size_array;
+    std::array<sdl::atlas_builder_output, e_type_count> _texture_coords_array;
 
     sdl::window& _window{*sdl::impl::global_window};
     sdl::camera_2d _camera{_window};
 
-    auto& texture(e_type type) noexcept
+    
+    auto& texture_size(e_type type) noexcept
     {
-        return _texture_array[sdl::from_enum(type)];
+        return _texture_size_array[sdl::from_enum(type)];
+    }
+    
+
+    auto& texture_coords(e_type type) noexcept
+    {
+        return _texture_coords_array[sdl::from_enum(type)];
     }
 
+    auto make_surface_from_image(const std::string& path)
+    {
+        return _context.make_surface(path);
+    }
 
     auto make_texture_from_image(const std::string& path)
     {
@@ -546,34 +648,29 @@ struct my_game
         e._pos = pos;
         e._origin = sdl::vec2f{0, 0};
 
-        e._size = sdl::vec2f{texture(e_type::soul)->size()};
+        e._size = texture_size(e_type::soul);
         e._hitbox_radius = 3.f;
 
         return e;
     };
 
-    auto soul_update()
+    auto soul_update(entity_type& x, game_state_type& state, sdl::ft step)
     {
-        return [this](auto& x, auto&, auto step)
-        {
-            constexpr float speed{5.f};
-            sdl::vec2f input;
+        constexpr float speed{5.f};
+        sdl::vec2f input;
 
-            if(_context.key(sdl::kkey::left))
-                input.x = -1;
-            else if(_context.key(sdl::kkey::right))
-                input.x = 1;
+        if(_context.key(sdl::kkey::left))
+            input.x = -1;
+        else if(_context.key(sdl::kkey::right))
+            input.x = 1;
 
-            if(_context.key(sdl::kkey::up))
-                input.y = -1;
-            else if(_context.key(sdl::kkey::down))
-                input.y = 1;
+        if(_context.key(sdl::kkey::up))
+            input.y = -1;
+        else if(_context.key(sdl::kkey::down))
+            input.y = 1;
 
-            x._pos += input * (speed * step);
-        };
+        x._pos += input * (speed * step);
     }
-
-
 
     auto make_fireball(sdl::vec2f pos, sdl::vec2f vel, float speed)
     {
@@ -583,8 +680,7 @@ struct my_game
         e._radians = rndf(0.f, sdl::tau);
         e._origin = sdl::vec2f{0, 0};
 
-        e._size =
-            sdl::vec2f{texture(e_type::fireball)->size()} * rndf(0.9f, 1.2f);
+        e._size =  texture_size(e_type::fireball) * rndf(0.9f, 1.2f);
         e._hitbox_radius = 3.f;
         e._opacity = 0.f;
         e.vel = vel;
@@ -597,34 +693,32 @@ struct my_game
         return e;
     };
 
-    auto fireball_update()
+    auto fireball_update(entity_type& x, game_state_type&, sdl::ft step)
     {
-        return [this](auto& x, auto&, auto step)
+        x._pos += x.vel * (x.speed * step);
+        // x._radians += dir ? 0.2 * step : -0.2 * step;
+        x._radians = sdl::wrap_rad(x._radians + 0.01f * step);
+
+        // TODO: uses std::sin and std::cos...
+        // x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
+
+        if(std::abs(x.curve) > 0.01)
         {
-            x._pos += x.vel * (x.speed * step);
-            // x._radians += dir ? 0.2 * step : -0.2 * step;
-            x._radians = sdl::wrap_rad(x._radians + 0.01f * step);
+            x.curve *= 0.5f;
+        }
 
-            // TODO: uses std::sin and std::cos...
-            // x.vel = glm::rotate(x.vel, x.curve * 0.1f * step);
+        x.life -= step * 1.f;
 
-            if(std::abs(x.curve) > 0.01)
-            {
-                x.curve *= 0.5f;
-            }
+        if(x.life <= 0.f) x.alive = false;
+        if(x.life <= 10.f) x._opacity -= step * 0.2f;
 
-            x.life -= step * 1.f;
-
-            if(x.life <= 0.f) x.alive = false;
-            if(x.life <= 10.f) x._opacity -= step * 0.2f;
-
-            if(x._opacity <= 1.f) x._opacity += step * 0.1f;
-        };
+        if(x._opacity <= 1.f) x._opacity += step * 0.1f;
     }
+
 
     auto sprite_draw(const entity_type& x)
     {
-        sr.draw_sprite(*texture(x.type), x._pos, x._origin, x._size, x._radians,
+        sr.draw_sprite(*_test_atlas, _texture_coords_array[sdl::from_enum(x.type)], x._pos, x._origin, x._size, x._radians,
             sdl::vec4f{1.f, 0.f, 1.f, x._opacity}, x.hue);
     }
 
@@ -634,50 +728,73 @@ struct my_game
         e.type = e_type::toriel;
         e._pos = pos;
         e._origin = sdl::vec2f{0, 0};
-        e._size = sdl::vec2f{texture(e_type::toriel)->size()};
+        e._size = texture_size(e_type::toriel);
         e._hitbox_radius = 30.f;
 
 
         return e;
     };
 
-    auto toriel_update()
+    auto toriel_update(entity_type& x, game_state_type& state, sdl::ft step)
     {
-        return [this](auto& x, auto& state, auto step)
+        x.curve -= step;
+        if(x.curve <= 0.f)
         {
-            x.curve -= step;
-            if(x.curve <= 0.f)
+            x.curve = 10.f;
+
+            for(int i = 0; i < 10000; ++i)
             {
-                x.curve = 10.f;
+                if(state._free.empty()) break;
 
-                for(int i = 0; i < 10000; ++i)
-                {
-                    if(state._free.empty()) break;
+                auto angle(rndf(0.f, sdl::tau));
+                auto speed(rndf(0.1f, 3.f));
+                auto unit_vec(
+                    sdl::vec2f(sdl::tbl_cos(angle), sdl::tbl_sin(angle)));
+                auto vel(unit_vec * speed);
 
-                    auto angle(rndf(0.f, sdl::tau));
-                    auto speed(rndf(0.1f, 3.f));
-                    auto unit_vec(
-                        sdl::vec2f(sdl::tbl_cos(angle), sdl::tbl_sin(angle)));
-                    auto vel(unit_vec * speed);
-
-                    state.add(this->make_fireball(
-                        x._pos + unit_vec * rndf(55.f, 90.f), vel,
-                        1.f + (rand() % 100) / 80.f));
-                }
+                state.add(
+                    this->make_fireball(x._pos + unit_vec * rndf(55.f, 90.f),
+                        vel, 1.f + (rand() % 100) / 80.f));
             }
-        };
+        }
     }
 
+    sdl::impl::unique_gltexture2d _test_atlas;
+    std::vector<sdl::atlas_builder_output> _test_atlas_output;
 
     my_game(TContext&& context)
         : _context(FWD(context)), _engine(*_context._engine)
     {
-        texture(e_type::soul) = make_texture_from_image("files/soul.png");
+        // texture(e_type::soul) = make_texture_from_image("files/soul.png");
 
-        texture(e_type::fireball) =
-            make_texture_from_image("files/fireball.png");
+        // texture(e_type::fireball) = make_texture_from_image("files/fireball.png");
+       // texture(e_type::toriel) = make_texture_from_image("files/toriel.png");
 
-        texture(e_type::toriel) = make_texture_from_image("files/toriel.png");
+        auto s0 = make_surface_from_image("files/soul.png");
+        auto s1 = make_surface_from_image("files/fireball.png");
+        auto s2 = make_surface_from_image("files/toriel.png");
+
+        sdl::atlas_builder ab{3};
+        ab.add(&(*s0));
+        ab.add(&(*s1));
+        ab.add(&(*s2));
+
+        _test_atlas = sdl::make_gltexture2d();
+        _test_atlas_output = ab.build(*_test_atlas);
+
+        for(const auto& x : _test_atlas_output)
+        {
+            std::cout << "ne: " << x._tx0 << " | " << "nw: " << x._tx1 << " | ";
+            std::cout << "se: " << x._tx2 << " | " << "sw: " << x._tx3 << "\n";
+        }
+
+        _texture_size_array[0] = sdl::vec2f(s0->width(), s0->height());
+        _texture_size_array[1] = sdl::vec2f(s1->width(), s1->height());
+        _texture_size_array[2] = sdl::vec2f(s2->width(), s2->height());
+
+        _texture_coords_array[0] = _test_atlas_output[0];
+        _texture_coords_array[1] = _test_atlas_output[1];
+        _texture_coords_array[2] = _test_atlas_output[2];
 
         {
             auto& state(_engine.current_state());
@@ -696,15 +813,15 @@ struct my_game
                 {
                     if(e.type == e_type::soul)
                     {
-                        this->soul_update()(e, state, step);
+                        this->soul_update(e, state, step);
                     }
                     else if(e.type == e_type::fireball)
                     {
-                        this->fireball_update()(e, state, step);
+                        this->fireball_update(e, state, step);
                     }
                     else if(e.type == e_type::toriel)
                     {
-                        this->toriel_update()(e, state, step);
+                        this->toriel_update(e, state, step);
                     }
                 });
 
@@ -768,7 +885,9 @@ struct my_game
 
             sr.use(_camera);
 
-            this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
+            // this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
+            _test_atlas->activate_and_bind(GL_TEXTURE0);
+
             state.for_alive([this](const auto& e)
                 {
                     // TODO: slow

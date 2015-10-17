@@ -11,42 +11,19 @@
 
 VRM_SDL_NAMESPACE
 {
-    enum class buffer_target
+    enum class buffer_target : GLenum
     {
-        array,
-        element_array
+        array = GL_ARRAY_BUFFER,
+        element_array = GL_ELEMENT_ARRAY_BUFFER
     };
 
-    namespace impl
+    enum class buffer_usage : GLenum
     {
-        template <buffer_target TV>
-        constexpr GLenum buffer_target_value{GL_ARRAY_BUFFER};
-
-        template <>
-        constexpr GLenum buffer_target_value<buffer_target::element_array>{
-            GL_ELEMENT_ARRAY_BUFFER};
-    }
-
-    enum class buffer_usage
-    {
-        stream_draw,
-        static_draw,
-        dynamic_draw
+        stream_draw = GL_STREAM_DRAW,
+        static_draw = GL_STATIC_DRAW,
+        dynamic_draw = GL_DYNAMIC_DRAW
     };
 
-    namespace impl
-    {
-        template <buffer_usage TV>
-        constexpr GLenum buffer_usage_value{GL_STREAM_DRAW};
-
-        template <>
-        constexpr GLenum buffer_usage_value<buffer_usage::static_draw>{
-            GL_STATIC_DRAW};
-
-        template <>
-        constexpr GLenum buffer_usage_value<buffer_usage::dynamic_draw>{
-            GL_DYNAMIC_DRAW};
-    }
 
 
     namespace impl
@@ -55,8 +32,7 @@ VRM_SDL_NAMESPACE
         class vbo
         {
         private:
-            static constexpr GLenum target_value{
-                impl::buffer_target_value<TTarget>};
+            static constexpr GLenum target_value{from_enum(TTarget)};
 
             GLuint _id, _n;
 
@@ -151,7 +127,7 @@ VRM_SDL_NAMESPACE
                 assert(bound());
 
                 VRM_SDL_GLCHECK(glBufferData(target_value, byte_count, data_ptr,
-                    impl::buffer_usage_value<TUsage>));
+                    from_enum(TUsage)));
             }
 
             template <buffer_usage TUsage>

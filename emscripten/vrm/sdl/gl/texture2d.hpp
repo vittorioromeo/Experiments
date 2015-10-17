@@ -21,6 +21,13 @@ VRM_SDL_NAMESPACE
             GLuint _id;
             vec2f _size;
 
+            bool bound() const noexcept
+            {
+                GLint result;
+                VRM_SDL_GLCHECK(glGetIntegerv(GL_TEXTURE_BINDING_2D, &result));
+                return result == _id;
+            }
+
         public:
             const auto& size() const noexcept { return _size; }
 
@@ -57,6 +64,29 @@ VRM_SDL_NAMESPACE
                 unbind();
             }
 
+            void generate_blank(const vec2i& size) noexcept
+            {
+                std::vector<GLubyte> blank_pixels(size.x * size.y * 4, 0);
+                generate(GL_RGBA, size.x, size.y, blank_pixels.data());
+            }
+
+            void sub_image_2d(const vec2i& offset, const vec2u& sub_image_size,
+                const GLvoid* data)
+            {
+                assert(bound());
+
+                VRM_SDL_GLCHECK(glTexSubImage2D(GL_TEXTURE_2D, 0, offset.x,
+                    offset.y, sub_image_size.x, sub_image_size.y, GL_RGBA,
+                    GL_UNSIGNED_BYTE, data));
+            }
+
+            void sub_image_2d(const vec2i& offset, const surface& surface)
+            {
+                sub_image_2d(offset, vec2u(surface.width(), surface.height()),
+                    surface.pixels());
+            }
+
+
             void activate(GLenum texture_unit) const noexcept
             {
                 VRM_SDL_GLCHECK(glActiveTexture(texture_unit));
@@ -69,6 +99,7 @@ VRM_SDL_NAMESPACE
 
             void unbind() const noexcept
             {
+                assert(bound());
                 VRM_SDL_GLCHECK(glBindTexture(GL_TEXTURE_2D, 0));
             }
 
@@ -122,14 +153,16 @@ VRM_SDL_NAMESPACE
         }
     }
 
+    auto make_gltexture2d() noexcept
+    {
+        impl::gltexture2d t;
+        return impl::unique_gltexture2d{t};
+    }
+
     auto make_gltexture2d(surface & s) noexcept
     {
         impl::gltexture2d t;
-
-        // auto mode(s.format()->BytesPerPixel == 4 ? GL_RGBA : GL_RGB);
-        auto mode(GL_RGBA);
-        t.generate(mode, s.width(), s.height(), s.pixels());
-
+        t.generate(GL_RGBA, s.width(), s.height(), s.pixels());
         return impl::unique_gltexture2d{t};
     }
 }

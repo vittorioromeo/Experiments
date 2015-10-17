@@ -34,26 +34,26 @@ VRM_SDL_NAMESPACE
     using mat4f = mat4<float>;
     using mat4i = mat4<int>;
     using mat4u = mat4<unsigned int>;
-
-    template <typename T>
-    auto& operator<<(std::ostream & o, const mat2<T>& v)
-    {
-        o << "{" << v[0] << "\n" << v[1] << "}";
-        return o;
-    }
-
-    template <typename T>
-    auto& operator<<(std::ostream & o, const mat3<T>& v)
-    {
-        o << "{" << v[0] << "\n" << v[1] << "\n" << v[2] << "}";
-        return o;
-    }
-
-    template <typename T>
-    auto& operator<<(std::ostream & o, const mat4<T>& v)
-    {
-        o << "{" << v[0] << "\n" << v[1] << "\n" << v[2] << "\n" << v[3] << "}";
-        return o;
-    }
 }
 VRM_SDL_NAMESPACE_END
+
+template <typename T>
+auto& operator<<(std::ostream& o, const vrm::sdl::mat2<T>& v)
+{
+    o << "{" << v[0] << "\n" << v[1] << "}";
+    return o;
+}
+
+template <typename T>
+auto& operator<<(std::ostream& o, const vrm::sdl::mat3<T>& v)
+{
+    o << "{" << v[0] << "\n" << v[1] << "\n" << v[2] << "}";
+    return o;
+}
+
+template <typename T>
+auto& operator<<(std::ostream& o, const vrm::sdl::mat4<T>& v)
+{
+    o << "{" << v[0] << "\n" << v[1] << "\n" << v[2] << "\n" << v[3] << "}";
+    return o;
+}

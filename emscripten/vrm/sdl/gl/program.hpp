@@ -14,6 +14,15 @@
 
 VRM_SDL_NAMESPACE
 {
+    namespace impl
+    {
+        struct gl_program_deleter
+        {
+            void operator()(GLint id) noexcept { glDeleteProgram(id); }
+        };
+        using unique_program = unique_resource<GLint, gl_program_deleter>;
+    }
+
     class program
     {
     private:

@@ -1022,10 +1022,14 @@ struct my_game
         return _texture_array[static_cast<int>(type)];
     }
 
+     auto make_surface_from_image(const std::string& path)
+    {
+        return _context.make_surface(path);
+    }
 
     auto make_texture_from_image(const std::string& path)
     {
-        auto s(_context.make_surface(path));
+        auto s(make_surface_from_image(path));
         return sdl::make_gltexture2d(*s);
     }
 

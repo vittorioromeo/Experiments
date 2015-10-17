@@ -12,19 +12,20 @@
 
 VRM_SDL_NAMESPACE
 {
-    enum class shader_t
+    enum class shader_t : GLenum
     {
-        vertex,
-        fragment
+        vertex = GL_VERTEX_SHADER,
+        fragment = GL_FRAGMENT_SHADER
     };
 
     namespace impl
     {
-        template <shader_t TV>
-        constexpr GLenum shader_t_value{GL_VERTEX_SHADER};
+        struct gl_shader_deleter
+        {
+            void operator()(GLint id) noexcept { glDeleteShader(id); }
+        };
 
-        template <>
-        constexpr GLenum shader_t_value<shader_t::fragment>{GL_FRAGMENT_SHADER};
+        using unique_shader = unique_resource<GLint, gl_shader_deleter>;
     }
 
     template <shader_t TS>
@@ -36,7 +37,7 @@ VRM_SDL_NAMESPACE
 
         GLuint id;
 
-        VRM_SDL_GLCHECK(id = glCreateShader(impl::shader_t_value<TS>););
+        VRM_SDL_GLCHECK(id = glCreateShader(from_enum(TS)););
         VRM_SDL_GLCHECK(glShaderSource(id, 1, &src, nullptr));
         VRM_SDL_GLCHECK(glCompileShader(id));
 

@@ -54,26 +54,26 @@ VRM_SDL_NAMESPACE
     {
         return vec4<std::common_type_t<T0, T1, T2, T3>>(x, y, z, w);
     }
-
-    template <typename T>
-    auto& operator<<(std::ostream & o, const vec2<T>& v)
-    {
-        o << "(" << v.x << ", " << v.y << ")";
-        return o;
-    }
-
-    template <typename T>
-    auto& operator<<(std::ostream & o, const vec3<T>& v)
-    {
-        o << "(" << v.x << ", " << v.y << ", " << v.z << ")";
-        return o;
-    }
-
-    template <typename T>
-    auto& operator<<(std::ostream & o, const vec4<T>& v)
-    {
-        o << "(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
-        return o;
-    }
 }
 VRM_SDL_NAMESPACE_END
+
+template <typename T>
+auto& operator<<(std::ostream& o, const vrm::sdl::vec2<T>& v)
+{
+    o << "(" << v.x << ", " << v.y << ")";
+    return o;
+}
+
+template <typename T>
+auto& operator<<(std::ostream& o, const vrm::sdl::vec3<T>& v)
+{
+    o << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+    return o;
+}
+
+template <typename T>
+auto& operator<<(std::ostream& o, const vrm::sdl::vec4<T>& v)
+{
+    o << "(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
+    return o;
+}
