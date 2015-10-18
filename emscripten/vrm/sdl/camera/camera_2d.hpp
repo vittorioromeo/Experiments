@@ -48,6 +48,15 @@ VRM_SDL_NAMESPACE
 
         const auto& projection() const noexcept { return _projection; }
 
+        void scale(float x) noexcept { _scale = x; }
+        const auto& scale() const noexcept { return _scale; }
+
+        void offset(const vec2f& x) noexcept { _offset = x; }
+        const auto& offset() const noexcept { return _offset; }
+
+        void radians(float x) noexcept { _radians = x; }
+        const auto& radians() const noexcept { return _radians; }
+
         auto& zoom(float factor) noexcept
         {
             _scale *= factor;
@@ -71,7 +80,6 @@ VRM_SDL_NAMESPACE
             return move_towards_angle(angle - _radians, speed);
         }
 
-
         auto& move(vec2f offset) noexcept
         {
             auto speed(glm::length(offset));
@@ -81,12 +89,6 @@ VRM_SDL_NAMESPACE
 
             return move_towards_angle(direction, speed);
         }
-
-        auto& offset() noexcept { return _offset; }
-        const auto& offset() const noexcept { return _offset; }
-
-        auto& angle() noexcept { return _radians; }
-        const auto& angle() const noexcept { return _radians; }
 
         auto& rotate(float radians) noexcept
         {
@@ -98,7 +100,7 @@ VRM_SDL_NAMESPACE
         {
             mat4f result;
 
-            result = glm::translate(result, vec3f{-_offset, 0.f});
+            result = glm::translate(result, vec3i{-_offset, 0.f});
 
             translate_to_origin(result, 1.f);
             {

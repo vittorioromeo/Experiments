@@ -13,6 +13,25 @@
 
 VRM_SDL_NAMESPACE
 {
+    enum class texture_format : GLenum
+    {
+        alpha = GL_ALPHA,
+        luminance = GL_LUMINANCE,
+        luminance_alpha = GL_LUMINANCE_ALPHA,
+        rgb = GL_RGB,
+        rgba = GL_RGBA
+    };
+
+    enum class texture_filter : GLenum
+    {
+        nearest = GL_NEAREST,
+        linear = GL_LINEAR,
+        nearest_mipmap_nearest = GL_NEAREST_MIPMAP_NEAREST,
+        linear_mipmap_nearest = GL_LINEAR_MIPMAP_NEAREST,
+        nearest_mipmap_linear = GL_NEAREST_MIPMAP_LINEAR,
+        linear_mipmap_linear = GL_LINEAR_MIPMAP_LINEAR
+    };
+
     namespace impl
     {
         class gltexture2d
@@ -35,16 +54,16 @@ VRM_SDL_NAMESPACE
 
             gltexture2d() noexcept { VRM_SDL_GLCHECK(glGenTextures(1, &_id)); }
 
-            void generate(GLuint mode, GLuint width, GLuint height,
-                const void* data) noexcept
+            void generate(int level, texture_format format, const vec2u& size,
+                const void* data, texture_filter f) noexcept
             {
-                _size.x = width;
-                _size.y = height;
+                _size = vec2f(size);
 
                 bind();
                 {
-                    VRM_SDL_GLCHECK(glTexImage2D(GL_TEXTURE_2D, 0, mode, width,
-                        height, 0, mode, GL_UNSIGNED_BYTE, data));
+                    VRM_SDL_GLCHECK(glTexImage2D(GL_TEXTURE_2D, level,
+                        from_enum(format), size.x, size.y, 0, from_enum(format),
+                        GL_UNSIGNED_BYTE, data));
 
                     // Only `GL_CLAMP_TO_EDGE` is supported for
                     // non-power-of-two textures.
@@ -55,19 +74,33 @@ VRM_SDL_NAMESPACE
                     VRM_SDL_GLCHECK(glTexParameteri(
                         GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
 
-                    VRM_SDL_GLCHECK(glTexParameteri(
-                        GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-
-                    VRM_SDL_GLCHECK(glTexParameteri(
-                        GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+                    filter(f);
                 }
                 unbind();
             }
 
-            void generate_blank(const vec2i& size) noexcept
+            void generate(const vec2u& size, const void* data,
+                texture_filter f = texture_filter::nearest) noexcept
+            {
+                generate(0, texture_format::rgba, size, data, f);
+            }
+
+            void generate_blank(const vec2u& size,
+                texture_filter f = texture_filter::nearest) noexcept
             {
                 std::vector<GLubyte> blank_pixels(size.x * size.y * 4, 0);
-                generate(GL_RGBA, size.x, size.y, blank_pixels.data());
+                generate(size, blank_pixels.data(), f);
+            }
+
+            void filter(texture_filter f) noexcept
+            {
+                assert(bound());
+
+                VRM_SDL_GLCHECK(glTexParameteri(
+                    GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, from_enum(f)));
+
+                VRM_SDL_GLCHECK(glTexParameteri(
+                    GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, from_enum(f)));
             }
 
             void sub_image_2d(const vec2i& offset, const vec2u& sub_image_size,
@@ -159,10 +192,10 @@ VRM_SDL_NAMESPACE
         return impl::unique_gltexture2d{t};
     }
 
-    auto make_gltexture2d(surface & s) noexcept
+    auto make_gltexture2d(surface & s, texture_filter filter) noexcept
     {
         impl::gltexture2d t;
-        t.generate(GL_RGBA, s.width(), s.height(), s.pixels());
+        t.generate(s.size(), s.pixels(), filter);
         return impl::unique_gltexture2d{t};
     }
 }

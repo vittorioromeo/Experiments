@@ -19,8 +19,8 @@ VRM_SDL_NAMESPACE
     public:
         using base_type = impl::sdl_element<SDL_Surface>;
 
-        auto width() const noexcept;
-        auto height() const noexcept;
+        const auto& width() const noexcept;
+        const auto& height() const noexcept;
         auto size() const noexcept;
         const auto& rect() const noexcept;
 

@@ -23,25 +23,122 @@ VRM_SDL_NAMESPACE
         return std::pow(2, std::ceil(std::log(x) / std::log(2)));
     }
 
-    struct atlas_builder_input
+    namespace impl
     {
-        surface* _surface;
-    };
+        class atlas_builder_input
+        {
+        private:
+            const surface* _surface;
 
-    struct atlas_builder_output
+        public:
+            atlas_builder_input(const surface& surface) noexcept
+                : _surface{&surface}
+            {
+            }
+
+            const auto& surface() const noexcept { return *_surface; }
+            const auto& width() const noexcept { return _surface->width(); }
+            const auto& height() const noexcept { return _surface->height(); }
+
+            auto pixels() const noexcept { return _surface->pixels(); }
+        };
+    }
+
+    class quad_tex_coords
     {
+    private:
         vec2f _tx0; // (0.f, 1.f) (NE)
         vec2f _tx1; // (0.f, 0.f) (NW)
         vec2f _tx2; // (1.f, 0.f) (SE)
         vec2f _tx3; // (1.f, 1.f) (SW)
+
+    public:
+        quad_tex_coords() = default;
+        quad_tex_coords(const vec2f& tx0, const vec2f& tx1, const vec2f& tx2,
+            const vec2f& tx3) noexcept : _tx0{tx0},
+                                         _tx1{tx1},
+                                         _tx2{tx2},
+                                         _tx3{tx3}
+        {
+        }
+
+        const auto& tx0() const noexcept { return _tx0; }
+        const auto& tx1() const noexcept { return _tx1; }
+        const auto& tx2() const noexcept { return _tx2; }
+        const auto& tx3() const noexcept { return _tx3; }
     };
 
+    namespace atlas_strategy
+    {
+        struct naive
+        {
+            template <typename TOutput, typename TInputVec>
+            auto build(sz_t capacity, impl::gltexture2d& target,
+                TInputVec&& input_vec, const vec2i& spacing)
+            {
+                std::vector<TOutput> result;
+                result.reserve(capacity);
+
+                vec2i target_size{0, 0};
+
+                for(auto& i : input_vec)
+                {
+                    auto sw(i.width());
+                    auto sh(i.height());
+
+                    target_size.x += sw + spacing.x;
+                    if(sh > target_size.y) target_size.y = sh;
+                }
+
+                // target_size.y += spacing.y;
+
+                target.generate_blank(target_size);
+                target.bind();
+
+                auto to_tex_coords([&](float x, float y)
+                    {
+                        // return v;
+                        return vec2f(x / target_size.x, y / target_size.y);
+                    });
+
+                vec2i current_offset{0, 0};
+                for(auto& i : input_vec)
+                {
+                    auto sw(i.width());
+                    auto sh(i.height());
+
+                    float w(current_offset.x);
+                    float e(current_offset.x + sw);
+                    float n(current_offset.y);
+                    float s(current_offset.y + sh);
+
+                    result.emplace_back(     // .
+                        to_tex_coords(e, n), // (0.f, 1.f) (NE)
+                        to_tex_coords(w, n), // (0.f, 0.f) (NW)
+                        to_tex_coords(e, s), // (1.f, 0.f) (SE)
+                        to_tex_coords(w, s)  // (1.f, 1.f) (SW)
+                        );
+
+                    target.sub_image_2d(current_offset, i.surface());
+                    current_offset.x += sw + spacing.x;
+                }
+
+                return result;
+            }
+        };
+    }
+
+    template <typename TStrategy = atlas_strategy::naive>
     class atlas_builder
     {
     private:
-        std::vector<atlas_builder_input> _in;
+        using input_type = impl::atlas_builder_input;
+        using output_type = quad_tex_coords;
+
+        std::vector<input_type> _in;
         sz_t _capacity;
         vec2i _spacing{2, 2};
+        TStrategy _strategy;
 
     public:
         atlas_builder(sz_t capacity) : _capacity{capacity}
@@ -53,62 +150,81 @@ VRM_SDL_NAMESPACE
         void add(Ts&&... xs)
         {
             assert(_in.size() < _capacity);
-            _in.emplace_back(atlas_builder_input{FWD(xs)...});
+            _in.emplace_back(FWD(xs)...);
         }
 
         auto build(impl::gltexture2d& target)
         {
-            std::vector<atlas_builder_output> result;
-            result.reserve(_capacity);
-
-            vec2i target_size{0, 0};
-
-            for(auto& i : _in)
-            {
-                auto sw(i._surface->width());
-                auto sh(i._surface->height());
-
-                target_size.x += sw + _spacing.x;
-                if(sh > target_size.y) target_size.y = sh;
-            }
-
-            // target_size.y += _spacing.y;
-
-            target.generate_blank(target_size);
-            target.bind();
-
-            auto to_tex_coords([&](const vec2f& v)
-                {
-                    // return v;
-                    return vec2f(v.x / target_size.x, v.y / target_size.y);
-                });
-
-            vec2i current_offset{0, 0};
-            for(auto& i : _in)
-            {
-                auto sw(i._surface->width());
-                auto sh(i._surface->height());
-
-                float w(current_offset.x);
-                float e(current_offset.x + sw);
-                float n(current_offset.y);
-                float s(current_offset.y + sh);
-
-                vec2f _tx0 = to_tex_coords(vec2f(e, n)); // (0.f, 1.f) (NE)
-                vec2f _tx1 = to_tex_coords(vec2f(w, n)); // (0.f, 0.f) (NW)
-                vec2f _tx2 = to_tex_coords(vec2f(e, s)); // (1.f, 0.f) (SE)
-                vec2f _tx3 = to_tex_coords(vec2f(w, s)); // (1.f, 1.f) (SW)
-
-                result.emplace_back(
-                    atlas_builder_output{_tx0, _tx1, _tx2, _tx3});
-
-                target.sub_image_2d(current_offset, *(i._surface));
-                current_offset.x += sw + _spacing.x;
-            }
-
-            return result;
+            return _strategy.template build<output_type>(
+                _capacity, target, _in, _spacing);
         }
     };
+
+    class atlas
+    {
+    private:
+        sdl::impl::unique_gltexture2d _texture;
+        std::vector<vec2f> _texture_sizes;
+        std::vector<quad_tex_coords> _texture_coords;
+
+    public:
+        atlas() = default;
+
+        auto& texture() noexcept { return _texture; }
+        const auto& texture() const noexcept { return _texture; }
+
+        void add_size(const vec2f& s) { _texture_sizes.emplace_back(s); }
+        void add_coords(const quad_tex_coords& c)
+        {
+            _texture_coords.emplace_back(c);
+        }
+
+        const auto& size(sz_t idx) const noexcept
+        {
+            assert(_texture_sizes.size() > idx);
+            return _texture_sizes[idx];
+        }
+
+        const auto& coords(sz_t idx) const noexcept
+        {
+            assert(_texture_coords.size() > idx);
+            return _texture_coords[idx];
+        }
+    };
+
+    template <typename TStrategy = atlas_strategy::naive, typename... Ts>
+    auto make_atlas_from_surfaces(Ts && ... surfaces)
+    {
+        atlas result;
+        atlas_builder<TStrategy> ab{sizeof...(Ts)};
+
+        sdl::for_args(
+            [&result, &ab](auto&& surface)
+            {
+                ab.add(*surface);
+                result.add_size(vec2f(surface->width(), surface->height()));
+            },
+            FWD(surfaces)...);
+
+        result.texture() = make_gltexture2d();
+        auto ab_output(ab.build(*result.texture()));
+
+        for(const auto& o : ab_output) result.add_coords(o);
+
+        return result;
+    }
+
+    template <typename T>
+    auto make_surface_from_path(T && path)
+    {
+        return impl::unique_surface(FWD(path));
+    }
+
+    template <typename TStrategy = atlas_strategy::naive, typename... Ts>
+    auto make_atlas_from_paths(Ts && ... paths)
+    {
+        return make_atlas_from_surfaces(FWD(make_surface_from_path(paths))...);
+    }
 
     namespace impl
     {
@@ -314,7 +430,7 @@ VRM_SDL_NAMESPACE
 
     public:
         void draw_sprite(const impl::gltexture2d& t,
-            const atlas_builder_output& tex_coords, const vec2f& position,
+            const quad_tex_coords& tex_coords, const vec2f& position,
             const vec2f& origin, const vec2f& size, float radians,
             const vec4f& color, float hue) noexcept
         {
@@ -333,10 +449,11 @@ VRM_SDL_NAMESPACE
             vec3f comp2(transform * pos2);
             vec3f comp3(transform * pos3);
 
-            vec4f pos_tex_coords_0(comp0.xy(), tex_coords._tx2);
-            vec4f pos_tex_coords_1(comp1.xy(), tex_coords._tx0);
-            vec4f pos_tex_coords_2(comp2.xy(), tex_coords._tx1);
-            vec4f pos_tex_coords_3(comp3.xy(), tex_coords._tx3);
+            // TODO: "pixel_perfect" parameter or something like that
+            vec4f pos_tex_coords_0(vec2i(comp0.xy()), tex_coords.tx2());
+            vec4f pos_tex_coords_1(vec2i(comp1.xy()), tex_coords.tx0());
+            vec4f pos_tex_coords_2(vec2i(comp2.xy()), tex_coords.tx1());
+            vec4f pos_tex_coords_3(vec2i(comp3.xy()), tex_coords.tx3());
 
             enqueue_v(pos_tex_coords_0, color, hue);
             enqueue_v(pos_tex_coords_1, color, hue);
@@ -372,30 +489,26 @@ VRM_SDL_NAMESPACE
             }
 
             auto total_quad_count(_data.size() / 4);
-            auto remaining_quad_count(total_quad_count % batch_size);
+            auto rest_quad_count(total_quad_count % batch_size);
 
-            if(remaining_quad_count > 0)
+            if(rest_quad_count > 0)
             {
-                auto remaining_offset_count(times * batch_size);
-
-                auto remaining_offset_count_vertex(remaining_offset_count * 4);
-
-                auto remaining_offset_count_indices(remaining_offset_count * 6);
-
-                auto remaining_vertex_count(remaining_quad_count * 4);
-
-                auto remaining_index_count(remaining_quad_count * 6);
+                auto rest_offset_count(times * batch_size);
+                auto rest_offset_count_vertex(rest_offset_count * 4);
+                auto rest_offset_count_indices(rest_offset_count * 6);
+                auto rest_vertex_count(rest_quad_count * 4);
+                auto rest_index_count(rest_quad_count * 6);
 
                 // Send `vertex_count` vertices to GPU.
-                _vbo0->sub_buffer_data_items(_data,
-                    remaining_offset_count_vertex, remaining_vertex_count);
+                _vbo0->sub_buffer_data_items(
+                    _data, rest_offset_count_vertex, rest_vertex_count);
 
                 // Send `index_count` vertices to GPU.
-                _vbo1->sub_buffer_data_items(_indices,
-                    remaining_offset_count_indices, remaining_index_count);
+                _vbo1->sub_buffer_data_items(
+                    _indices, rest_offset_count_indices, rest_index_count);
 
                 _vao->draw_elements<primitive::triangles, index_type::ui_int>(
-                    remaining_index_count);
+                    rest_index_count);
             }
 
             _data.clear();
@@ -412,9 +525,7 @@ std::default_random_engine rnd_gen{rnd_device()};
 auto rndf = [](auto min, auto max)
 {
     using common_min_max_t = std::common_type_t<decltype(min), decltype(max)>;
-
     using dist_t = std::uniform_real_distribution<common_min_max_t>;
-
     return dist_t(min, max)(rnd_gen);
 };
 
@@ -616,9 +727,7 @@ struct my_game
 
     sdl::batched_sprite_renderer sr;
 
-    // std::array<sdl::impl::unique_gltexture2d, e_type_count> _texture_array;
-    std::array<sdl::vec2f, e_type_count> _texture_size_array;
-    std::array<sdl::atlas_builder_output, e_type_count> _texture_coords_array;
+    sdl::atlas _atlas;
 
     sdl::window& _window{*sdl::impl::global_window};
     sdl::camera_2d _camera{_window};
@@ -626,13 +735,12 @@ struct my_game
 
     auto& texture_size(e_type type) noexcept
     {
-        return _texture_size_array[sdl::from_enum(type)];
+        return _atlas.size(sdl::from_enum(type));
     }
-
 
     auto& texture_coords(e_type type) noexcept
     {
-        return _texture_coords_array[sdl::from_enum(type)];
+        return _atlas.coords(sdl::from_enum(type));
     }
 
     auto make_surface_from_image(const std::string& path)
@@ -723,9 +831,9 @@ struct my_game
 
     auto sprite_draw(const entity_type& x)
     {
-        sr.draw_sprite(*_test_atlas,
-            _texture_coords_array[sdl::from_enum(x.type)], x._pos, x._origin,
-            x._size, x._radians, sdl::vec4f{1.f, 0.f, 1.f, x._opacity}, x.hue);
+        sr.draw_sprite(*_atlas.texture(), texture_coords(x.type), x._pos,
+            x._origin, x._size, x._radians,
+            sdl::vec4f{1.f, 0.f, 1.f, x._opacity}, x.hue);
     }
 
     auto make_toriel(game_state_type& state, sdl::vec2f pos)
@@ -764,9 +872,6 @@ struct my_game
             }
         }
     }
-
-    sdl::impl::unique_gltexture2d _test_atlas;
-    std::vector<sdl::atlas_builder_output> _test_atlas_output;
 
     void update(my_game_state& state, sdl::ft step)
     {
@@ -854,7 +959,7 @@ struct my_game
         sr.use(_camera);
 
         // this->texture(e_type::fireball)->activate_and_bind(GL_TEXTURE0);
-        _test_atlas->activate_and_bind(GL_TEXTURE0);
+        _atlas.texture()->activate_and_bind(GL_TEXTURE0);
 
         state.for_alive([this](const auto& e)
             {
@@ -908,33 +1013,11 @@ struct my_game
         // texture(e_type::toriel) =
         // make_texture_from_image("files/toriel.png");
 
-        auto s0 = make_surface_from_image("files/soul.png");
-        auto s1 = make_surface_from_image("files/fireball.png");
-        auto s2 = make_surface_from_image("files/toriel.png");
-
-        sdl::atlas_builder ab{3};
-        ab.add(&(*s0));
-        ab.add(&(*s1));
-        ab.add(&(*s2));
-
-        _test_atlas = sdl::make_gltexture2d();
-        _test_atlas_output = ab.build(*_test_atlas);
-
-        for(const auto& x : _test_atlas_output)
-        {
-            std::cout << "ne: " << x._tx0 << " | "
-                      << "nw: " << x._tx1 << " | ";
-            std::cout << "se: " << x._tx2 << " | "
-                      << "sw: " << x._tx3 << "\n";
-        }
-
-        _texture_size_array[0] = sdl::vec2f(s0->width(), s0->height());
-        _texture_size_array[1] = sdl::vec2f(s1->width(), s1->height());
-        _texture_size_array[2] = sdl::vec2f(s2->width(), s2->height());
-
-        _texture_coords_array[0] = _test_atlas_output[0];
-        _texture_coords_array[1] = _test_atlas_output[1];
-        _texture_coords_array[2] = _test_atlas_output[2];
+        _atlas = sdl::make_atlas_from_paths( // .
+            "files/soul.png",                // 0
+            "files/fireball.png",            // 1
+            "files/toriel.png"               // 2
+            );
 
         {
             auto& state(_engine.current_state());
