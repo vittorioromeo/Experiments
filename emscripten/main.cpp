@@ -729,7 +729,7 @@ struct my_game
 
     sdl::atlas _atlas;
 
-    sdl::window& _window{*sdl::impl::global_window};
+    sdl::window& _window{_context.window()};
     sdl::camera_2d _camera{_window};
 
 
@@ -1004,7 +1004,7 @@ struct my_game
     }
 
     my_game(TContext&& context)
-        : _context(FWD(context)), _engine(*_context._engine)
+        : _context(FWD(context)), _engine(_context._engine)
     {
         // texture(e_type::soul) = make_texture_from_image("files/soul.png");
 
@@ -1075,16 +1075,14 @@ int main()
 
     my_timer timer;
     my_engine engine;
+    sdl::window window("hello world!", sdl::vec2u(1440, 900));
 
-    auto c_handle(sdl::make_global_window_and_context<my_context_settings>(
-        "test game", 1440.f, 900.f));
+    auto c(
+        sdl::make_global_context<my_context_settings>(timer, engine, window));
 
-    auto& c(*c_handle);
-    engine._timer = &timer;
-    c._engine = &engine;
-    c.window().mode(sdl::window_mode::windowed);
+    c->window().mode(sdl::window_mode::windowed);
 
-    auto game(std::make_unique<my_game<decltype(c)>>(c));
+    auto game(std::make_unique<my_game<decltype(*c)>>(*c));
     sdl::run_global_context();
 
     return 0;

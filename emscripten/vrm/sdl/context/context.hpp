@@ -17,6 +17,8 @@
 
 VRM_SDL_NAMESPACE
 {
+    class window;
+
     namespace impl
     {
         // TODO:
@@ -33,8 +35,6 @@ VRM_SDL_NAMESPACE
             using interpolate_fn_type =
                 typename settings_type::interpolate_fn_type;
 
-            timer_type* _timer;
-
             state_type _current_state;
 
             update_fn_type _update_fn{settings_type::null_update_fn()};
@@ -49,7 +49,7 @@ VRM_SDL_NAMESPACE
 
         public:
             void run_update(ft step);
-            void run_draw();
+            void run_draw(float interp_t);
 
         public:
             non_interpolated_engine() = default;
@@ -82,8 +82,6 @@ VRM_SDL_NAMESPACE
             using interpolate_fn_type =
                 typename settings_type::interpolate_fn_type;
 
-            timer_type* _timer;
-
             state_type _prev_state;
             state_type _current_state;
             state_type _interpolated_state;
@@ -100,7 +98,7 @@ VRM_SDL_NAMESPACE
 
         public:
             void run_update(ft step);
-            void run_draw();
+            void run_draw(float interp_t);
 
         public:
             interpolated_engine() = default;
@@ -127,10 +125,9 @@ VRM_SDL_NAMESPACE
             using timer_type = typename settings_type::timer_type;
             using engine_type = typename settings_type::engine_type;
 
-            engine_type* _engine;
+            timer_type& _timer;
+            engine_type& _engine;
             window& _window;
-
-            SDL_Event _event;
 
             key_event_handler _on_key_down{null_key_event_handler()};
             key_event_handler _on_key_up{null_key_event_handler()};
@@ -155,9 +152,6 @@ VRM_SDL_NAMESPACE
             const auto& timer() const noexcept;
 
         public:
-            void run_window_events() noexcept;
-            void run_events() noexcept;
-
             void limit_fps_if_necessary() const noexcept;
 
             template <typename T>
@@ -166,12 +160,52 @@ VRM_SDL_NAMESPACE
             auto& window() noexcept { return _window; }
             const auto& window() const noexcept { return _window; }
 
+            delegate_handle _dh_key_down;
+            delegate_handle _dh_key_up;
+            delegate_handle _dh_btn_down;
+            delegate_handle _dh_btn_up;
+            delegate_handle _dh_mouse_motion;
+
+            // TODO: unique_em_event
+            void bind_events()
+            {
+                auto& em(get_global_event_manager());
+
+                _dh_key_down = em.on_key_down() += on_key_down();
+                _dh_key_up = em.on_key_up() += on_key_up();
+
+                _dh_btn_down = em.on_btn_down() += on_btn_down();
+                _dh_btn_up = em.on_btn_up() += on_btn_up();
+
+                _dh_mouse_motion = em.on_mouse_motion() +=
+                    [this](const auto& pos)
+                {
+                    _input_state.mouse_x(pos.x);
+                    _input_state.mouse_y(pos.y);
+                };
+            }
+
+            void unbind_events()
+            {
+                auto& em(get_global_event_manager());
+
+                em.on_mouse_motion() -= _dh_mouse_motion;
+                em.on_btn_up() -= _dh_btn_up;
+                em.on_btn_down() -= _dh_btn_down;
+                em.on_key_up() -= _dh_key_up;
+                em.on_key_down() -= _dh_key_down;
+            }
+
+
         public:
             float fps_limit{144.0};
 
             float ms_limit() const noexcept { return 1000.f / fps_limit; }
 
-            context(class window& window);
+            context(
+                timer_type& timer, engine_type& engine, class window& window);
+            
+            ~context();
 
             context(const context&) = delete;
             context& operator=(const context&) = delete;

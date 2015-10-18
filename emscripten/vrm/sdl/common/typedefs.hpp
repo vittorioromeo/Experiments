@@ -12,6 +12,19 @@
 
 VRM_SDL_NAMESPACE
 {
+    enum class window_mode
+    {
+        windowed = 0,
+        windowed_fullscreen = SDL_WINDOW_FULLSCREEN_DESKTOP,
+        fullscreen = SDL_WINDOW_FULLSCREEN
+    };
+
+    enum class window_focus_change
+    {
+        gained,
+        lost
+    };
+
     using hr_clock = std::chrono::high_resolution_clock;
     using hr_duration = typename hr_clock::duration;
 

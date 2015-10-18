@@ -23,19 +23,29 @@ VRM_SDL_NAMESPACE
         vec2f _original_size;
         float _original_ratio;
 
-
-
     public:
-        window(const std::string& title, float width, float height) noexcept
-            : _sdl_window{title, width, height},
+        window(const std::string& title, const vec2u& size) noexcept
+            : _sdl_window{title, size},
               _glcontext{*_sdl_window},
-              _original_size{width, height},
-              _original_ratio{width / height}
+              _original_size(size),
+              _original_ratio{_original_size.x / _original_size.y}
         {
         }
 
         auto& sdl_window() noexcept { return *_sdl_window; }
         const auto& sdl_window() const noexcept { return *_sdl_window; }
+
+        auto& on_resized() noexcept { return sdl_window().on_resized(); }
+        auto& on_focus_changed() noexcept
+        {
+            return sdl_window().on_focus_changed();
+        }
+        auto& on_closed() noexcept { return sdl_window().on_closed(); }
+        const auto& open() const noexcept { return sdl_window().open(); }
+        const auto& in_focus() const noexcept
+        {
+            return sdl_window().in_focus();
+        }
 
         void resize(const vec2f& new_original_size) noexcept
         {
@@ -55,7 +65,10 @@ VRM_SDL_NAMESPACE
 
         void title(const std::string& s) noexcept { sdl_window().title(s); }
 
-        auto current_size() const noexcept { return sdl_window().size(); }
+        const auto& current_size() const noexcept
+        {
+            return sdl_window().size();
+        }
         const auto& original_size() const noexcept { return _original_size; }
         const auto& original_ratio() const noexcept { return _original_ratio; }
 

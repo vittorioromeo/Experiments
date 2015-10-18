@@ -11,6 +11,7 @@
 #include <vrm/sdl/math.hpp>
 #include <vrm/sdl/utils.hpp>
 #include <vrm/sdl/resource.hpp>
+#include <vrm/sdl/events.hpp>
 #include <vrm/sdl/elements.hpp>
 #include <vrm/sdl/gl.hpp>
 #include <vrm/sdl/window.hpp>

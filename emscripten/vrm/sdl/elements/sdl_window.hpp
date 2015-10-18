@@ -6,33 +6,104 @@
 #pragma once
 
 #include <vrm/sdl/elements/sdl_element.hpp>
+#include <vrm/sdl/resource.hpp>
 
 VRM_SDL_NAMESPACE
 {
-    enum class window_mode
-    {
-        windowed = 0,
-        windowed_fullscreen = SDL_WINDOW_FULLSCREEN_DESKTOP,
-        fullscreen = SDL_WINDOW_FULLSCREEN
-    };
-
     class sdl_window : public impl::sdl_element<SDL_Window>
     {
+        friend struct ::vrm::sdl::impl::sdl_window_deleter;
+
+    public:
+        using no_params_fn = delegate<void()>;
+        using resized_fn = delegate<void(const vec2i&)>;
+        using focus_fn = delegate<void(window_focus_change)>;
+
     private:
-        vec2f _size;
         window_mode _mode;
+        vec2f _size;
+        bool _open;
+        bool _in_focus;
+
+        // Global event delegate handles.
+        delegate_handle _dh_resized;
+        delegate_handle _dh_focus_changed;
+        delegate_handle _dh_closed;
+
+        // Delegates.
+        resized_fn _on_resized;
+        focus_fn _on_focus_changed;
+        no_params_fn _on_closed;
+
+        static constexpr auto flags =
+            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+
+        auto this_id() const noexcept { return SDL_GetWindowID(this->ptr()); }
+
+        void bind_events() noexcept
+        {
+            // TODO: `unique_event_handle`
+
+            auto& em(get_global_event_manager());
+
+            _dh_resized = em.on_window_resized() +=
+                [this](auto id, const auto& new_size)
+            {
+                if(id != this_id()) return;
+
+                _size = new_size;
+                _on_resized(new_size);
+            };
+
+            _dh_focus_changed = em.on_window_focus_changed() +=
+                [this](auto id, auto change)
+            {
+                if(id != this_id()) return;
+
+                _in_focus = change == window_focus_change::gained;
+                _on_focus_changed(change);
+            };
+
+            _dh_closed = em.on_window_closed() += [this](auto id)
+            {
+                if(id != this_id()) return;
+
+                _open = false;
+                _on_closed();
+            };
+        }
+
+        void unbind_events()
+        {
+            auto& em(get_global_event_manager());
+
+            em.on_window_resized() -= _dh_closed;
+            em.on_window_focus_changed() -= _dh_focus_changed;
+            em.on_window_closed() -= _dh_resized;
+        }
 
     public:
         using base_type = impl::sdl_element<SDL_Window>;
 
-        sdl_window(const std::string& title, sz_t width, sz_t height) noexcept
+        sdl_window(const std::string& title, const vec2u& size) noexcept
             : base_type{SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED,
-                  SDL_WINDOWPOS_CENTERED, width, height,
-                  SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE)},
-              _size(width, height)
+                  SDL_WINDOWPOS_CENTERED, size.x, size.y, flags)},
+              _size(size),
+              _open{true},
+              _in_focus{true}
         {
             mode(window_mode::windowed);
+            bind_events();
         }
+
+        const auto& mode() const noexcept { return _mode; }
+        const auto& size() const noexcept { return _size; }
+        const auto& open() const noexcept { return _open; }
+        const auto& in_focus() const noexcept { return _in_focus; }
+
+        auto& on_resized() noexcept { return _on_resized; }
+        auto& on_focus_changed() noexcept { return _on_focus_changed; }
+        auto& on_closed() noexcept { return _on_closed; }
 
         void display() noexcept { SDL_GL_SwapWindow(*this); }
 
@@ -41,18 +112,9 @@ VRM_SDL_NAMESPACE
             SDL_SetWindowFullscreen(*this, from_enum(x));
         }
 
-        const auto& mode() const noexcept { return _mode; }
-
         void title(const std::string& s) noexcept
         {
             SDL_SetWindowTitle(*this, s.c_str());
-        }
-
-        auto size() const noexcept
-        {
-            int rx, ry;
-            SDL_GetWindowSize(*const_cast<sdl_window*>(this), &rx, &ry);
-            return vec2f(rx, ry);
         }
 
         void scissor(const vec2f& position, const vec2f& size) const noexcept
@@ -87,6 +149,7 @@ VRM_SDL_NAMESPACE
             void operator()(sdl_window& p) noexcept
             {
                 SDL_DestroyWindow(p.ptr());
+                p.unbind_events();
             }
         };
 

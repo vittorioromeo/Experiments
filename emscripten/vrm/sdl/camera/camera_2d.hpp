@@ -100,7 +100,8 @@ VRM_SDL_NAMESPACE
         {
             mat4f result;
 
-            result = glm::translate(result, vec3i{-_offset, 0.f});
+            // TODO: pixel_perfect flag?
+            result = glm::translate(result, vec3f(-_offset, 0.f));
 
             translate_to_origin(result, 1.f);
             {

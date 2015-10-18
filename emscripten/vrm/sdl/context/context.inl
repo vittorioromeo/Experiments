@@ -43,10 +43,10 @@ VRM_SDL_NAMESPACE
         }
 
         template <typename TSettings>
-        void interpolated_engine<TSettings>::run_draw()
+        void interpolated_engine<TSettings>::run_draw(float interp_t)
         {
-            this->_interpolate_fn(_interpolated_state, _prev_state,
-                _current_state, _timer->interp_t());
+            this->_interpolate_fn(
+                _interpolated_state, _prev_state, _current_state, interp_t);
 
             draw_fn()(_interpolated_state);
         }
@@ -78,7 +78,7 @@ VRM_SDL_NAMESPACE
         }
 
         template <typename TSettings>
-        void non_interpolated_engine<TSettings>::run_draw()
+        void non_interpolated_engine<TSettings>::run_draw(float)
         {
             draw_fn()(_current_state);
         }
@@ -109,74 +109,12 @@ VRM_SDL_NAMESPACE
             return _on_btn_down;
         }
 
-        template <typename TSettings>
-        void context<TSettings>::run_window_events() noexcept
-        {
-            switch(_event.window.event)
-            {
-                case SDL_WINDOWEVENT_SHOWN: break;
-                case SDL_WINDOWEVENT_HIDDEN: break;
-                case SDL_WINDOWEVENT_EXPOSED: break;
-                case SDL_WINDOWEVENT_MOVED: break;
-                case SDL_WINDOWEVENT_RESIZED: break;
-                case SDL_WINDOWEVENT_SIZE_CHANGED: break;
-                case SDL_WINDOWEVENT_MINIMIZED: break;
-                case SDL_WINDOWEVENT_MAXIMIZED: break;
-                case SDL_WINDOWEVENT_RESTORED: break;
-                case SDL_WINDOWEVENT_ENTER: break;
-                case SDL_WINDOWEVENT_LEAVE: break;
-                case SDL_WINDOWEVENT_FOCUS_GAINED: break;
-                case SDL_WINDOWEVENT_FOCUS_LOST: break;
-                case SDL_WINDOWEVENT_CLOSE: break;
-            }
-        }
-
-        template <typename TSettings>
-        void context<TSettings>::run_events() noexcept
-        {
-            while(SDL_PollEvent(&_event))
-            {
-                switch(_event.type)
-                {
-                    case SDL_KEYDOWN:
-                        on_key_down()(
-                            to_enum<kkey>(_event.key.keysym.scancode));
-                        break;
-
-                    case SDL_KEYUP:
-                        on_key_up()(to_enum<kkey>(_event.key.keysym.scancode));
-                        break;
-
-                    case SDL_MOUSEBUTTONDOWN:
-                        on_btn_down()(to_enum<mbtn>(_event.button.button));
-                        break;
-
-                    case SDL_MOUSEBUTTONUP:
-                        on_btn_up()(to_enum<mbtn>(_event.button.button));
-                        break;
-
-                    case SDL_MOUSEMOTION:
-                        _input_state.mouse_x(_event.motion.x);
-                        _input_state.mouse_y(_event.motion.y);
-                        break;
-
-                    case SDL_WINDOWEVENT: run_window_events(); break;
-
-                    case SDL_FINGERDOWN: break;
-                    case SDL_FINGERUP: break;
-                    case SDL_FINGERMOTION: break;
-
-
-                    case SDL_QUIT: std::terminate(); break;
-                }
-            }
-        }
-
 
 
         template <typename TSettings>
-        context<TSettings>::context(class window& window)
-            : _window{window}
+        context<TSettings>::context(
+            timer_type& timer, engine_type& engine, class window& window)
+            : _timer{timer}, _engine{engine}, _window{window}
         {
             if(TTF_Init() != 0)
             {
@@ -203,6 +141,14 @@ VRM_SDL_NAMESPACE
             {
                 _input_state.btn(b, false);
             };
+
+            bind_events();
+        }
+
+        template <typename TSettings>
+        context<TSettings>::~context()
+        {
+            unbind_events();
         }
 
         template <typename TSettings>
@@ -266,13 +212,13 @@ VRM_SDL_NAMESPACE
         template <typename TSettings>
         auto& context<TSettings>::timer() noexcept
         {
-            return *_engine->_timer;
+            return _timer;
         }
 
         template <typename TSettings>
         const auto& context<TSettings>::timer() const noexcept
         {
-            return *_engine->_timer;
+            return _timer;
         }
 
         template <typename TSettings>
@@ -290,20 +236,18 @@ VRM_SDL_NAMESPACE
                 {
                     _total_duration = time_dur([&, this]
                         {
-                            run_events();
-
                             _update_duration = time_dur([&, this]
                                 {
                                     timer().run(real_ms(), [&, this](auto step)
                                         {
-                                            _engine->run_update(step);
+                                            _engine.run_update(step);
                                         });
                                 });
 
                             _draw_duration = time_dur([this]
                                 {
                                     // clear(vec4f{0.f, 0.f, 0.f, 1.f});
-                                    _engine->run_draw();
+                                    _engine.run_draw(_timer.interp_t());
 
                                     window().display();
                                 });
