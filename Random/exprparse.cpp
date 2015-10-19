@@ -1,6 +1,12 @@
 #include <functional>
 #include <iostream>
 
+// highest precedence and left-to-right
+// *   /   %
+
+// lowest precendence and right-to-left
+// &=   ^=   |=
+
 std::function<std::string()> printer;
 
 struct lhs_catcher
