@@ -94,7 +94,7 @@ namespace behavior
     template <typename T>
     struct heap_pointer : behavior_base<handle::heap_pointer<T>, true>
     {
-        auto null() noexcept { return nullptr; }
+        auto null() noexcept { return handle::heap_pointer<T>{nullptr}; }
 
         template <typename... Ts>
         auto init(Ts&&... xs) noexcept
@@ -136,11 +136,11 @@ namespace wrapper
             using handle_type = typename behavior_type::handle_type;
 
         private:
-            THandle _handle;
+            handle_type _handle;
 
         public:
             wrapper_base() noexcept : _handle(behavior_type{}.null()) {}
-            wrapper_base(const THandle& handle) noexcept : _handle(handle) {}
+            wrapper_base(const handle_type& handle) noexcept : _handle(handle) {}
 
             auto& handle() noexcept { return _handle; }
             const auto& handle() const noexcept { return _handle; }
@@ -164,11 +164,14 @@ namespace wrapper
     template <typename T>
     struct heap_pointer : wrapper_base<behavior::heap_pointer<T>>
     {
-        auto operator-> () { return _handle; }
-        auto operator-> () const { return _handle; }
+        using base_type = wrapper_base<behavior::heap_pointer<T>>;
+        using base_type::base_type;
 
-        auto& operator*() { return *_handle; }
-        const auto& operator*() const { return *_handle; }
+        auto operator-> () { return this->handle(); }
+        auto operator-> () const { return this->handle(); }
+
+        auto& operator*() { return *this->handle(); }
+        const auto& operator*() const { return *this->handle(); }
     };
 }
 
@@ -199,16 +202,16 @@ namespace resource
             }
         };
 
-        template <typename TBehavior>
+        template <typename TWrapper>
         class resource_base
         {
             template <bool>
             friend struct ptr_operator_propagator;
 
         protected:
-            using behavior_type = TBehavior;
-            using handle_type = typename behavior_type::handle_type;
-            using wrapper_type = typename behavior_type::wrapper_type;
+            using wrapper_type = TWrapper;
+            using behavior_type = typename wrapper_type::behavior_type;
+            using handle_type = typename wrapper_type::handle_type;
 
             using propagator = ptr_operator_propagator<
                 behavior_type::_propagate_ptr_operators>;
@@ -220,10 +223,10 @@ namespace resource
 
         protected:
             // void init() { _behavior = wrapper_type(behavior.init()); }
-            void deinit() { _behavior.deinit(_wrapper); }
+            void deinit() { _behavior.deinit(_wrapper.handle()); }
 
         public:
-            resource_base() : _wrapper(_behavior.null_handle()) {}
+            resource_base() : _wrapper(_behavior.null()) {}
 
             template <typename... Ts>
             resource_base(Ts&&... xs)
@@ -301,7 +304,10 @@ namespace resource
             this->_wrapper = std::move(i);
         }
 
-        void release() { this->_behavior.release(this->_wrapper); }
+        void release() 
+        { 
+        //    this->_behavior.release(this->_wrapper); 
+        }
     };
 
     /*template <typename TBind>
@@ -328,21 +334,9 @@ struct test_handle
 {
 };
 
-struct test
+struct test_behavior : behavior::behavior_base<test_handle, false>
 {
-    test() = default;
-    test(int x) : v{x} {}
-    test(test_handle) {}
-
-    ~test() { std::cout << "test dtor\n\n"; }
-
-    int v;
-};
-
-
-struct test_behavior : behavior::impl::behavior_data<test_handle, test, false>
-{
-    auto null_handle() { return test_handle{}; }
+    auto null() { return test_handle{}; }
 
     auto init() { return test_handle{}; }
 
@@ -350,24 +344,31 @@ struct test_behavior : behavior::impl::behavior_data<test_handle, test, false>
     void deinit(T&)
     {
     }
-
-    template <typename T>
-    void release(T&)
-    {
-    }
 };
 
-template <typename T>
-using my_unique_ptr = resource::unique<behavior::heap_pointer<T>>;
+struct test : wrapper::wrapper_base<test_behavior>
+{
+    using base_type = wrapper::wrapper_base<test_behavior>;
+    using base_type::base_type;
 
-using my_unique_test = resource::unique<test_behavior>;
+    ~test() { std::cout << "test dtor\n\n"; }
+
+    int v;
+};
+
+
+
+template <typename T>
+using my_unique_ptr = resource::unique<wrapper::heap_pointer<T>>;
+
+using my_unique_test = resource::unique<test>;
 
 int main()
 {
 
     // Traditional RAII.
     {
-        test t{0};
+        test t{};
         std::cout << t.v << "\n";
         std::cout << t.v << "\n";
     }
@@ -383,7 +384,7 @@ int main()
 
     // Traditional heap-allocation.
     {
-        test* t{new test{2}};
+        test* t{new test{}};
         std::cout << t->v << "\n";
         std::cout << (*t).v << "\n";
         delete t;
@@ -391,7 +392,7 @@ int main()
 
     // `std::unique_ptr` heap-allocation.
     {
-        std::unique_ptr<test> t{new test{3}};
+        std::unique_ptr<test> t{new test{}};
         std::cout << t->v << "\n";
         std::cout << (*t).v << "\n";
 
@@ -404,7 +405,7 @@ int main()
     // "Unique resource" (with pointer propagation) heap-allocation.
     {
         // TODO
-        my_unique_ptr<test> t{new test{4}};
+        my_unique_ptr<test> t{new test{}};
         std::cout << t->v << "\n";
         std::cout << (*t).v << "\n";
 
@@ -430,149 +431,3 @@ int main()
 
     return 0;
 }
-
-template <typename... Ts>
-void glGenVertexArrays(Ts...)
-{
-}
-
-template <typename... Ts>
-void glDeleteVertexArrays(Ts...)
-{
-}
-
-/*
-using vao_handle = int;
-constexpr vao_handle null_vao_handle{0};
-
-struct my_vao_wrapper
-{
-    vao_handle _vao{null_vao_handle};
-
-    my_vao_wrapper(vao_handle vao) : _vao{vao} {}
-
-    void bind() { }
-    void unbind() { }
-};
-
-struct my_vao_behavior
-{
-    vao_handle init()
-    {
-        vao_handle vh;
-        glGenVertexArrays(1, &vh);
-        return vh;
-    }
-
-    void deinit(my_vao_wrapper& i)
-    {
-        glDeleteVertexArrays(1, &i._vao);
-    }
-
-    void release(my_vao_wrapper& i)
-    {
-        i._vao = null_vao_handle;
-    }
-};
-*/
-
-
-using vao_handle = int;
-constexpr vao_handle null_vao_handle{0};
-
-template <typename... Ts>
-vao_handle getGlGenVertexArrays(Ts...)
-{
-    return {};
-}
-
-struct my_vao_wrapper
-{
-    vao_handle _vao{null_vao_handle};
-
-    my_vao_wrapper(vao_handle vao) : _vao{vao} {}
-
-    void bind() {}
-    void unbind() {}
-};
-
-template <typename THandle, THandle TNullHandle, typename TFInit,
-    typename TFDeinit, typename TFGetter>
-struct generic_value_behavior
-{
-    template <typename... Ts>
-    auto init(Ts&&... xs)
-    {
-        return TFInit{}(FWD(xs)...);
-    }
-
-    template <typename TInterface>
-    void deinit(TInterface& i)
-    {
-        TFDeinit{}(TFGetter{}(i));
-    }
-
-    template <typename TInterface>
-    void release(TInterface& i)
-    {
-        TFGetter{}(i) = TNullHandle;
-    }
-};
-
-template <typename THandle, THandle TNullHandle, typename TFInit,
-    typename TFDeinit, typename TFGetter>
-constexpr auto make_generic_value_behavior(TFInit&&, TFDeinit&&, TFGetter&&)
-{
-    return generic_value_behavior<THandle, TNullHandle, TFInit, TFDeinit,
-        TFGetter>{};
-}
-
-/*
-struct my_vao_behavior
-{
-    auto init()
-    {
-        return getGlGenVertexArrays(1);
-    }
-
-    void deinit(my_vao_wrapper& i)
-    {
-        glDeleteVertexArrays(1, &i._vao);
-    }
-
-    void release(my_vao_wrapper& i)
-    {
-        i._vao = null_vao_handle;
-    }
-};
-*/
-
-static auto vao_behavior_variable =                           //.
-    make_generic_value_behavior<vao_handle, null_vao_handle>( // .
-        [](auto&&... xs)
-        {
-            return getGlGenVertexArrays(FWD(xs)...);
-        },
-        [](auto& h)
-        {
-            glDeleteVertexArrays(1, &h);
-        },
-        [](auto& i) -> auto&
-        {
-            return i._vao;
-        });
-
-using my_vao_behavior = decltype(vao_behavior_variable);
-
-void desired_main() {}
-
-// vlog: cppcon trip report (talks, experience, photos)
-//       upcoming dive into c++ (twitter for code review)
-//       undertale
-
-// dicp: use case example (ptr*, file*, vao_id (same semantics, different
-// syntax))
-//       manually-made wrapper
-//       unique_ptr
-//       ...
-//       constexpr lambdas would helptwi
