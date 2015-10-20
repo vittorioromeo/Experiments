@@ -8,6 +8,9 @@
 #include <vrm/sdl/internal.hpp>
 #include <vrm/sdl/dependencies/standard.hpp>
 
+#include <vrm/core.hpp>
+namespace vrmc = vrm::core;
+
 #ifdef __EMSCRIPTEN__
 #include <vrm/sdl/dependencies/emscripten.hpp>
 #else

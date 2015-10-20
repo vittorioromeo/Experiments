@@ -10,7 +10,6 @@
 #include <vrm/sdl/gl.hpp>
 #include <vrm/sdl/window.hpp>
 
-
 VRM_SDL_NAMESPACE
 {
     class camera_2d
@@ -21,7 +20,7 @@ VRM_SDL_NAMESPACE
         vec2f _offset;
         float _scale{1.f};
         float _radians{0.f};
-
+ 
         void refresh_projection()
         {
             _projection = impl::make_2d_projection(

@@ -34,87 +34,16 @@ namespace handle
     using heap_pointer = T*;
 }
 
-namespace wrapper
-{
-    /*namespace impl
-    {
-        template <typename THandle>
-        struct interface_base
-        {
-        public:
-            using handle_type = THandle;
-
-        private:
-            handle_type _handle;
-
-        public:
-            void set_handle(handle_type handle) { _handle = handle; }
-
-            auto handle() { return _handle; }
-            auto handle() const { return _handle; }
-        };
-    }*/
-
-    namespace impl
-    {   
-        template<typename THandle>
-        class wrapper_base
-        {   
-            private:    
-                THandle _handle;
-
-            public:
-        };
-    }
-
-    struct file
-    {
-        handle::file _handle{legacy::null_file()};
-
-        file() = default;
-        file(handle::file handle) : _handle{handle} {}
-
-        void write() { std::cout << "wrote to file\n"; }
-        void read() { std::cout << "read from file\n"; }
-    };
-
-    struct vao
-    {
-        handle::vao _handle{legacy::null_vao()};
-
-        vao() = default;
-        vao(handle::vao handle) : _handle{handle} {}
-
-        void bind() { std::cout << "vao bound\n"; }
-        void unbind() { std::cout << "vao unbound\n"; }
-    };
-
-    template <typename T>
-    struct heap_pointer
-    {
-        handle::heap_pointer<T> _handle{nullptr};
-
-        heap_pointer() = default;
-        heap_pointer(handle::heap_pointer<T> handle) : _handle{handle} {}
-
-        auto operator-> () { return _handle; }
-        auto operator-> () const { return _handle; }
-
-        auto& operator*() { return *_handle; }
-        const auto& operator*() const { return *_handle; }
-    };
-}
-
 namespace behavior
 {
     namespace impl
     {
-        template <typename THandle, typename TInterface,
+        template <typename THandle, typename TWrapper,
             bool TPropagatePtrOperators>
         struct behavior_data
         {
             using handle_type = THandle;
-            using wrapper_type = TInterface;
+            using wrapper_type = TWrapper;
 
             type_w<handle_type> _tw_handle;
             type_w<wrapper_type> _tw_wrapper;
@@ -122,83 +51,124 @@ namespace behavior
             static constexpr bool _propagate_ptr_operators{
                 TPropagatePtrOperators};
         };
+
+        template <typename THandle, bool TPropagatePtrOperators>
+        struct behavior_base
+        {
+            using handle_type = THandle;
+            static constexpr bool _propagate_ptr_operators{
+                TPropagatePtrOperators};
+        };
     }
 
-    struct file : impl::behavior_data<handle::file, wrapper::file, false>
+    using impl::behavior_base;
+
+    struct vao : behavior_base<handle::vao, false>
     {
-        auto null_handle() { return handle::file{0}; }
+        auto null() noexcept { return 0; }
 
-        auto init() { return handle::file{legacy::create_file()}; }
-
-        template <typename T>
-        void deinit(T& f)
-        {
-            // if(f.id != 0)
-            legacy::delete_file(f._handle);
-        }
-
-        template <typename TI>
-        void release(TI& f)
-        {
-            f._handle = null_handle();
-        }
-    };
-
-    struct vao
-    {
-        static constexpr bool propagate_ptr_operators{false};
-        using handle_type = handle::vao;
-        using wrapper_type = wrapper::vao;
-
-        auto null_handle() { return handle::vao{0}; }
-
-        auto init()
+        template <typename... Ts>
+        auto init(Ts&&... xs) noexcept
         {
             handle::vao result;
-            legacy::create_vao(&result);
+            legacy::create_vao(&result, FWD(xs)...);
             return result;
         }
 
-        template <typename T>
-        void deinit(T& f)
+        void deinit(handle::vao& x) noexcept { legacy::delete_vao(x); }
+    };
+
+    struct file : behavior_base<handle::file, false>
+    {
+        auto null() noexcept { return 0; }
+
+        template <typename... Ts>
+        auto init(Ts&&... xs) noexcept
         {
-            // if(f.id != 0)
-            legacy::delete_vao(f._handle);
+            return handle::file{legacy::create_file(FWD(xs)...)};
         }
 
-        template <typename TI>
-        void release(TI& f)
-        {
-            f._handle = null_handle();
-        }
+        void deinit(handle::file& x) noexcept { legacy::delete_file(x); }
     };
 
     template <typename T>
-    struct heap_pointer : behavior::impl::behavior_data<handle::heap_pointer<T>,
-                              wrapper::heap_pointer<T>, true>
+    struct heap_pointer : behavior_base<handle::heap_pointer<T>, true>
     {
+        auto null() noexcept { return nullptr; }
 
-        auto null_handle() { return nullptr; }
-
-
-        // template<typename...Ts>
-        // auto init(Ts&&... xs) { return handle::heap_pointer<T>{new
-        // T(FWD(xs)...)}; }
-
-        auto init(T* p) { return handle::heap_pointer<T>{p}; }
-
-        template <typename TI>
-        void deinit(TI& f)
+        template <typename... Ts>
+        auto init(Ts&&... xs) noexcept
         {
-            // if(f._handle != nullptr)
-            delete f._handle;
+            return new T(FWD(xs)...);
         }
 
-        template <typename TI>
-        void release(TI& f)
+        void deinit(handle::heap_pointer<T>& x) noexcept { delete x; }
+    };
+}
+
+namespace wrapper
+{
+    /*
+    namespace impl
+    {
+        template <typename THandle>
+        struct wrapper_base
         {
-            f._handle = null_handle();
-        }
+        private:
+            THandle _handle;
+
+        public:
+            wrapper_base(const THandle& handle) noexcept : _handle(handle) {}
+
+            auto& handle() noexcept { return _handle; }
+            const auto& handle() const noexcept { return _handle; }
+        };
+    }
+    */
+
+    namespace impl
+    {
+        template <typename TBehavior>
+        struct wrapper_base
+        {
+        public:
+            using behavior_type = TBehavior;
+            using handle_type = typename behavior_type::handle_type;
+
+        private:
+            THandle _handle;
+
+        public:
+            wrapper_base() noexcept : _handle(behavior_type{}.null()) {}
+            wrapper_base(const THandle& handle) noexcept : _handle(handle) {}
+
+            auto& handle() noexcept { return _handle; }
+            const auto& handle() const noexcept { return _handle; }
+        };
+    }
+
+    using impl::wrapper_base;
+
+    struct file : wrapper_base<behavior::file>
+    {
+        void write() { std::cout << "wrote to file\n"; }
+        void read() { std::cout << "read from file\n"; }
+    };
+
+    struct vao : wrapper_base<behavior::vao>
+    {
+        void bind() { std::cout << "vao bound\n"; }
+        void unbind() { std::cout << "vao unbound\n"; }
+    };
+
+    template <typename T>
+    struct heap_pointer : wrapper_base<behavior::heap_pointer<T>>
+    {
+        auto operator-> () { return _handle; }
+        auto operator-> () const { return _handle; }
+
+        auto& operator*() { return *_handle; }
+        const auto& operator*() const { return *_handle; }
     };
 }
 
