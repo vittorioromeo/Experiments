@@ -62,8 +62,8 @@ VRM_SDL_NAMESPACE
                 bind();
                 {
                     VRM_SDL_GLCHECK(glTexImage2D(GL_TEXTURE_2D, level,
-                        from_enum(format), size.x, size.y, 0, from_enum(format),
-                        GL_UNSIGNED_BYTE, data));
+                        vrmc::from_enum(format), size.x, size.y, 0,
+                        vrmc::from_enum(format), GL_UNSIGNED_BYTE, data));
 
                     // Only `GL_CLAMP_TO_EDGE` is supported for
                     // non-power-of-two textures.
@@ -94,19 +94,19 @@ VRM_SDL_NAMESPACE
 
             void filter(texture_filter f) noexcept
             {
-                assert(bound());
+                VRM_CORE_ASSERT(bound());
 
                 VRM_SDL_GLCHECK(glTexParameteri(
-                    GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, from_enum(f)));
+                    GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, vrmc::from_enum(f)));
 
                 VRM_SDL_GLCHECK(glTexParameteri(
-                    GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, from_enum(f)));
+                    GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, vrmc::from_enum(f)));
             }
 
             void sub_image_2d(const vec2i& offset, const vec2u& sub_image_size,
                 const GLvoid* data)
             {
-                assert(bound());
+                VRM_CORE_ASSERT(bound());
 
                 VRM_SDL_GLCHECK(glTexSubImage2D(GL_TEXTURE_2D, 0, offset.x,
                     offset.y, sub_image_size.x, sub_image_size.y, GL_RGBA,
@@ -132,7 +132,7 @@ VRM_SDL_NAMESPACE
 
             void unbind() const noexcept
             {
-                assert(bound());
+                VRM_CORE_ASSERT(bound());
                 VRM_SDL_GLCHECK(glBindTexture(GL_TEXTURE_2D, 0));
             }
 
@@ -166,7 +166,8 @@ VRM_SDL_NAMESPACE
 
         constexpr auto get_texture_unit_idx(GLenum texture_unit) noexcept
         {
-            return to_num<sz_t>(texture_unit) - to_num<sz_t>(GL_TEXTURE0);
+            return vrmc::to_num<sz_t>(texture_unit) -
+                   vrmc::to_num<sz_t>(GL_TEXTURE0);
         }
 
         constexpr auto get_texture_unit(sz_t idx) noexcept
@@ -182,7 +183,7 @@ VRM_SDL_NAMESPACE
         constexpr auto get_valid_texture_unit_count(sz_t desired) noexcept
         {
             return std::min(
-                desired, to_num<sz_t>(get_max_texture_unit_count()));
+                desired, vrmc::to_num<sz_t>(get_max_texture_unit_count()));
         }
     }
 

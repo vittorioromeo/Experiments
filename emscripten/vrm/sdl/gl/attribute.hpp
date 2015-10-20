@@ -42,7 +42,7 @@ VRM_SDL_NAMESPACE
             const GLvoid* first_element = nullptr,
             sz_t layout_offset = 0) noexcept
         {
-            assert(n_components > 0 && n_components < 5);
+            VRM_CORE_ASSERT(n_components > 0 && n_components < 5);
 
             VRM_SDL_GLCHECK(glVertexAttribPointer(_location + layout_offset,
                 n_components, type, normalized, stride, first_element));
@@ -55,10 +55,10 @@ VRM_SDL_NAMESPACE
             bool normalized = true, sz_t offset = 0,
             sz_t layout_offset = 0) noexcept
         {
-            static_assert(std::is_standard_layout<T>{}, "");
+            VRM_CORE_STATIC_ASSERT(std::is_standard_layout<T>{}, "");
 
             return vertex_attrib_pointer(n_components, type, normalized,
-                sizeof(T), to_void_ptr(offset), layout_offset);
+                sizeof(T), vrmc::num_to_void_ptr(offset), layout_offset);
         }
 
         template <typename T, typename TValue>

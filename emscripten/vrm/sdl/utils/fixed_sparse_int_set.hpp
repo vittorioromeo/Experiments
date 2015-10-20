@@ -45,16 +45,16 @@ VRM_SDL_NAMESPACE
 
         bool has(const T& x) const noexcept
         {
-            assert(x < TSize);
+            VRM_CORE_ASSERT(x < TSize);
             return _sparse[x] != nullptr;
         }
 
         bool add(const T& x) noexcept
         {
-            assert(x < TSize);
+            VRM_CORE_ASSERT(x < TSize);
             if(has(x)) return false;
 
-            assert(size() < TSize);
+            VRM_CORE_ASSERT(size() < TSize);
             *_end = x;
 
             _sparse[x] = _end;
@@ -65,14 +65,14 @@ VRM_SDL_NAMESPACE
 
         bool erase(const T& x) noexcept
         {
-            assert(x < TSize);
+            VRM_CORE_ASSERT(x < TSize);
             if(!has(x)) return false;
 
             auto& ptr(_sparse[x]);
-            assert(size() > 0);
+            VRM_CORE_ASSERT(size() > 0);
 
             auto last(back());
-            assert(ptr != nullptr);
+            VRM_CORE_ASSERT(ptr != nullptr);
 
             if(*ptr != last)
             {
@@ -80,10 +80,10 @@ VRM_SDL_NAMESPACE
                 _sparse[last] = ptr;
             }
 
-            assert(has(x));
+            VRM_CORE_ASSERT(has(x));
             ptr = nullptr;
 
-            assert(size() > 0);
+            VRM_CORE_ASSERT(size() > 0);
             --_end;
 
             return true;
@@ -99,41 +99,41 @@ VRM_SDL_NAMESPACE
 
         void pop_back() noexcept
         {
-            assert(size() > 0);
+            VRM_CORE_ASSERT(size() > 0);
             erase(back());
         }
 
         auto back() const noexcept
         {
-            assert(size() > 0);
+            VRM_CORE_ASSERT(size() > 0);
 
-            assert(has(*(_end - 1)));
+            VRM_CORE_ASSERT(has(*(_end - 1)));
             return *(_end - 1);
         }
 
         template <typename TF>
         void for_each(TF&& f) const noexcept
         {
-            assert(size() <= TSize);
+            VRM_CORE_ASSERT(size() <= TSize);
 
             for(auto p(_dense.data()); p != _end; ++p)
             {
-                assert(has(*p));
+                VRM_CORE_ASSERT(has(*p));
                 f(*p);
             }
         }
 
         auto operator[](std::size_t i) const noexcept
         {
-            assert(i < size());
+            VRM_CORE_ASSERT(i < size());
 
-            assert(has(_dense[i]));
+            VRM_CORE_ASSERT(has(_dense[i]));
             return _dense[i];
         }
 
         auto size() const noexcept
         {
-            return to_num<sdl::sz_t>(end() - begin());
+            return vrmc::to_num<sdl::sz_t>(end() - begin());
         }
 
         decltype(auto) begin() noexcept { return _dense.data(); }

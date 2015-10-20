@@ -18,3 +18,6 @@
 #include <type_traits>
 #include <array>
 #include <utility>
+
+#include <vrm/core.hpp>
+namespace vrmc = vrm::core;

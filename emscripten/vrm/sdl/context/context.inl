@@ -280,7 +280,7 @@ VRM_SDL_NAMESPACE
             // return seconds_ft_ratio / total_ms();
             // return total_duration().count();
 
-            return to_num<int>(1000.f / real_ms());
+            return vrmc::to_num<int>(1000.f / real_ms());
         }
 
         template <typename TSettings>

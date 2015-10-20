@@ -14,7 +14,7 @@ VRM_SDL_NAMESPACE
         template <typename T>
         struct n_components_for_helper
         {
-            static_assert(std::is_arithmetic<T>{}, "");
+            VRM_CORE_STATIC_ASSERT(std::is_arithmetic<T>{}, "");
             constexpr static sz_t value{1};
         };
 

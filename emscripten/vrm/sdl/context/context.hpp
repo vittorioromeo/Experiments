@@ -204,7 +204,7 @@ VRM_SDL_NAMESPACE
 
             context(
                 timer_type& timer, engine_type& engine, class window& window);
-            
+
             ~context();
 
             context(const context&) = delete;

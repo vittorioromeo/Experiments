@@ -149,7 +149,7 @@ VRM_SDL_NAMESPACE
         template <typename... Ts>
         void add(Ts&&... xs)
         {
-            assert(_in.size() < _capacity);
+            VRM_CORE_ASSERT(_in.size() < _capacity);
             _in.emplace_back(FWD(xs)...);
         }
 
@@ -181,13 +181,13 @@ VRM_SDL_NAMESPACE
 
         const auto& size(sz_t idx) const noexcept
         {
-            assert(_texture_sizes.size() > idx);
+            VRM_CORE_ASSERT(_texture_sizes.size() > idx);
             return _texture_sizes[idx];
         }
 
         const auto& coords(sz_t idx) const noexcept
         {
-            assert(_texture_coords.size() > idx);
+            VRM_CORE_ASSERT(_texture_coords.size() > idx);
             return _texture_coords[idx];
         }
     };
@@ -198,7 +198,7 @@ VRM_SDL_NAMESPACE
         atlas result;
         atlas_builder<TStrategy> ab{sizeof...(Ts)};
 
-        sdl::for_args(
+        vrmc::for_args(
             [&result, &ab](auto&& surface)
             {
                 ab.add(*surface);
@@ -413,7 +413,7 @@ VRM_SDL_NAMESPACE
         template <typename... Ts>
         VRM_SDL_ALWAYS_INLINE void enqueue_i(Ts&&... xs) noexcept
         {
-            sdl::for_args(
+            vrmc::for_args(
                 [this](auto&& i)
                 {
                     _indices.emplace_back(_current_batch_vertex_count + FWD(i));
@@ -623,7 +623,7 @@ struct my_game_state
 
     auto add(const entity_type& e)
     {
-        assert(!_free.empty());
+        VRM_CORE_ASSERT(!_free.empty());
 
         auto fi(_free.back());
         _free.pop_back();
@@ -631,15 +631,15 @@ struct my_game_state
         auto& res(_entities[fi]);
         res = e;
 
-        assert(!res.alive);
+        VRM_CORE_ASSERT(!res.alive);
         res.alive = true;
 
 
 
-        assert(!_alive.has(fi));
+        VRM_CORE_ASSERT(!_alive.has(fi));
         _alive.add(fi);
-        assert(!_free.has(fi));
-        assert(_alive.has(fi));
+        VRM_CORE_ASSERT(!_free.has(fi));
+        VRM_CORE_ASSERT(_alive.has(fi));
 
         return fi;
     }
@@ -688,24 +688,24 @@ struct my_game_state
             {
                 if(!_entities[i].alive)
                 {
-                    assert(_alive.has(i));
-                    assert(!_free.has(i));
+                    VRM_CORE_ASSERT(_alive.has(i));
+                    VRM_CORE_ASSERT(!_free.has(i));
 
                     _free.add(i);
 
-                    assert(_free.has(i));
-                    assert(_alive.has(i));
+                    VRM_CORE_ASSERT(_free.has(i));
+                    VRM_CORE_ASSERT(_alive.has(i));
                 }
             });
 
 
         for(auto i(to_erase_begin); i != _free.end(); ++i)
         {
-            assert(_alive.has(*i));
+            VRM_CORE_ASSERT(_alive.has(*i));
 
             _alive.erase(*i);
 
-            assert(!_alive.has(*i));
+            VRM_CORE_ASSERT(!_alive.has(*i));
         }
     }
 
@@ -735,12 +735,12 @@ struct my_game
 
     auto& texture_size(e_type type) noexcept
     {
-        return _atlas.size(sdl::from_enum(type));
+        return _atlas.size(vrmc::from_enum(type));
     }
 
     auto& texture_coords(e_type type) noexcept
     {
-        return _atlas.coords(sdl::from_enum(type));
+        return _atlas.coords(vrmc::from_enum(type));
     }
 
     auto make_surface_from_image(const std::string& path)
