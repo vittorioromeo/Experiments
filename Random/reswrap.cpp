@@ -606,3 +606,12 @@ void desired_main() {}
 //       unique_ptr
 //       ...
 //       constexpr lambdas would helptwi
+
+/*
+    * multiple handle types could have same interface
+        * example: heap_ptr, stack_ptr        
+
+    * same handle types could have different interfaces
+    
+    * interface does not depend on handle/behavior
+*/
