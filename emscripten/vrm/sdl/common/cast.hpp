@@ -72,13 +72,6 @@ VRM_SDL_NAMESPACE
         return reinterpret_cast<const void*>(x);
     }
 
-    template <typename T>
-    VRM_SDL_ALWAYS_INLINE constexpr auto from_enum(const T& x) noexcept
-    {
-        return static_cast<std::underlying_type_t<T>>(x);
-    }
-
-
     template <typename TOut, typename TIn>
     VRM_SDL_ALWAYS_INLINE constexpr auto to_num(const TIn& x) noexcept
         ->std::enable_if_t<std::is_arithmetic<TOut>{} &&
@@ -87,6 +80,12 @@ VRM_SDL_NAMESPACE
             TOut>
     {
         return static_cast<TOut>(x);
+    }
+
+    template <typename T>
+    VRM_SDL_ALWAYS_INLINE constexpr auto from_enum(const T& x) noexcept
+    {
+        return static_cast<std::underlying_type_t<T>>(x);
     }
 
     template <typename TOut, typename TIn>
@@ -108,6 +107,6 @@ VRM_SDL_NAMESPACE
             "");
 
         return static_cast<TOut>(x);
-    }
+    }   
 }
 VRM_SDL_NAMESPACE_END
