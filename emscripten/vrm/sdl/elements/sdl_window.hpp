@@ -109,7 +109,7 @@ VRM_SDL_NAMESPACE
 
         void mode(window_mode x) noexcept
         {
-            SDL_SetWindowFullscreen(*this, from_enum(x));
+            SDL_SetWindowFullscreen(*this, vrmc::from_enum(x));
         }
 
         void title(const std::string& s) noexcept

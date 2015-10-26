@@ -34,7 +34,7 @@ namespace handle
     using heap_pointer = T*;
 }
 
-namespace interface
+namespace wrapper
 {
     /*namespace impl
     {
@@ -54,6 +54,18 @@ namespace interface
             auto handle() const { return _handle; }
         };
     }*/
+
+    namespace impl
+    {   
+        template<typename THandle>
+        class wrapper_base
+        {   
+            private:    
+                THandle _handle;
+
+            public:
+        };
+    }
 
     struct file
     {
@@ -102,17 +114,17 @@ namespace behavior
         struct behavior_data
         {
             using handle_type = THandle;
-            using interface_type = TInterface;
+            using wrapper_type = TInterface;
 
             type_w<handle_type> _tw_handle;
-            type_w<interface_type> _tw_interface;
+            type_w<wrapper_type> _tw_wrapper;
 
             static constexpr bool _propagate_ptr_operators{
                 TPropagatePtrOperators};
         };
     }
 
-    struct file : impl::behavior_data<handle::file, interface::file, false>
+    struct file : impl::behavior_data<handle::file, wrapper::file, false>
     {
         auto null_handle() { return handle::file{0}; }
 
@@ -136,7 +148,7 @@ namespace behavior
     {
         static constexpr bool propagate_ptr_operators{false};
         using handle_type = handle::vao;
-        using interface_type = interface::vao;
+        using wrapper_type = wrapper::vao;
 
         auto null_handle() { return handle::vao{0}; }
 
@@ -163,7 +175,7 @@ namespace behavior
 
     template <typename T>
     struct heap_pointer : behavior::impl::behavior_data<handle::heap_pointer<T>,
-                              interface::heap_pointer<T>, true>
+                              wrapper::heap_pointer<T>, true>
     {
 
         auto null_handle() { return nullptr; }
@@ -203,7 +215,7 @@ namespace resource
             template <typename T>
             auto& operator()(T&& resource)
             {
-                return *resource._interface;
+                return *resource._wrapper;
             }
         };
 
@@ -213,7 +225,7 @@ namespace resource
             template <typename T>
             auto& operator()(T&& resource)
             {
-                return resource._interface;
+                return resource._wrapper;
             }
         };
 
@@ -226,7 +238,7 @@ namespace resource
         protected:
             using behavior_type = TBehavior;
             using handle_type = typename behavior_type::handle_type;
-            using interface_type = typename behavior_type::interface_type;
+            using wrapper_type = typename behavior_type::wrapper_type;
 
             using propagator = ptr_operator_propagator<
                 behavior_type::_propagate_ptr_operators>;
@@ -234,31 +246,31 @@ namespace resource
         protected:
             // handle_type _handle;
             behavior_type _behavior;
-            interface_type _interface;
+            wrapper_type _wrapper;
 
         protected:
-            // void init() { _behavior = interface_type(behavior.init()); }
-            void deinit() { _behavior.deinit(_interface); }
+            // void init() { _behavior = wrapper_type(behavior.init()); }
+            void deinit() { _behavior.deinit(_wrapper); }
 
         public:
-            resource_base() : _interface(_behavior.null_handle()) {}
+            resource_base() : _wrapper(_behavior.null_handle()) {}
 
             template <typename... Ts>
             resource_base(Ts&&... xs)
-                : _interface(_behavior.init(FWD(xs)...))
+                : _wrapper(_behavior.init(FWD(xs)...))
             {
             }
 
             resource_base(resource_base&& x)
                 : _behavior(std::move(x._behavior)),
-                  _interface(std::move(x._interface))
+                  _wrapper(std::move(x._wrapper))
             {
             }
 
             resource_base& operator=(resource_base&& x)
             {
                 _behavior = std::move(x._behavior);
-                _interface = std::move(x._interface);
+                _wrapper = std::move(x._wrapper);
                 return *this;
             }
 
@@ -275,7 +287,7 @@ namespace resource
     {
     private:
         using base_type = impl::resource_base<TBehavior>;
-        using interface_type = typename base_type::interface_type;
+        using wrapper_type = typename base_type::wrapper_type;
 
     public:
         unique() = default;
@@ -307,20 +319,19 @@ namespace resource
             return *this;
         }
 
-
         void reset()
         {
             this->deinit();
             release();
         }
 
-        void reset(interface_type&& i)
+        void reset(wrapper_type&& i)
         {
             reset();
-            this->_interface = std::move(i);
+            this->_wrapper = std::move(i);
         }
 
-        void release() { this->_behavior.release(this->_interface); }
+        void release() { this->_behavior.release(this->_wrapper); }
     };
 
     /*template <typename TBind>
@@ -464,11 +475,11 @@ void glDeleteVertexArrays(Ts...)
 using vao_handle = int;
 constexpr vao_handle null_vao_handle{0};
 
-struct my_vao_interface
+struct my_vao_wrapper
 {
     vao_handle _vao{null_vao_handle};
 
-    my_vao_interface(vao_handle vao) : _vao{vao} {}
+    my_vao_wrapper(vao_handle vao) : _vao{vao} {}
 
     void bind() { }
     void unbind() { }
@@ -483,12 +494,12 @@ struct my_vao_behavior
         return vh;
     }
 
-    void deinit(my_vao_interface& i)
+    void deinit(my_vao_wrapper& i)
     {
         glDeleteVertexArrays(1, &i._vao);
     }
 
-    void release(my_vao_interface& i)
+    void release(my_vao_wrapper& i)
     {
         i._vao = null_vao_handle;
     }
@@ -505,11 +516,11 @@ vao_handle getGlGenVertexArrays(Ts...)
     return {};
 }
 
-struct my_vao_interface
+struct my_vao_wrapper
 {
     vao_handle _vao{null_vao_handle};
 
-    my_vao_interface(vao_handle vao) : _vao{vao} {}
+    my_vao_wrapper(vao_handle vao) : _vao{vao} {}
 
     void bind() {}
     void unbind() {}
@@ -554,12 +565,12 @@ struct my_vao_behavior
         return getGlGenVertexArrays(1);
     }
 
-    void deinit(my_vao_interface& i)
+    void deinit(my_vao_wrapper& i)
     {
         glDeleteVertexArrays(1, &i._vao);
     }
 
-    void release(my_vao_interface& i)
+    void release(my_vao_wrapper& i)
     {
         i._vao = null_vao_handle;
     }
@@ -595,3 +606,12 @@ void desired_main() {}
 //       unique_ptr
 //       ...
 //       constexpr lambdas would helptwi
+
+/*
+    * multiple handle types could have same interface
+        * example: heap_ptr, stack_ptr        
+
+    * same handle types could have different interfaces
+    
+    * interface does not depend on handle/behavior
+*/

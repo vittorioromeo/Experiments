@@ -7,6 +7,5 @@
 
 #include <vrm/sdl/math.hpp>
 
-#include <vrm/sdl/utils/for_args.hpp>
 #include <vrm/sdl/utils/fixed_sparse_int_set.hpp>
 #include <vrm/sdl/utils/delegate.hpp>

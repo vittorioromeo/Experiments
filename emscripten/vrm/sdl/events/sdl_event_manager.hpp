@@ -96,19 +96,21 @@ VRM_SDL_NAMESPACE
                 {
                     case SDL_KEYDOWN:
                         on_key_down()(
-                            to_enum<kkey>(_event.key.keysym.scancode));
+                            vrmc::to_enum<kkey>(_event.key.keysym.scancode));
                         break;
 
                     case SDL_KEYUP:
-                        on_key_up()(to_enum<kkey>(_event.key.keysym.scancode));
+                        on_key_up()(
+                            vrmc::to_enum<kkey>(_event.key.keysym.scancode));
                         break;
 
                     case SDL_MOUSEBUTTONDOWN:
-                        on_btn_down()(to_enum<mbtn>(_event.button.button));
+                        on_btn_down()(
+                            vrmc::to_enum<mbtn>(_event.button.button));
                         break;
 
                     case SDL_MOUSEBUTTONUP:
-                        on_btn_up()(to_enum<mbtn>(_event.button.button));
+                        on_btn_up()(vrmc::to_enum<mbtn>(_event.button.button));
                         break;
 
                     case SDL_MOUSEMOTION:

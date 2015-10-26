@@ -30,7 +30,7 @@ VRM_SDL_NAMESPACE
     template <typename T>
     VRM_SDL_ALWAYS_INLINE auto wrap_rad(const T& x) noexcept
     {
-        assert(x >= -sdl::tau && x <= 2.f * sdl::tau);
+        VRM_CORE_ASSERT(x >= -sdl::tau && x <= 2.f * sdl::tau);
 
         if(x < 0) return x + sdl::tau;
         if(x > sdl::tau) return x - sdl::tau;

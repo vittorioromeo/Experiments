@@ -48,7 +48,7 @@ VRM_SDL_NAMESPACE
         template <typename... TShaders>
         inline void attach_and_link(TShaders&&... mShaders) noexcept
         {
-            for_args(
+            vrmc::for_args(
                 [this](auto&& s)
                 {
                     VRM_SDL_GLCHECK(glAttachShader(*id, FWD(s)));
@@ -57,7 +57,7 @@ VRM_SDL_NAMESPACE
 
             VRM_SDL_GLCHECK(glLinkProgram(*id));
 
-            for_args(
+            vrmc::for_args(
                 [this](auto&& s)
                 {
                     VRM_SDL_GLCHECK(glDetachShader(*id, FWD(s)));
@@ -69,13 +69,13 @@ VRM_SDL_NAMESPACE
 
         auto nth_attribute(GLuint location) const noexcept
         {
-            assert(location != GL_INVALID_OPERATION);
+            VRM_CORE_ASSERT(location != GL_INVALID_OPERATION);
             return sdl::attribute{location};
         }
 
         auto nth_uniform(GLuint location) const noexcept
         {
-            assert(location != GL_INVALID_OPERATION);
+            VRM_CORE_ASSERT(location != GL_INVALID_OPERATION);
             return sdl::uniform{location};
         }
 

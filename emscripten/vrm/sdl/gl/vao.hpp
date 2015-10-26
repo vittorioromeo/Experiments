@@ -29,7 +29,7 @@ VRM_SDL_NAMESPACE
                 VRM_SDL_GLCHECK(
                     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &result));
 
-                return result == to_num<GLint>(_id);
+                return result == vrmc::to_num<GLint>(_id);
 #else
                 return true;
 #endif
@@ -42,7 +42,7 @@ VRM_SDL_NAMESPACE
 
             void generate() noexcept
             {
-                assert(_n == 1);
+                VRM_CORE_ASSERT(_n == 1);
                 VRM_SDL_GLCHECK(glGenVertexArraysOES(_n, &_id));
             }
 
@@ -55,7 +55,7 @@ VRM_SDL_NAMESPACE
 
             void unbind() noexcept
             {
-                assert(bound());
+                VRM_CORE_ASSERT(bound());
                 VRM_SDL_GLCHECK(glBindVertexArrayOES(0));
             }
 
@@ -70,20 +70,21 @@ VRM_SDL_NAMESPACE
             template <primitive TP>
             void draw_arrays(GLint first_index, GLsizei index_count) noexcept
             {
-                assert(bound());
+                VRM_CORE_ASSERT(bound());
 
-                VRM_SDL_GLCHECK(
-                    glDrawArrays(from_enum(TP), first_index, index_count));
+                VRM_SDL_GLCHECK(glDrawArrays(
+                    vrmc::from_enum(TP), first_index, index_count));
             }
 
             template <primitive TP, index_type TI>
             void draw_elements(
                 GLsizei index_count, sz_t vbo_offset_byte = 0) noexcept
             {
-                assert(bound());
+                VRM_CORE_ASSERT(bound());
 
-                VRM_SDL_GLCHECK(glDrawElements(from_enum(TP), index_count,
-                    from_enum(TI), to_void_ptr(vbo_offset_byte)));
+                VRM_SDL_GLCHECK(glDrawElements(vrmc::from_enum(TP), index_count,
+                    vrmc::from_enum(TI),
+                    vrmc::num_to_void_ptr(vbo_offset_byte)));
             }
 
             template <primitive TP, typename... Ts>
@@ -119,7 +120,7 @@ VRM_SDL_NAMESPACE
 
     auto make_vao(GLuint n = 1) noexcept
     {
-        assert(n > 0);
+        VRM_CORE_ASSERT(n > 0);
 
         impl::vao v{n};
         v.generate();

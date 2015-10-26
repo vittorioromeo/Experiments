@@ -32,7 +32,7 @@ VRM_SDL_NAMESPACE
         class vbo
         {
         private:
-            static constexpr GLenum target_value{from_enum(TTarget)};
+            static constexpr GLenum target_value{vrmc::from_enum(TTarget)};
 
             GLuint _id, _n;
 
@@ -61,7 +61,7 @@ VRM_SDL_NAMESPACE
 
             void generate() noexcept
             {
-                assert(_n == 1);
+                VRM_CORE_ASSERT(_n == 1);
                 VRM_SDL_GLCHECK(glGenBuffers(_n, &_id));
             }
 
@@ -77,7 +77,7 @@ VRM_SDL_NAMESPACE
 
             void unbind() noexcept
             {
-                assert(bound());
+                VRM_CORE_ASSERT(bound());
                 VRM_SDL_GLCHECK(glBindBuffer(target_value, 0));
             }
 
@@ -86,10 +86,10 @@ VRM_SDL_NAMESPACE
             void sub_buffer_data(const void* data_ptr, GLsizeiptr byte_count,
                 GLintptr vbo_byte_offset = 0) noexcept
             {
-                assert(byte_count >= 0);
-                assert(vbo_byte_offset >= 0);
-                assert(data_ptr != nullptr);
-                assert(bound());
+                VRM_CORE_ASSERT(byte_count >= 0);
+                VRM_CORE_ASSERT(vbo_byte_offset >= 0);
+                VRM_CORE_ASSERT(data_ptr != nullptr);
+                VRM_CORE_ASSERT(bound());
 
                 VRM_SDL_GLCHECK(glBufferSubData(
                     target_value, vbo_byte_offset, byte_count, data_ptr));
@@ -105,7 +105,7 @@ VRM_SDL_NAMESPACE
             void sub_buffer_data_items(const T* data_ptr, sz_t item_count,
                 sz_t vbo_byte_offset = 0) noexcept
             {
-                sub_buffer_data_bytes(to_void_ptr(data_ptr),
+                sub_buffer_data_bytes(vrmc::to_void_ptr(data_ptr),
                     item_count * sizeof(T), vbo_byte_offset);
             }
 
@@ -114,7 +114,7 @@ VRM_SDL_NAMESPACE
                 sz_t item_count_offset, sz_t item_count,
                 sz_t vbo_byte_offset = 0) noexcept
             {
-                assert(vec.size() - item_count_offset >= item_count);
+                VRM_CORE_ASSERT(vec.size() - item_count_offset >= item_count);
 
                 sub_buffer_data_items<T>(vec.data() + item_count_offset,
                     item_count, vbo_byte_offset);
@@ -124,10 +124,10 @@ VRM_SDL_NAMESPACE
             void buffer_data(
                 const void* data_ptr, GLsizeiptr byte_count) noexcept
             {
-                assert(bound());
+                VRM_CORE_ASSERT(bound());
 
-                VRM_SDL_GLCHECK(glBufferData(
-                    target_value, byte_count, data_ptr, from_enum(TUsage)));
+                VRM_SDL_GLCHECK(glBufferData(target_value, byte_count, data_ptr,
+                    vrmc::from_enum(TUsage)));
             }
 
             template <buffer_usage TUsage>
@@ -141,7 +141,7 @@ VRM_SDL_NAMESPACE
             void buffer_data_items(const T* data_ptr, sz_t item_count) noexcept
             {
                 buffer_data_bytes<TUsage>(
-                    to_void_ptr(data_ptr), sizeof(T) * item_count);
+                    vrmc::to_void_ptr(data_ptr), sizeof(T) * item_count);
             }
 
             template <buffer_usage TUsage, typename T, sz_t TN>
@@ -154,7 +154,7 @@ VRM_SDL_NAMESPACE
             void buffer_data_items(const std::vector<T>& vec, sz_t item_count,
                 sz_t item_count_offset = 0) noexcept
             {
-                assert(vec.size() - item_count_offset >= item_count);
+                VRM_CORE_ASSERT(vec.size() - item_count_offset >= item_count);
 
                 buffer_data_items<TUsage, T>(
                     vec.data() + item_count_offset, item_count);
@@ -204,7 +204,7 @@ VRM_SDL_NAMESPACE
     template <buffer_target TTarget>
     auto make_vbo(GLuint n = 1) noexcept
     {
-        assert(n > 0);
+        VRM_CORE_ASSERT(n > 0);
 
         impl::vbo<TTarget> v{n};
         v.generate();

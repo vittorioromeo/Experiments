@@ -9,7 +9,6 @@
 
 VRM_SDL_NAMESPACE
 {
-
     template <typename>
     class delegate;
 

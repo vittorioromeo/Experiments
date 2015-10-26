@@ -22,7 +22,7 @@ VRM_SDL_NAMESPACE
             {
                 GLint result;
                 VRM_SDL_GLCHECK(glGetIntegerv(GL_FRAMEBUFFER_BINDING, &result));
-                return to_num<GLuint>(result) == _id;
+                return vrmc::to_num<GLuint>(result) == _id;
             }
 
         public:
@@ -33,7 +33,7 @@ VRM_SDL_NAMESPACE
 
             void generate() noexcept
             {
-                assert(_n == 1);
+                VRM_CORE_ASSERT(_n == 1);
                 VRM_SDL_GLCHECK(glGenFramebuffers(_n, &_id));
             }
 
@@ -49,7 +49,7 @@ VRM_SDL_NAMESPACE
 
             void unbind() noexcept
             {
-                assert(bound());
+                VRM_CORE_ASSERT(bound());
                 VRM_SDL_GLCHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
             }
 
@@ -76,7 +76,7 @@ VRM_SDL_NAMESPACE
 
     auto make_fbo(GLuint n = 1) noexcept
     {
-        assert(n > 0);
+        VRM_CORE_ASSERT(n > 0);
 
         impl::fbo f{n};
         f.generate();

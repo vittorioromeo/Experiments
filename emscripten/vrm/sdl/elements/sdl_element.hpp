@@ -45,12 +45,12 @@ VRM_SDL_NAMESPACE
 
             auto& get() noexcept
             {
-                assert(_ptr != nullptr);
+                VRM_CORE_ASSERT(_ptr != nullptr);
                 return *ptr();
             }
             const auto& get() const noexcept
             {
-                assert(_ptr != nullptr);
+                VRM_CORE_ASSERT(_ptr != nullptr);
                 return *ptr();
             }
 

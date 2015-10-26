@@ -37,7 +37,7 @@ VRM_SDL_NAMESPACE
 
         GLuint id;
 
-        VRM_SDL_GLCHECK(id = glCreateShader(from_enum(TS)););
+        VRM_SDL_GLCHECK(id = glCreateShader(vrmc::from_enum(TS)););
         VRM_SDL_GLCHECK(glShaderSource(id, 1, &src, nullptr));
         VRM_SDL_GLCHECK(glCompileShader(id));
 
@@ -63,7 +63,7 @@ VRM_SDL_NAMESPACE
     auto make_shader_from_file(const std::string& path)
     {
         std::ifstream ifs{path.c_str(), std::ios_base::binary};
-        assert(!ifs.fail());
+        VRM_CORE_ASSERT(!ifs.fail());
 
         ifs.seekg(0, std::ios::end);
         auto size(ifs.tellg());

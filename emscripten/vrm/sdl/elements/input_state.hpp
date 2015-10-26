@@ -26,15 +26,21 @@ VRM_SDL_NAMESPACE
             mouse_coord _mouse_x{0};
             mouse_coord _mouse_y{0};
 
-            void key(kkey k, bool x) noexcept { _keys[from_enum(k)] = x; }
-            void btn(mbtn b, bool x) noexcept { _btns[from_enum(b)] = x; }
+            void key(kkey k, bool x) noexcept { _keys[vrmc::from_enum(k)] = x; }
+            void btn(mbtn b, bool x) noexcept { _btns[vrmc::from_enum(b)] = x; }
 
             void mouse_x(mouse_coord c) noexcept { _mouse_x = c; }
             void mouse_y(mouse_coord c) noexcept { _mouse_y = c; }
 
         public:
-            auto key(kkey k) const noexcept { return _keys[from_enum(k)]; }
-            auto btn(mbtn b) const noexcept { return _btns[from_enum(b)]; }
+            auto key(kkey k) const noexcept
+            {
+                return _keys[vrmc::from_enum(k)];
+            }
+            auto btn(mbtn b) const noexcept
+            {
+                return _btns[vrmc::from_enum(b)];
+            }
 
             const auto& mouse_x() const noexcept { return _mouse_x; }
             const auto& mouse_y() const noexcept { return _mouse_y; }
