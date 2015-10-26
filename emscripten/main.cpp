@@ -13,6 +13,7 @@
 #include <type_traits>
 #include <random>
 #include <vrm/sdl.hpp>
+#include <vrm/gl.hpp>
 
 namespace sdl = vrm::sdl;
 
