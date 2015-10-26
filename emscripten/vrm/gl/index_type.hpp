@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <vrm/sdl/common.hpp>
+#include <vrm/gl/common.hpp>
 
 VRM_SDL_NAMESPACE
 {

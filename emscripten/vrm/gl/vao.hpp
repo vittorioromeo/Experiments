@@ -5,12 +5,10 @@
 
 #pragma once
 
-#include <vrm/sdl/dependencies.hpp>
-#include <vrm/sdl/common.hpp>
-#include <vrm/sdl/context.hpp>
-#include <vrm/sdl/gl/check.hpp>
-#include <vrm/sdl/gl/primitive.hpp>
-#include <vrm/sdl/gl/index_type.hpp>
+#include <vrm/gl/common.hpp>
+#include <vrm/gl/check.hpp>
+#include <vrm/gl/primitive.hpp>
+#include <vrm/gl/index_type.hpp>
 
 VRM_SDL_NAMESPACE
 {

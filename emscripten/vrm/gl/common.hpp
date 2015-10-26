@@ -5,9 +5,16 @@
 
 #pragma once
 
-#include <vrm/sdl/resource.hpp>
-#include <vrm/sdl/elements.hpp>
-// #include <vrm/sdl/gl.hpp>
-#include <vrm/sdl/window.hpp>
+#include <cstddef>
+#include <functional>
+#include <chrono>
 
-#include <vrm/sdl/camera/camera_2d.hpp>
+#include <vrm/sdl/dependencies.hpp>
+#include <vrm/sdl/resource.hpp>
+
+VRM_SDL_NAMESPACE
+{
+    using sz_t = std::size_t;
+    using namespace std::literals;
+}
+VRM_SDL_NAMESPACE_END

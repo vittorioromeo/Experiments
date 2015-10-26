@@ -5,11 +5,10 @@
 
 #pragma once
 
-#include <vrm/sdl/common.hpp>
-#include <vrm/sdl/context.hpp>
-#include <vrm/sdl/gl/check.hpp>
-#include <vrm/sdl/gl/shader.hpp>
-#include <vrm/sdl/gl/attribute.hpp>
+#include <vrm/gl/common.hpp>
+#include <vrm/gl/check.hpp>
+#include <vrm/gl/shader.hpp>
+#include <vrm/gl/attribute.hpp>
 
 VRM_SDL_NAMESPACE
 {
@@ -44,7 +43,7 @@ VRM_SDL_NAMESPACE
             {
                 GLint result;
                 VRM_SDL_GLCHECK(glGetIntegerv(GL_TEXTURE_BINDING_2D, &result));
-                return result == _id;
+                return core::to_num<const GLuint>(result) == _id;
             }
 
         public:
@@ -113,7 +112,9 @@ VRM_SDL_NAMESPACE
                     GL_UNSIGNED_BYTE, data));
             }
 
-            void sub_image_2d(const vec2i& offset, const surface& surface)
+            // TODO: to sdl/gl
+            template <typename TSurface>
+            void sub_image_2d(const vec2i& offset, const TSurface& surface)
             {
                 sub_image_2d(offset, vec2u(surface.width(), surface.height()),
                     surface.pixels());
@@ -193,7 +194,9 @@ VRM_SDL_NAMESPACE
         return impl::unique_gltexture2d{t};
     }
 
-    auto make_gltexture2d(surface & s, texture_filter filter) noexcept
+    // TODO: to sdl/gl
+    template <typename TSurface>
+    auto make_gltexture2d(TSurface & s, texture_filter filter) noexcept
     {
         impl::gltexture2d t;
         t.generate(s.size(), s.pixels(), filter);

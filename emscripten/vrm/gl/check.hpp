@@ -34,7 +34,7 @@
 
 #pragma once
 
-#include <vrm/sdl/common.hpp>
+#include <vrm/gl/common.hpp>
 
 #ifndef NDEBUG
 

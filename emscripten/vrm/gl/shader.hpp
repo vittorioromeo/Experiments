@@ -6,9 +6,8 @@
 #pragma once
 
 #include <fstream>
-#include <vrm/sdl/common.hpp>
-#include <vrm/sdl/context.hpp>
-#include <vrm/sdl/gl/check.hpp>
+#include <vrm/gl/common.hpp>
+#include <vrm/gl/check.hpp>
 
 VRM_SDL_NAMESPACE
 {

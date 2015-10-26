@@ -4,20 +4,3 @@
 // http://vittorioromeo.info | vittorio.romeo@outlook.com
 
 #pragma once
-
-#include <vrm/sdl/dependencies.hpp>
-#include <vrm/sdl/common.hpp>
-#include <vrm/sdl/resource.hpp>
-#include <vrm/sdl/elements.hpp>
-
-#include <vrm/sdl/gl/check.hpp>
-#include <vrm/sdl/gl/shader.hpp>
-#include <vrm/sdl/gl/primitive.hpp>
-#include <vrm/sdl/gl/index_type.hpp>
-#include <vrm/sdl/gl/vao.hpp>
-#include <vrm/sdl/gl/vbo.hpp>
-#include <vrm/sdl/gl/fbo.hpp>
-#include <vrm/sdl/gl/attribute.hpp>
-#include <vrm/sdl/gl/uniform.hpp>
-#include <vrm/sdl/gl/program.hpp>
-#include <vrm/sdl/gl/texture2d.hpp>

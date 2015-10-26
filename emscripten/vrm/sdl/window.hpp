@@ -7,7 +7,7 @@
 
 #include <vrm/sdl/resource.hpp>
 #include <vrm/sdl/elements.hpp>
-#include <vrm/sdl/gl.hpp>
+// #include <vrm/sdl/gl.hpp>
 
 #include <vrm/sdl/window/window_scale.hpp>
 #include <vrm/sdl/window/window.hpp>

@@ -1,6 +1,7 @@
 #!/bin/zsh
 
 sudo rm -R /usr/local/include/vrm/sdl/*
+sudo rm -R /usr/local/include/vrm/gl/*
 sudo cp -R ./vrm/ /usr/local/include/
 mkdir build
 

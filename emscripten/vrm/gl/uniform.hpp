@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include <vrm/sdl/common.hpp>
 #include <vrm/sdl/math.hpp>
-#include <vrm/sdl/context.hpp>
-#include <vrm/sdl/gl/check.hpp>
-#include <vrm/sdl/gl/shader.hpp>
+
+#include <vrm/gl/common.hpp>
+#include <vrm/gl/check.hpp>
+#include <vrm/gl/shader.hpp>
 
 VRM_SDL_NAMESPACE
 {
