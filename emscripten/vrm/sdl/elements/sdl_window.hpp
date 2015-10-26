@@ -49,7 +49,7 @@ VRM_SDL_NAMESPACE
             _dh_resized = em.on_window_resized() +=
                 [this](auto id, const auto& new_size)
             {
-                if(id != this_id()) return;
+                if(id != this->this_id()) return;
 
                 _size = new_size;
                 _on_resized(new_size);
@@ -58,7 +58,7 @@ VRM_SDL_NAMESPACE
             _dh_focus_changed = em.on_window_focus_changed() +=
                 [this](auto id, auto change)
             {
-                if(id != this_id()) return;
+                if(id != this->this_id()) return;
 
                 _in_focus = change == window_focus_change::gained;
                 _on_focus_changed(change);
@@ -66,7 +66,7 @@ VRM_SDL_NAMESPACE
 
             _dh_closed = em.on_window_closed() += [this](auto id)
             {
-                if(id != this_id()) return;
+                if(id != this->this_id()) return;
 
                 _open = false;
                 _on_closed();
