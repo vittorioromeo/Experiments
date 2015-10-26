@@ -845,7 +845,7 @@ struct my_game
         e._origin = sdl::vec2f{0, 0};
         e._size = texture_size(e_type::toriel);
         e._hitbox_radius = 30.f;
-
+        e.curve = 0.f;
 
         return e;
     };
