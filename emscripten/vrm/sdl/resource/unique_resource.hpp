@@ -68,8 +68,8 @@ VRM_SDL_NAMESPACE
 
             ~unique_resource() noexcept { reset(); }
 
-            auto operator-> () noexcept { return &_res; }
-            auto operator-> () const noexcept { return &_res; }
+            auto* operator-> () noexcept { return &_res; }
+            auto* operator-> () const noexcept { return &_res; }
 
             auto& operator*() noexcept { return _res; }
             const auto& operator*() const noexcept { return _res; }
