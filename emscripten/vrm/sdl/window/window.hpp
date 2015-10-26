@@ -5,7 +5,10 @@
 
 #pragma once
 
-// #include <vrm/sdl/gl.hpp>
+#include <vrm/sdl/common.hpp> 
+#include <vrm/sdl/math.hpp>
+#include <vrm/sdl/resource.hpp>
+#include <vrm/sdl/context/unique_sdl_resources.hpp>
 #include <vrm/sdl/window/window_scale.hpp>
 
 VRM_SDL_NAMESPACE
