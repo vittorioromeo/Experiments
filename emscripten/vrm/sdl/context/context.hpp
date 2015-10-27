@@ -127,7 +127,7 @@ VRM_SDL_NAMESPACE
 
             timer_type& _timer;
             engine_type& _engine;
-            window& _window;
+            sdl::window& _window;
 
             key_event_handler _on_key_down{null_key_event_handler()};
             key_event_handler _on_key_up{null_key_event_handler()};

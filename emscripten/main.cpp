@@ -30,7 +30,7 @@ VRM_SDL_NAMESPACE
         class atlas_builder_input
         {
         private:
-            const surface* _surface;
+            const sdl::surface* _surface;
 
         public:
             atlas_builder_input(const surface& surface) noexcept
