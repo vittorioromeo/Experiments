@@ -133,7 +133,7 @@ VRM_SDL_NAMESPACE
 
         auto size() const noexcept
         {
-            return vrmc::to_num<sdl::sz_t>(end() - begin());
+            return vrmc::to_size_t(end() - begin());
         }
 
         decltype(auto) begin() noexcept { return _dense.data(); }

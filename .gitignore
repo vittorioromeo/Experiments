@@ -222,3 +222,5 @@ asanlogs
 /emscripten/test_ex.js
 /emscripten/test_ex.x
 /emscripten/main.plist
+/Random/clang_fail.s
+/Random/test_tpl.s

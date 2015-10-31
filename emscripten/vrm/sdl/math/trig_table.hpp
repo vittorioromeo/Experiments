@@ -28,7 +28,7 @@ VRM_SDL_NAMESPACE
 
         VRM_SDL_ALWAYS_INLINE auto get(float mX) const noexcept
         {
-            auto idx(vrmc::to_num<sz_t>(mX * ratio));
+            auto idx(vrmc::to_size_t(mX * ratio));
             VRM_CORE_ASSERT(idx < count);
 
             return arr[idx];

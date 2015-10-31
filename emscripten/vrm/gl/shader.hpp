@@ -64,11 +64,12 @@ VRM_SDL_NAMESPACE
         std::ifstream ifs{path.c_str(), std::ios_base::binary};
         VRM_CORE_ASSERT(!ifs.fail());
 
+        auto f_begin(ifs.tellg());
         ifs.seekg(0, std::ios::end);
         auto size(ifs.tellg());
         ifs.seekg(0, std::ios::beg);
 
-        auto buffer(std::make_unique<char[]>(static_cast<sz_t>(size) + 1));
+        auto buffer(std::make_unique<char[]>(size - f_begin + 1));
         ifs.read(&buffer[0], size);
         buffer[size] = '\0';
 
