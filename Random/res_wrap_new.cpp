@@ -68,12 +68,18 @@ namespace legacy
     }
 
     // Free-store pointers
-    template <typename T, typename... Ts>
+    /*template <typename T, typename... Ts>
     auto free_store_new(Ts&&... xs)
     {
         auto result(new T(FWD(xs)...));
         std::cout << "free_store_new\n";
         return result;
+    }*/
+    template <typename T>
+    auto free_store_new(T* ptr)
+    {
+        //        assert(ptr != nullptr);
+        return ptr;
     }
 
     template <typename T>
@@ -225,24 +231,30 @@ namespace resource
     namespace impl
     {
         template <typename TBehavior>
-        class resource_base
+        using inner_handle_type = typename TBehavior::handle_type;
+
+        template <typename TBehavior>
+        class resource_base : TBehavior
         {
         protected:
             using behavior_type = TBehavior;
             using handle_type = typename behavior_type::handle_type;
 
         protected:
-            behavior_type _behavior;
+            // behavior_type _behavior;
             handle_type _handle;
 
         public:
             template <typename... Ts>
             void init(Ts&&... xs)
             {
-                _handle = _behavior.init(FWD(xs)...);
+                _handle = static_cast<behavior_type*>(this)->init(FWD(xs)...);
             }
 
-            void deinit() { _behavior.deinit(_handle); }
+            void deinit()
+            {
+                static_cast<behavior_type*>(this)->deinit(_handle);
+            }
 
         public:
             resource_base() : _handle(behavior_type::null_handle())
@@ -253,21 +265,21 @@ namespace resource
 
             template <typename... Ts>
             resource_base(Ts&&... xs)
-                : _handle(_behavior.init(FWD(xs)...))
+                : _handle(static_cast<behavior_type*>(this)->init(FWD(xs)...))
             {
                 std::cout << "resbase init ctor\n";
             }
 
             resource_base(resource_base&& x)
-                : _behavior(std::move(x._behavior)),
-                  _handle(std::move(x._handle))
+                //: _behavior(std::move(x._behavior)),
+                : _handle(std::move(x._handle))
             {
                 std::cout << "resbase move ctor\n";
             }
 
             resource_base& operator=(resource_base&& x)
             {
-                _behavior = std::move(x._behavior);
+                //_behavior = std::move(x._behavior);
                 _handle = std::move(x._handle);
                 return *this;
             }
@@ -275,7 +287,7 @@ namespace resource
             auto& handle() noexcept { return _handle; }
             const auto& handle() const noexcept { return _handle; }
 
-            bool null() const noexcept { return _handle == _behavior.null(); }
+            bool null() const noexcept { return _handle == this->null(); }
         };
     }
 
@@ -501,7 +513,42 @@ using unique_file = facade::unique<behavior::file_b, wrapper::file_w>;
 using value_sound_buffer =
     facade::value<behavior::sound_buffer_b, wrapper::sound_buffer_w>;
 
+
+
+
 int main()
+{
+#define COUT_SIZE(...)                                                      \
+    std::cout << "sizeof(" << #__VA_ARGS__ << ") = " << sizeof(__VA_ARGS__) \
+              << "\n";
+
+    COUT_SIZE(std::unique_ptr<int>);
+
+    COUT_SIZE(behavior::free_store_b<int>);
+    COUT_SIZE(behavior::free_store_b<int>::handle_type);
+    COUT_SIZE(wrapper::free_store_w<int>);
+    COUT_SIZE(resource::unique<behavior::free_store_b<int>>);
+    COUT_SIZE(unique_fs_ptr<int>);
+
+    struct ABC
+    {
+        ABC() { std::cout << "ABC()\n"; }
+        ~ABC() { std::cout << "~ABC()\n"; }
+    };
+
+    using uptr_type = unique_fs_ptr<ABC>;
+
+    {
+        std::vector<uptr_type> v;
+        v.emplace_back(new ABC);
+        v.emplace_back(new ABC);
+        v.emplace_back(new ABC);
+    }
+
+    return 0;
+}
+
+int main2()
 {
     {
         // auto xd = unique_vbo{};
@@ -523,7 +570,7 @@ int main()
     if(false)
     {
         unique_fs_ptr<legacy::SoundBuffer> x;
-        //x.init();
+        // x.init();
     }
 
     if(true)
@@ -548,7 +595,7 @@ int main()
     if(false)
     {
         value_sound_buffer sbv{};
-       // value_sound_buffer a2(sbv);
+        // value_sound_buffer a2(sbv);
     }
 
     std::cout << "\n";
