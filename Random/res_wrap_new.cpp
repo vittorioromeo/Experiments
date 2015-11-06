@@ -2,6 +2,12 @@
 #include <memory>
 #include <vrm/core.hpp>
 
+// TODO: video:
+// * rule of zero:
+//     * https://rmf.io/cxx11/rule-of-zero/
+//     * https://blog.feabhas.com/2015/11/becoming-a-rule-of-zero-hero/
+// 
+
 // The system is composed by the following elements
 //
 // * Legacy functions/types
