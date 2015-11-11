@@ -183,7 +183,7 @@ VRM_SDL_NAMESPACE
         constexpr auto get_valid_texture_unit_count(sz_t desired) noexcept
         {
             return std::min(
-                desired, vrmc::to_size_t(get_max_texture_unit_count()));
+                desired, vrmc::to_sz_t(get_max_texture_unit_count()));
         }
     }
 
