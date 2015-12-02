@@ -157,6 +157,32 @@ namespace behavior
 
 namespace resource
 {
+    /*
+        template <typename TBehavior>
+        class none : TBehavior
+        {
+        public:
+            using behavior_type = TBehavior;
+            using handle_type = typename behavior_type::handle_type;
+
+        private:
+            handle_type _handle;
+
+        public:
+            none() noexcept;
+
+            none(const none&) = default;
+            none& operator=(const none&) = default;
+
+            auto get() const noexcept;
+        };
+
+        template <typename TBehavior>
+        none<TBehavior>::none() noexcept : _handle
+        {
+        }
+    */
+
     template <typename TBehavior>
     class unique : TBehavior
     {
@@ -193,13 +219,13 @@ namespace resource
 
         explicit operator bool() const noexcept;
 
-        template<typename>
+        template <typename>
         friend bool operator==(const unique& lhs, const unique& rhs) noexcept;
-        
-        template<typename>
+
+        template <typename>
         friend bool operator!=(const unique& lhs, const unique& rhs) noexcept;
-        
-        template<typename>
+
+        template <typename>
         friend void swap(unique& lhs, unique& rhs) noexcept;
     };
 
@@ -308,39 +334,55 @@ namespace resource
 
 #define FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
 
-template<template<typename> class TResource, typename TBehavior, typename... Ts>
-auto make_resource(Ts&&... xs)
-    noexcept(noexcept(true))
+template <template <typename> class TResource, typename TBehavior,
+    typename... Ts>
+auto make_resource(Ts&&... xs) noexcept(noexcept(true))
 {
     return TResource<TBehavior>{TBehavior{}.init(FWD(xs)...)};
 }
 
-template<typename TBehavior, typename... Ts>
-auto make_unique_resource(Ts&&... xs)
-    noexcept(noexcept(true))
+template <typename TBehavior, typename... Ts>
+auto make_unique_resource(Ts&&... xs) noexcept(noexcept(true))
 {
     return make_resource<resource::unique, TBehavior>(FWD(xs)...);
 }
 
-struct vbo_raii_access
-{
-    vbo_b::vbo_handle _handle;
 
-    auto handle() const noexcept { return _handle; }
+template <typename TBehavior>
+struct unmanaged_access : TBehavior::handle_type
+{
+    using handle_type = typename TBehavior::handle_type;
+    using handle_type::handle_type;
+
+    unmanaged_access() = default;
+    unmanaged_access(const handle_type& handle) noexcept : handle_type{handle}
+    {
+    }
+
+    auto handle() const noexcept
+    {
+        return static_cast<handle_type&>(*this);
+    }
 };
 
-template<typename TResource>
-struct vbo_resource_access
+template <typename TBehavior, template <typename> class TResource>
+struct resource_access : TResource<TBehavior>
 {
-    TResource _resource;
+    using TResource<TBehavior>::TResource;
 
-    auto handle() const noexcept { return _resource.get(); }
+    auto handle() const noexcept
+    {
+        return static_cast<TResource<TBehavior>&>(*this).get();
+    }
 };
 
-template<typename TAccess>
-struct vbo_interface 
+using vbo_unmanaged_access = unmanaged_access<behavior::vbo_b>;
+using vbo_unique_access = resource_access<behavior::vbo_b, resource::unique>;
+
+template <typename TAccess>
+struct vbo_interface : TAccess
 {
-    TAccess _access;
+    using TAccess::TAccess;
 
     void my_interface_method_0()
     {
@@ -348,8 +390,23 @@ struct vbo_interface
     }
 };
 
+using unmanaged_vbo = vbo_interface<vbo_unmanaged_access>;
+using unique_vbo = vbo_interface<vbo_unique_access>;
+
 int main()
 {
+    {
+        unmanaged_vbo x{behavior::vbo_b{}.init(2)};
+        x.my_interface_method_0();
+
+        behavior::vbo_b{}.deinit(x);
+    }
+
+    {
+        unique_vbo x{behavior::vbo_b{}.init(2)};
+        x.my_interface_method_0();
+    }
+
     auto test0 = make_unique_resource<behavior::vbo_b>(1);
 
 
@@ -357,5 +414,5 @@ int main()
     return 0;
 }
 
-// TODO: 
+// TODO:
 // * init() should probably not be part of behaviors
