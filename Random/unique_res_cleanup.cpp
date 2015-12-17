@@ -6,6 +6,8 @@
 #include <iostream>
 #include <memory>
 
+#define FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
+
 namespace legacy
 {
     template <typename T>
@@ -331,8 +333,6 @@ namespace resource
         lhs.swap(rhs);
     }
 }
-
-#define FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
 
 template <template <typename> class TResource, typename TBehavior,
     typename... Ts>
