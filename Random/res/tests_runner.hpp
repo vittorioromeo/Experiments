@@ -3,6 +3,8 @@
 // AFL License page: http://opensource.org/licenses/AFL-3.0
 // http://vittorioromeo.info | vittorio.romeo@outlook.com
 
+#pragma once
+
 #include "./shared.hpp"
 #include "./legacy.hpp"
 #include "./behavior.hpp"
@@ -12,25 +14,23 @@
 #include "./access.hpp"
 #include "./interface.hpp"
 #include "./tests.hpp"
-#include "./tests_runner.hpp"
+#include "./tests_unique.hpp"
+#include "./tests_shared.hpp"
 
-template <typename TAccess>
-struct vbo_interface : TAccess
+namespace test
 {
-    using TAccess::TAccess;
-
-    void my_interface_method_0()
+    void run_all()
     {
-        // something(_access.handle());
+#define RUN_T(x) run(#x, &x)
+
+        RUN_T(unique_0);
+        RUN_T(unique_1);
+        RUN_T(unique_3);
+        RUN_T(unique_4);
+        RUN_T(unique_5);
+
+        RUN_T(shared_0);
+
+#undef RUN_T
     }
-};
-
-int main()
-{
-    test::run_all();
-    return 0;
 }
-
-// TODO:
-// ??
-// "interface" -> "wrapper"

@@ -86,7 +86,7 @@ namespace resource
         // TODO: this is ALWAYS called with `release_metadata`.
 
         auto temp_handle(_handle);
-        _handle = nullptr;
+        _handle = behavior_type::null_handle();
         return temp_handle;
     }
 
