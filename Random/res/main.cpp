@@ -9,44 +9,7 @@
 #include "./unique_resource.hpp"
 #include "./make_resource.hpp"
 #include "./access.hpp"
-
-template <                                // .
-    template <typename> class TInterface, // .
-    template <typename> class TAccess,    // .
-    typename TBehavior                    // .
-    >
-class interface_maker
-{
-public:
-    using behavior_type = TBehavior;
-    using access_type = TAccess<TBehavior>;
-    using interface_type = TInterface<access_type>;
-
-private:
-    template <typename... Ts>
-    decltype(auto) init_resource(Ts&&... xs) noexcept(noexcept(true))
-    {
-        return behavior_type::init(FWD(xs)...);
-    }
-
-public:
-    template <typename... Ts>
-    auto operator()(Ts&&... xs) noexcept(noexcept(true))
-    {
-        return interface_type{init_resource(FWD(xs)...)};
-    }
-};
-
-template <                                // .
-    typename TBehavior,                   // .
-    template <typename> class TInterface, // .
-    template <typename> class TAccess,    // .
-    typename... Ts                        // .
-    >
-auto make_interface(Ts&&... xs) noexcept(noexcept(true))
-{
-    return interface_maker<TInterface, TAccess, TBehavior>{}(FWD(xs)...);
-}
+#include "./interface.hpp"
 
 template <typename TAccess>
 struct vbo_interface : TAccess
@@ -69,7 +32,7 @@ int main()
                 2));
         x.my_interface_method_0();
 
-        behavior::vbo_b{}.deinit(x.handle());
+        behavior::vbo_b::deinit(x.handle());
     }
 
     {
@@ -87,3 +50,4 @@ int main()
 
 // TODO:
 // ??
+// "interface" -> "wrapper"
