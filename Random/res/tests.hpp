@@ -51,8 +51,20 @@ namespace test
 
     void assert_ck(int a_created, int a_killed)
     {
-        assert(created == a_created);
-        assert(killed == a_killed);
+        bool failed = false;
+
+        if(created != a_created)
+            failed = true;
+        
+        if(killed != a_killed)
+            failed = true;
+
+        if(failed)
+        {
+            std::cout << "created: " << created << " (expected:" << a_created << ")\n";
+            std::cout << "killed: " << killed << " (expected:" << a_killed << ")\n";
+            std::terminate();
+        }
     }
 
     template <typename TF>

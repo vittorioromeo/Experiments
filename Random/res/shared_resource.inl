@@ -19,6 +19,7 @@ namespace resource
     {
         return _metadata == nullptr;
     }
+
     template <typename TBehavior>
     void shared<TBehavior>::increment_metadata_if_not_null() noexcept
     {
@@ -58,6 +59,8 @@ namespace resource
 
     template <typename TBehavior>
     shared<TBehavior>::shared(const handle_type& handle) noexcept
+        : _handle{behavior_type::null_handle()},
+          _metadata{nullptr}
     {
         reset(handle);
     }

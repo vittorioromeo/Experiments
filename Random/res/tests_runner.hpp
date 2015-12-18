@@ -25,6 +25,7 @@ namespace test
 
         RUN_T(unique_0);
         RUN_T(unique_1);
+        RUN_T(unique_2);
         RUN_T(unique_3);
         RUN_T(unique_4);
         RUN_T(unique_5);
@@ -34,6 +35,9 @@ namespace test
         RUN_T(shared_2);
         RUN_T(shared_3);
         RUN_T(shared_4);
+        RUN_T(shared_5);
+        RUN_T(shared_6);
+        RUN_T(shared_7);
 
 #undef RUN_T
     }

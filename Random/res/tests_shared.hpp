@@ -106,4 +106,44 @@ namespace test
 
         assert_ck(2, 2);
     }
+
+    // Shared ownership (1)
+    void shared_6()
+    {
+        assert_ck(0, 0);
+
+        {
+            shared_test u(test_behavior::init());
+            assert_ck(1, 0);
+
+            shared_test u1{u};
+            assert_ck(1, 0);
+
+            shared_test u2{u};
+            assert_ck(1, 0);
+        }
+
+        assert_ck(1, 1);
+    }
+
+    // Shared ownership (2)
+    void shared_7()
+    {
+        assert_ck(0, 0);
+
+        {
+            shared_test u(test_behavior::init());
+            assert_ck(1, 0);
+            {
+                shared_test u1{u};
+                assert_ck(1, 0);
+                {
+                    shared_test u2{u};
+                    assert_ck(1, 0);
+                }
+            }
+        }
+
+        assert_ck(1, 1);
+    }
 }
