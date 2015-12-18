@@ -24,7 +24,7 @@ struct vbo_interface : TAccess
 
 int main()
 {
-
+/*
 
     {
         auto x(
@@ -43,7 +43,7 @@ int main()
 
     auto test0 = make_unique_resource<behavior::vbo_b>(1);
 
-
+*/
 
     return 0;
 }
