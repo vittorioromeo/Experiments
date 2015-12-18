@@ -30,6 +30,10 @@ namespace test
         RUN_T(unique_5);
 
         RUN_T(shared_0);
+        RUN_T(shared_1);
+        RUN_T(shared_2);
+        RUN_T(shared_3);
+        RUN_T(shared_4);
 
 #undef RUN_T
     }
