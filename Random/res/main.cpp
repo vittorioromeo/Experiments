@@ -132,3 +132,4 @@ int main()
 // sanitize tests with address and memory
 // std::hash?
 // thread-safe sptr
+// weak_resource
