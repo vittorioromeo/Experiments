@@ -24,7 +24,7 @@ struct vbo_interface : TAccess
         [](auto x)
         {
             (void)x;
-        }(this->handle());
+        }(this->get());
     }
 };
 

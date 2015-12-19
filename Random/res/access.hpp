@@ -33,7 +33,7 @@ namespace access
         unmanaged(unmanaged&&) = default;
         unmanaged& operator=(unmanaged&&) = default;
 
-        auto handle() const noexcept
+        auto get() const noexcept
         {
             return _handle;
         }
