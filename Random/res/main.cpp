@@ -21,7 +21,10 @@ struct vbo_interface : TAccess
 
     void my_interface_method_0()
     {
-        // something(_access.handle());
+        [](auto x)
+        {
+            (void)x;
+        }(this->handle());
     }
 };
 
