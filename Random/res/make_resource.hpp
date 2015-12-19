@@ -7,6 +7,7 @@
 
 #include "./shared.hpp"
 #include "./unique_resource.hpp"
+#include "./shared_resource.hpp"
 
 template <template <typename> class TResource, typename TBehavior>
 class resource_maker
@@ -41,4 +42,10 @@ template <typename TBehavior, typename... Ts>
 auto make_unique_resource(Ts&&... xs) noexcept(noexcept(true))
 {
     return make_resource<resource::unique, TBehavior>(FWD(xs)...);
+}
+
+template <typename TBehavior, typename... Ts>
+auto make_shared_resource(Ts&&... xs) noexcept(noexcept(true))
+{
+    return make_resource<resource::shared, TBehavior>(FWD(xs)...);
 }

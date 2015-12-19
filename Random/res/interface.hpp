@@ -49,3 +49,33 @@ auto make_interface(Ts&&... xs) noexcept(noexcept(true))
 {
     return interface_maker<TInterface, TAccess, TBehavior>{}(FWD(xs)...);
 }
+
+template <                                // .
+    typename TBehavior,                   // .
+    template <typename> class TInterface, // .
+    typename... Ts                        // .
+    >
+auto make_unmanaged_interface(Ts&&... xs) noexcept(noexcept(true))
+{
+    return make_interface<TBehavior, TInterface, access::unmanaged>(FWD(xs)...);
+}
+
+template <                                // .
+    typename TBehavior,                   // .
+    template <typename> class TInterface, // .
+    typename... Ts                        // .
+    >
+auto make_unique_interface(Ts&&... xs) noexcept(noexcept(true))
+{
+    return make_interface<TBehavior, TInterface, access::unique>(FWD(xs)...);
+}
+
+template <                                // .
+    typename TBehavior,                   // .
+    template <typename> class TInterface, // .
+    typename... Ts                        // .
+    >
+auto make_shared_interface(Ts&&... xs) noexcept(noexcept(true))
+{
+    return make_interface<TBehavior, TInterface, access::shared>(FWD(xs)...);
+}

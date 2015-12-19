@@ -45,6 +45,16 @@ namespace behavior
         {
             legacy::GLuint _id;
             legacy::GLsizei _n;
+
+            auto operator==(const vbo_handle& rhs) const noexcept
+            {
+                return _id == rhs._id && _n == rhs._n;
+            }
+
+            auto operator!=(const vbo_handle& rhs) const noexcept
+            {
+                return !(*this == rhs);
+            }
         };
 
         using handle_type = vbo_handle;

@@ -7,6 +7,7 @@
 
 #include "./shared.hpp"
 #include "./unique_resource.hpp"
+#include "./shared_resource.hpp"
 
 namespace access
 {
@@ -26,37 +27,49 @@ namespace access
         {
         }
 
+        unmanaged(const unmanaged&) = default;
+        unmanaged& operator=(const unmanaged&) = default;
+
+        unmanaged(unmanaged&&) = default;
+        unmanaged& operator=(unmanaged&&) = default;
+
         auto handle() const noexcept
         {
             return _handle;
+        }
+
+        void dispose() noexcept
+        {
+            behavior_type::deinit(_handle);
+            _handle = behavior_type::null_handle();
         }
     };
 
     namespace impl
     {
         template <typename TBehavior, template <typename> class TResource>
-        class resource
+        class resource : public TResource<TBehavior>
         {
         public:
             using behavior_type = TBehavior;
             using resource_type = TResource<TBehavior>;
 
-        private:
-            resource_type _resource;
-
         public:
-            template <typename... Ts>
-            resource(Ts&&... xs) noexcept : _resource{FWD(xs)...}
-            {
-            }
+            using resource_type::resource_type;
 
-            auto handle() const noexcept
-            {
-                return _resource.get();
-            }
+            resource(const resource&) = default;
+            resource& operator=(const resource&) = default;
+
+            resource(resource&&) = default;
+            resource& operator=(resource&&) = default;
         };
     }
 
     template <typename TBehavior>
     using unique = impl::resource<TBehavior, resource::unique>;
+
+    template <typename TBehavior>
+    using shared = impl::resource<TBehavior, resource::shared>;
 }
+
+// TODO: maybe `handle()` and similar methods should be free functions.

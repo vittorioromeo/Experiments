@@ -85,8 +85,9 @@ namespace resource
     {
         // TODO: Needed?
         rhs._handle = behavior_type::null_handle();
+        assert(rhs.is_null_handle());
 
-        assert(rhs.is_null());
+        assert(rhs.is_null_ref_counter());
     }
 
     template <typename TBehavior>
@@ -97,8 +98,9 @@ namespace resource
 
         // TODO: Needed?
         rhs._handle = behavior_type::null_handle();
+        assert(rhs.is_null_handle());
 
-        assert(rhs.is_null());
+        assert(rhs.is_null_ref_counter());
         return *this;
     }
 
