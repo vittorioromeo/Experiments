@@ -62,4 +62,9 @@ namespace resource
     };
 }
 
+// TODO:
+// shared_resource/shared_resource.hpp
+// shared_resource/shared_resource.inl
+// shared_resource.hpp (includes both .hpp and .inl and that's it)
+
 #include "./shared_resource.inl"
