@@ -133,3 +133,4 @@ int main()
 // std::hash?
 // thread-safe sptr
 // weak_resource
+// resource_base
