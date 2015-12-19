@@ -38,6 +38,7 @@ namespace test
         RUN_T(shared_5);
         RUN_T(shared_6);
         RUN_T(shared_7);
+        RUN_T(shared_8);
 
 #undef RUN_T
     }

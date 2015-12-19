@@ -19,15 +19,16 @@ namespace resource
         using behavior_type = TBehavior;
         using handle_type = typename behavior_type::handle_type;
         using metadata_type = impl::shared_metadata;
+        using ref_counter_type = impl::shared_ref_counter;
 
     private:
-        handle_type _handle;
-        metadata_type* _metadata;
+        handle_type _handle{behavior_type::null_handle()};
+        ref_counter_type _ref_counter;
 
-        auto release_handle() noexcept;
-        auto release_metadata() noexcept;
-        auto is_null() const noexcept;
-        void increment_metadata_if_not_null() noexcept;
+        auto is_null_ref_counter() const noexcept;
+        auto is_null_handle() const noexcept;
+
+        void lose_ownership() noexcept;
 
     public:
         shared() noexcept;

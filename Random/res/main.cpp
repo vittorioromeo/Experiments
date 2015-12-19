@@ -34,3 +34,8 @@ int main()
 // TODO:
 // ??
 // "interface" -> "wrapper"
+// SFML RAII classes as resources 
+// does polymorphism work with unique and/or shared?
+// sanitize tests with address and memory 
+// std::hash?
+// thread-safe sptr
