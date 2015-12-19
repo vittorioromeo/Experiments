@@ -6,27 +6,26 @@
 #pragma once
 
 #include "./shared.hpp"
+#include "./resource_base.hpp"
 
 namespace resource
 {
     template <typename TBehavior>
-    class unique
+    class unique : public impl::resource_base<TBehavior>
     {
     public:
-        using behavior_type = TBehavior;
-        using handle_type = typename behavior_type::handle_type;
-
-    private:
-        handle_type _handle;
+        using base_type = impl::resource_base<TBehavior>;
+        using behavior_type = typename base_type::behavior_type;
+        using handle_type = typename base_type::handle_type;
 
     public:
-        unique() noexcept;
+        unique() noexcept = default;
         ~unique() noexcept;
+        
+        explicit unique(const handle_type& handle) noexcept;
 
         unique(const unique&) = delete;
         unique& operator=(const unique&) = delete;
-
-        explicit unique(const handle_type& handle) noexcept;
 
         unique(unique&& rhs) noexcept;
         auto& operator=(unique&&) noexcept;
@@ -37,10 +36,6 @@ namespace resource
         void reset(const handle_type& handle) noexcept;
 
         void swap(unique& rhs) noexcept;
-
-        auto get() const noexcept;
-
-        explicit operator bool() const noexcept;
 
         template <typename>
         friend bool operator==(const unique& lhs, const unique& rhs) noexcept;

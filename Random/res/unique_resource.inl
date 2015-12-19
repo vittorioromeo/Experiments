@@ -10,11 +10,6 @@
 namespace resource
 {
     template <typename TBehavior>
-    unique<TBehavior>::unique() noexcept : _handle{behavior_type::null_handle()}
-    {
-    }
-
-    template <typename TBehavior>
     unique<TBehavior>::~unique() noexcept
     {
         reset();
@@ -22,12 +17,12 @@ namespace resource
 
     template <typename TBehavior>
     unique<TBehavior>::unique(const handle_type& handle) noexcept
-        : _handle{handle}
+        : base_type{handle}
     {
     }
 
     template <typename TBehavior>
-    unique<TBehavior>::unique(unique&& rhs) noexcept : _handle{rhs.release()}
+    unique<TBehavior>::unique(unique&& rhs) noexcept : base_type{rhs.release()}
     {
     }
 
@@ -41,42 +36,27 @@ namespace resource
     template <typename TBehavior>
     auto unique<TBehavior>::release() noexcept
     {
-        auto temp_handle(_handle);
-        _handle = behavior_type::null_handle();
-        return temp_handle;
+        return base_type::release_and_nullify();
     }
 
     template <typename TBehavior>
     void unique<TBehavior>::reset() noexcept
     {
-        behavior_type::deinit(_handle);
-        _handle = behavior_type::null_handle();
+        base_type::deinit();
+        base_type::nullify();
     }
 
     template <typename TBehavior>
     void unique<TBehavior>::reset(const handle_type& handle) noexcept
     {
-        behavior_type::deinit(_handle);
-        _handle = handle;
+        base_type::deinit();
+        base_type::_handle = handle;
     }
 
     template <typename TBehavior>
     void unique<TBehavior>::swap(unique& rhs) noexcept
     {
-        using std::swap;
-        swap(_handle, rhs._handle);
-    }
-
-    template <typename TBehavior>
-    auto unique<TBehavior>::get() const noexcept
-    {
-        return _handle;
-    }
-
-    template <typename TBehavior>
-    unique<TBehavior>::operator bool() const noexcept
-    {
-        return _handle != behavior_type::null_handle();
+        base_type::swap(rhs);
     }
 
     template <typename TBehavior>

@@ -106,4 +106,26 @@ namespace test
 
         assert_ck(2, 2);
     }
+
+    // Random test
+    void unique_6()
+    {
+        assert_ck(0, 0);
+
+        {
+            unique_test u{test_behavior::init()};
+            assert_ck(1, 0);
+
+            u.reset(test_behavior::init());
+            assert_ck(2, 1);
+
+            unique_test u2;
+            assert_ck(2, 1);
+
+            u2 = std::move(u);
+            assert_ck(2, 1);
+        }
+
+        assert_ck(2, 2);
+    }
 }

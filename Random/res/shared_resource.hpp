@@ -9,35 +9,36 @@
 
 #include "./shared.hpp"
 #include "./shared_metadata.hpp"
+#include "./shared_ref_counter.hpp"
+#include "./resource_base.hpp"
 
 namespace resource
 {
     template <typename TBehavior>
-    class shared
+    class shared : public impl::resource_base<TBehavior>
     {
     public:
-        using behavior_type = TBehavior;
-        using handle_type = typename behavior_type::handle_type;
-        using metadata_type = impl::shared_metadata;
+        using base_type = impl::resource_base<TBehavior>;
+        using behavior_type = typename base_type::behavior_type;
+        using handle_type = typename base_type::handle_type;
         using ref_counter_type = impl::shared_ref_counter;
 
     private:
-        handle_type _handle{behavior_type::null_handle()};
         ref_counter_type _ref_counter;
 
-        auto is_null_ref_counter() const noexcept;
-        auto is_null_handle() const noexcept;
-
         void lose_ownership() noexcept;
+        void nullify_and_assert() noexcept;
+        void acquire_from_null_if_required();
+        void acquire_existing_if_required();
 
     public:
-        shared() noexcept;
+        shared() noexcept = default;
         ~shared() noexcept;
+
+        explicit shared(const handle_type& handle) noexcept;
 
         shared(const shared&);
         auto& operator=(const shared&);
-
-        explicit shared(const handle_type& handle) noexcept;
 
         shared(shared&& rhs) noexcept;
         auto& operator=(shared&&) noexcept;
@@ -47,12 +48,8 @@ namespace resource
 
         void swap(shared& rhs) noexcept;
 
-        auto get() const noexcept;
-
         auto use_count() const noexcept;
         bool unique() const noexcept;
-
-        explicit operator bool() const noexcept;
 
         template <typename>
         friend bool operator==(const shared& lhs, const shared& rhs) noexcept;

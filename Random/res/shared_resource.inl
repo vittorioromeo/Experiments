@@ -13,23 +13,25 @@
 namespace resource
 {
     template <typename TBehavior>
-    auto shared<TBehavior>::is_null_ref_counter() const noexcept
+    void shared<TBehavior>::nullify_and_assert() noexcept
     {
-        return _ref_counter.is_null();
+        base_type::nullify();
+        assert(base_type::is_null_handle());
+        assert(_ref_counter.is_null());
     }
 
     template <typename TBehavior>
-    auto shared<TBehavior>::is_null_handle() const noexcept
+    void shared<TBehavior>::acquire_from_null_if_required()
     {
-        return _handle == behavior_type::null_handle();
+        if(base_type::is_null_handle()) return;
+        _ref_counter.acquire_from_null();
     }
 
-
-
     template <typename TBehavior>
-    shared<TBehavior>::shared() noexcept
+    void shared<TBehavior>::acquire_existing_if_required()
     {
-        assert(is_null_ref_counter());
+        if(base_type::is_null_handle()) return;
+        _ref_counter.acquire_existing();
     }
 
     template <typename TBehavior>
@@ -40,85 +42,60 @@ namespace resource
 
     template <typename TBehavior>
     shared<TBehavior>::shared(const shared& rhs)
-        : _handle{rhs._handle}, _ref_counter{rhs._ref_counter}
+        : base_type{rhs._handle}, _ref_counter{rhs._ref_counter}
     {
         // Two construction possibilities:
         // 1. From a non-owning shared pointer (null handle).
         // 2. From an owning shared pointer.
 
         // There is no way we need to allocate a reference counter.
-
-        if(!is_null_handle())
-        {
-            _ref_counter.acquire_existing();
-        }
+        acquire_existing_if_required();
     }
 
     template <typename TBehavior>
     auto& shared<TBehavior>::operator=(const shared& rhs)
     {
-        _handle = rhs._handle;
+        base_type::_handle = rhs._handle;
         _ref_counter = rhs._ref_counter;
 
-        if(!is_null_handle())
-        {
-            _ref_counter.acquire_existing();
-        }
+        acquire_existing_if_required();
+        return *this;
     }
 
     template <typename TBehavior>
     shared<TBehavior>::shared(const handle_type& handle) noexcept
-        : _handle{handle}
+        : base_type{handle}
     {
-        assert(_ref_counter.is_null());
-
-        if(!is_null_handle())
-        {
-            _ref_counter.acquire_from_null();
-        }
+        acquire_from_null_if_required();
     }
 
     template <typename TBehavior>
     shared<TBehavior>::shared(shared&& rhs) noexcept
-        : _handle{std::move(rhs._handle)},
+        : base_type{rhs._handle},
           _ref_counter{std::move(rhs._ref_counter)}
     {
-        // TODO: Needed?
-        rhs._handle = behavior_type::null_handle();
-        assert(rhs.is_null_handle());
-
-        assert(rhs.is_null_ref_counter());
+        rhs.nullify_and_assert();
     }
 
     template <typename TBehavior>
     auto& shared<TBehavior>::operator=(shared&& rhs) noexcept
     {
-        _handle = std::move(rhs._handle);
+        base_type::_handle = std::move(rhs._handle);
         _ref_counter = std::move(rhs._ref_counter);
 
-        // TODO: Needed?
-        rhs._handle = behavior_type::null_handle();
-        assert(rhs.is_null_handle());
-
-        assert(rhs.is_null_ref_counter());
+        rhs.nullify_and_assert();
         return *this;
     }
 
     template <typename TBehavior>
     void shared<TBehavior>::lose_ownership() noexcept
     {
-        assert(!is_null_ref_counter());
-
         _ref_counter.lose_ownership([this]
             {
-                behavior_type::deinit(_handle);
+                base_type::deinit();
             });
 
-        // TODO: Needed?
-        _handle = behavior_type::null_handle();
-
-        assert(is_null_handle());
-        assert(is_null_ref_counter());
+        nullify_and_assert();
     }
 
     template <typename TBehavior>
@@ -126,7 +103,7 @@ namespace resource
     {
         if(_ref_counter.is_null())
         {
-            assert(is_null_handle());
+            assert(base_type::is_null_handle());
         }
         else
         {
@@ -137,24 +114,17 @@ namespace resource
     template <typename TBehavior>
     void shared<TBehavior>::reset(const handle_type& handle) noexcept
     {
-        if(_ref_counter.is_null())
+        if(base_type::is_null_handle())
         {
-            assert(is_null_handle());
-
-            _handle = handle;
+            base_type::_handle = handle;
             _ref_counter.acquire_from_null();
         }
         else
         {
-            assert(!is_null_handle());
-
             lose_ownership();
-            _handle = handle;
 
-            if(!is_null_handle())
-            {
-                _ref_counter.acquire_from_null();
-            }
+            base_type::_handle = handle;
+            acquire_from_null_if_required();
         }
     }
 
@@ -162,15 +132,10 @@ namespace resource
     void shared<TBehavior>::swap(shared& rhs) noexcept
     {
         using std::swap;
-        swap(_handle, rhs._handle);
+        base_type::swap(rhs);
         swap(_ref_counter, rhs._ref_counter);
     }
 
-    template <typename TBehavior>
-    auto shared<TBehavior>::get() const noexcept
-    {
-        return _handle;
-    }
 
     template <typename TBehavior>
     auto shared<TBehavior>::use_count() const noexcept
@@ -183,13 +148,6 @@ namespace resource
     {
         return use_count() == 1;
     }
-
-    template <typename TBehavior>
-    shared<TBehavior>::operator bool() const noexcept
-    {
-        return !is_null_ref_counter();
-    }
-
 
     template <typename TBehavior>
     bool operator==(
