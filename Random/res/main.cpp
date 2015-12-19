@@ -15,6 +15,8 @@
 #include "./tests.hpp"
 #include "./tests_runner.hpp"
 
+#include <memory>
+
 template <typename TAccess>
 struct vbo_interface : TAccess
 {
@@ -55,6 +57,9 @@ auto make_shared_vbo(Ts&&... xs)
 int main()
 {
     test::run_all();
+
+    std::cout << sizeof(std::shared_ptr<int>) << "\n";
+    std::cout << sizeof(std::weak_ptr<int>) << "\n";
 
     /*
     {
