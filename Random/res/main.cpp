@@ -6,6 +6,7 @@
 #include "./shared.hpp"
 #include "./legacy.hpp"
 #include "./behavior.hpp"
+#include "./resource_base.hpp"
 #include "./unique_resource.hpp"
 #include "./shared_resource.hpp"
 #include "./make_resource.hpp"
