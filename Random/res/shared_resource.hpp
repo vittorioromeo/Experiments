@@ -14,52 +14,72 @@
 
 namespace resource
 {
-    template <typename TBehavior>
-    class shared : public impl::resource_base<TBehavior>
+    namespace impl
     {
-    public:
-        using base_type = impl::resource_base<TBehavior>;
-        using behavior_type = typename base_type::behavior_type;
-        using handle_type = typename base_type::handle_type;
-        using ref_counter_type = impl::shared_ref_counter;
+        namespace shared_lock_policy
+        {
+            struct none
+            {
+            };
+        }
 
-    private:
-        ref_counter_type _ref_counter;
+        template <typename TBehavior, typename TLockPolicy>
+        class shared : public impl::resource_base<TBehavior>, TLockPolicy
+        {
+        public:
+            using base_type = impl::resource_base<TBehavior>;
+            using behavior_type = typename base_type::behavior_type;
+            using handle_type = typename base_type::handle_type;
+            using ref_counter_type = impl::shared_ref_counter;
+            using lock_policy_type = TLockPolicy;
 
-        void lose_ownership() noexcept;
-        void nullify_and_assert() noexcept;
-        void acquire_from_null_if_required();
-        void acquire_existing_if_required();
+        private:
+            ref_counter_type _ref_counter;
 
-    public:
-        shared() noexcept = default;
-        ~shared() noexcept;
+            auto& access_ref_counter() & noexcept;
+            const auto& access_ref_counter() const& noexcept;
+            auto access_ref_counter() && noexcept;
 
-        explicit shared(const handle_type& handle) noexcept;
+            void lose_ownership() noexcept;
+            void nullify_and_assert() noexcept;
+            void acquire_from_null_if_required();
+            void acquire_existing_if_required();
 
-        shared(const shared&);
-        auto& operator=(const shared&);
+        public:
+            shared() noexcept = default;
+            ~shared() noexcept;
 
-        shared(shared&& rhs) noexcept;
-        auto& operator=(shared&&) noexcept;
+            explicit shared(const handle_type& handle) noexcept;
 
-        void reset() noexcept;
-        void reset(const handle_type& handle) noexcept;
+            shared(const shared&);
+            auto& operator=(const shared&);
 
-        void swap(shared& rhs) noexcept;
+            shared(shared&& rhs) noexcept;
+            auto& operator=(shared&&) noexcept;
 
-        auto use_count() const noexcept;
-        bool unique() const noexcept;
+            void reset() noexcept;
+            void reset(const handle_type& handle) noexcept;
 
-        template <typename>
-        friend bool operator==(const shared& lhs, const shared& rhs) noexcept;
+            void swap(shared& rhs) noexcept;
 
-        template <typename>
-        friend bool operator!=(const shared& lhs, const shared& rhs) noexcept;
+            auto use_count() const noexcept;
+            bool unique() const noexcept;
 
-        template <typename>
-        friend void swap(shared& lhs, shared& rhs) noexcept;
-    };
+            template <typename>
+            friend bool operator==(
+                const shared& lhs, const shared& rhs) noexcept;
+
+            template <typename>
+            friend bool operator!=(
+                const shared& lhs, const shared& rhs) noexcept;
+
+            template <typename>
+            friend void swap(shared& lhs, shared& rhs) noexcept;
+        };
+    }
+
+    template <typename TBehavior>
+    using shared = impl::shared<TBehavior, impl::shared_lock_policy::none>;
 }
 
 // TODO:
