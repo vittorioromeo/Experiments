@@ -143,3 +143,6 @@ int main()
 // thread-safe sptr
 // weak_resource
 // resource_base
+// optimized and unsafe sptr methods
+// * ex.: copy_ownership (assumes sptr owns something) 
+// should access::impl::resource derive? maybe just store resource as member?

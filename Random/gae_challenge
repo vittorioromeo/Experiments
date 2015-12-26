@@ -1,0 +1,30 @@
+Game in an afternoon
+
+* C++14, Emscripten, OpenGL -> web game
+* Bullet-hell gameplay
+* "Starfield", "Crowd", whatever
+* Gameplay:
+    * Game is divided in waves
+    * Waves are finished by collecting N special items
+        * After collecting the items, a timer may appear
+    * Waves consist in dodging random starfield-like bullet curtains
+    * Patterns are detailed by two increasing variables
+        * Density
+        * Speed
+    * Waves can have special mutators
+        * Curving bullets
+        * Bigger bullets (huge)
+        * Smaller bullets (popcorn)
+        * Lasers that will appear in a huge area after a warning
+        * Square bullets
+    * Scoring is increased by grazing bullets and by getting risky score powerups
+    * Move with arrow keys
+    * Can focus with shift
+    * Choose difficulty: normal/hardcore
+* Technical details:
+    * Use vrm::gl, vrm::sdl
+    * Use a single sprite_batch for all entities
+    * Only AABB-point and circle-point collision detection is required
+        * Maybe some dumb grid spatial partition?
+    * Component-based design?
+        * sparse_int_set, positions[], velocities[], accelerations[], curve[]

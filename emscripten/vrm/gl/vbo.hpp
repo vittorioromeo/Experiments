@@ -31,7 +31,10 @@ VRM_SDL_NAMESPACE
         class vbo
         {
         private:
-            static constexpr GLenum target_value{vrmc::from_enum(TTarget)};
+            static constexpr GLenum target_value{(GLenum)(TTarget)};
+            
+            // TODO: BUG: GCC: CLANG: gcc segfault
+            // static constexpr GLenum target_value{vrm::core::from_enum(TTarget)};
 
             GLuint _id, _n;
 
