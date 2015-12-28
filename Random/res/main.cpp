@@ -31,9 +31,57 @@ struct vbo_interface : TAccess
     }
 };
 
+template <typename TAccess>
+struct ptr_interface : TAccess
+{
+    using TAccess::TAccess;
+
+    auto& operator*() noexcept
+    {
+        return *(this->get());
+    }
+
+    const auto& operator*() const noexcept
+    {
+        return *(this->get());
+    }
+
+    auto operator-> () noexcept
+    {
+        return this->get();
+    }
+
+    auto operator-> () const noexcept
+    {
+        return this->get();
+    }
+};
+
+// TODO: facade<interface, behavior, access>
+// or facade<interface, behavior>
+// facade<interface, behavior>::make<access::unmanaged>
+// facade<interface, behavior>::make<access::unique>
+// facade<interface, behavior>::make<access::shared>
+// facade<interface, behavior>::make_unmanaged
+// facade<interface, behavior>::make_unique
+// facade<interface, behavior>::make_shared
+// ?
+
 using unmanaged_vbo = vbo_interface<access::unmanaged<behavior::vbo_b>>;
 using unique_vbo = vbo_interface<access::unique<behavior::vbo_b>>;
 using shared_vbo = vbo_interface<access::shared<behavior::vbo_b>>;
+
+template <typename T>
+using my_unmanaged_ptr =
+    ptr_interface<access::unmanaged<behavior::free_store_b<T>>>;
+
+template <typename T>
+using my_unique_ptr = ptr_interface<access::unique<behavior::free_store_b<T>>>;
+
+template <typename T>
+using my_shared_ptr = ptr_interface<access::shared<behavior::free_store_b<T>>>;
+
+
 
 template <typename... Ts>
 auto make_unmanaged_vbo(Ts&&... xs)
@@ -53,10 +101,56 @@ auto make_shared_vbo(Ts&&... xs)
     return make_shared_interface<behavior::vbo_b, vbo_interface>(FWD(xs)...);
 }
 
+void example_ptrs()
+{
+    using bt = behavior::free_store_b<int>;
+
+    // Unmanaged
+    {
+        my_unmanaged_ptr<int> p(bt::init(new int));
+        *p = 10;
+
+        assert(*p == 10);
+
+        // TODO:
+        // bt::deinit(p);
+        // should this compile?
+
+        bt::deinit(p.get());
+    }
+
+    // Unique
+    {
+        my_unique_ptr<int> p(bt::init(new int));
+        *p = 10;
+
+        assert(*p == 10);
+
+        // Does not compile as intended:
+        // my_unique_ptr<int> pp = p;
+
+        my_unique_ptr<int> pp = std::move(p);
+        assert(*pp == 10);
+
+    }
+
+    // Shared
+    {
+        my_shared_ptr<int> p(bt::init(new int));
+        
+        *p = 10;
+        assert(*p == 10);
+
+        my_shared_ptr<int> pp = p;
+        assert(*p == 10);
+        assert(*pp == 10);
+    }
+}
 
 int main()
 {
     test::run_all();
+    example_ptrs();
 
     std::cout << sizeof(std::shared_ptr<int>) << "\n";
     std::cout << sizeof(std::weak_ptr<int>) << "\n";
@@ -144,5 +238,5 @@ int main()
 // weak_resource
 // resource_base
 // optimized and unsafe sptr methods
-// * ex.: copy_ownership (assumes sptr owns something) 
+// * ex.: copy_ownership (assumes sptr owns something)
 // should access::impl::resource derive? maybe just store resource as member?
