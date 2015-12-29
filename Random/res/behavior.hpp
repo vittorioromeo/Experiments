@@ -8,9 +8,28 @@
 #include "./shared.hpp"
 #include "./legacy.hpp"
 
+template <typename>
+using void_t = void;
+
 template <typename T>
-using is_valid_behavior = std::integral_constant<bool, sizeof(T) == 1>;
-// TODO: check methods
+using is_zero_sized = std::integral_constant<bool, sizeof(T) == 1>;
+
+template <typename T, typename = void>
+struct has_init : std::false_type
+{
+};
+
+template <typename T>
+struct has_init<T, void_t<decltype(&T::init)>> : std::true_type
+{
+};
+
+template <typename T>
+using is_valid_behavior = std::integral_constant<bool, // .
+    is_zero_sized<T>{} && has_init<T>{}                // .
+    >;
+
+// TODO: check other methods
 
 
 namespace behavior
