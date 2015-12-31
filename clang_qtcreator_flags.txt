@@ -34,3 +34,4 @@
 -Wno-unneeded-member-function
 -Wno-covered-switch-default
 -Wno-range-loop-analysis
+-Wno-unused-member-function
