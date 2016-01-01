@@ -29,6 +29,9 @@ namespace resource
             using shared_type = shared<TBehavior, TLockPolicy>;
 
         private:
+            handle_type _handle{behavior_type::null_handle()};
+            ref_counter_type _ref_counter;
+
         public:
             weak() noexcept;
             weak(const weak& rhs) noexcept;

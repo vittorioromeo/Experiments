@@ -206,4 +206,124 @@ namespace test
 
         assert_ck(3, 3);
     }
+
+    // TODO
+    void shared_10()
+    {
+        {
+            assert_ck(0, 0);
+
+            auto h = test_behavior::init();
+            assert_ck(1, 0);
+
+            shared_test u(h);
+            assert_ck(1, 0);
+
+            assert(u.get() == h);
+        }
+
+        assert_ck(1, 1);
+    }
+
+    void shared_11()
+    {
+        {
+            assert_ck(0, 0);
+
+            auto u0 = shared_test(test_behavior::init());
+            assert_ck(1, 0);
+
+            auto u1(u0);
+            assert_ck(1, 0);
+
+            // TODO: fix
+            // assert(u0 == u1);
+
+            assert(u0.get() == u1.get());
+        }
+
+        assert_ck(1, 1);
+    }
+
+    void shared_12()
+    {
+        {
+            assert_ck(0, 0);
+
+            auto u0 = shared_test(test_behavior::init());
+            assert_ck(1, 0);
+
+            auto u1 = u0;
+            assert_ck(1, 0);
+
+            assert(u0.use_count() == 2);
+            assert(u1.use_count() == 2);
+        }
+
+        assert_ck(1, 1);
+    }
+
+    void shared_13()
+    {
+        {
+            assert_ck(0, 0);
+
+            auto u0 = shared_test(test_behavior::init());
+            assert_ck(1, 0);
+
+            auto u1 = u0;
+            assert_ck(1, 0);
+
+            assert(u0.get() == u1.get());
+        }
+
+        assert_ck(1, 1);
+    }
+
+    void shared_14()
+    {
+        {
+            assert_ck(0, 0);
+
+            auto u0 = shared_test(test_behavior::init());
+            assert_ck(1, 0);
+
+            auto u1 = shared_test(test_behavior::init());
+            assert_ck(2, 0);
+
+            auto old0 = u0.get();
+            auto old1 = u1.get();
+            assert_ck(2, 0);
+
+            u0.swap(u1);
+            assert_ck(2, 0);
+
+            assert(u0.get() == old1);
+            assert(u1.get() == old0);
+        }
+
+        assert_ck(2, 2);
+    }
+
+    void shared_15()
+    {
+        {
+            assert_ck(0, 0);
+
+            auto u0 = shared_test(test_behavior::init());
+            assert_ck(1, 0);            
+            assert(u0.unique());
+
+            auto u1 = u0;
+            assert_ck(1, 0);            
+            assert(!u0.unique());
+
+            u1 = shared_test(test_behavior::init());
+            assert_ck(2, 0);            
+            assert(u0.unique());
+            assert(u1.unique());
+        }
+
+        assert_ck(2, 2);
+    }
 }

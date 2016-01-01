@@ -30,25 +30,54 @@ namespace resource
                 return *_metadata;
             }
 
-            auto real_count() const noexcept
-            {
-                return access_metadata().count();
-            }
-
             auto weak_count() const noexcept
             {
                 return access_metadata().weak_count();
             }
 
-            void decrement() noexcept
+            auto total_count() const noexcept
             {
-                access_metadata().decrement();
+                return access_metadata().total_count();
+            }
+
+            auto has_any_ref() const noexcept
+            {
+                return access_metadata().has_any_ref();
+            }
+
+            void increment_owner() noexcept
+            {
+                access_metadata().increment_owner();
+            }
+
+            void decrement_owner() noexcept
+            {
+                access_metadata().decrement_owner();
             }
 
             void deallocate() noexcept
             {
-                assert(access_metadata().count() == 0);
+                // TODO: total_count?
+
+                assert(access_metadata().owner_count() == 0);
                 delete _metadata;
+            }
+
+            template <typename TF>
+            void deallocate_if_required(TF&& deleter) noexcept
+            {
+                if(!has_any_ref())
+                {
+                    deleter();
+                    deallocate();
+                }
+
+                _metadata = nullptr;
+            }
+
+            void decrement_weak() noexcept
+            {
+                access_metadata().decrement_weak();
             }
 
         public:
@@ -75,9 +104,16 @@ namespace resource
                 return _metadata == nullptr;
             }
 
+            auto owner_count() const noexcept
+            {
+                return access_metadata().owner_count();
+            }
+
             auto use_count() const noexcept
             {
-                return is_null() ? 0 : real_count();
+                // TODO: owner count?
+
+                return is_null() ? 0 : owner_count();
             }
 
             void acquire_from_null()
@@ -90,21 +126,28 @@ namespace resource
             void acquire_existing() noexcept
             {
                 assert(!is_null());
-                access_metadata().increment();
+                increment_owner();
             }
+
+            void increment_weak() noexcept
+            {
+                access_metadata().increment_weak();
+            }
+
+
 
             template <typename TF>
             void lose_ownership(TF&& deleter) noexcept
             {
-                decrement();
+                decrement_owner();
+                deallocate_if_required(FWD(deleter));
+            }
 
-                if(real_count() == 0)
-                {
-                    deleter();
-                    deallocate();
-                }
-
-                _metadata = nullptr;
+            template <typename TF>
+            void lose_weak(TF&& deleter)
+            {
+                decrement_weak();
+                deallocate_if_required(FWD(deleter));
             }
         };
     }

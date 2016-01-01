@@ -16,6 +16,9 @@ namespace resource
 {
     namespace impl
     {
+        template <typename TBehavior, typename TLockPolicy>
+        class weak;
+
         namespace shared_lock_policy
         {
             struct none
@@ -32,6 +35,7 @@ namespace resource
             using handle_type = typename base_type::handle_type;
             using ref_counter_type = impl::shared_ref_counter;
             using lock_policy_type = TLockPolicy;
+            using weak_type = weak<TBehavior, TLockPolicy>;
 
         private:
             ref_counter_type _ref_counter;
@@ -50,6 +54,7 @@ namespace resource
             ~shared() noexcept;
 
             explicit shared(const handle_type& handle) noexcept;
+            explicit shared(const weak_type& handle) noexcept;
 
             shared(const shared&);
             auto& operator=(const shared&);

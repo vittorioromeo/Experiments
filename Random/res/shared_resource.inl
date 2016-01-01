@@ -47,8 +47,7 @@ namespace resource
         template <typename TBehavior, typename TLockPolicy>
         void shared<TBehavior, TLockPolicy>::acquire_from_null_if_required()
         {
-            if(base_type::is_null_handle())
-                return;
+            if(base_type::is_null_handle()) return;
 
             access_ref_counter().acquire_from_null();
         }
@@ -56,8 +55,7 @@ namespace resource
         template <typename TBehavior, typename TLockPolicy>
         void shared<TBehavior, TLockPolicy>::acquire_existing_if_required()
         {
-            if(base_type::is_null_handle())
-                return;
+            if(base_type::is_null_handle()) return;
 
             access_ref_counter().acquire_existing();
         }
@@ -100,6 +98,14 @@ namespace resource
         }
 
         template <typename TBehavior, typename TLockPolicy>
+        shared<TBehavior, TLockPolicy>::shared(const weak_type& rhs) noexcept
+            : base_type{rhs._handle},
+              _ref_counter{rhs._ref_counter}
+        {
+            acquire_existing_if_required();
+        }
+
+        template <typename TBehavior, typename TLockPolicy>
         shared<TBehavior, TLockPolicy>::shared(shared&& rhs) noexcept
             : base_type{rhs._handle},
               _ref_counter{std::move(rhs.access_ref_counter())}
@@ -111,6 +117,11 @@ namespace resource
         auto& shared<TBehavior, TLockPolicy>::operator=(shared&& rhs) noexcept
         {
             assert(this != &rhs);
+
+            if(!base_type::is_null_handle())
+            {
+                lose_ownership();
+            }
 
             base_type::_handle = std::move(rhs._handle);
             _ref_counter = std::move(rhs.access_ref_counter());

@@ -41,6 +41,12 @@ namespace test
         RUN_T(shared_7);
         RUN_T(shared_8);
         RUN_T(shared_9);
+        RUN_T(shared_10);
+        RUN_T(shared_11);
+        RUN_T(shared_12);
+        RUN_T(shared_13);
+        RUN_T(shared_14);
+        RUN_T(shared_15);
 
 #undef RUN_T
     }
