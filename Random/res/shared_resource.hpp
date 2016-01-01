@@ -12,6 +12,9 @@
 #include "./shared_ref_counter.hpp"
 #include "./resource_base.hpp"
 
+// TODO: make weak support optional, additional template parameter
+// maybe shared_settings<...> ?
+
 namespace resource
 {
     namespace impl
