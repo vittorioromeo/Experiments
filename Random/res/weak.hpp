@@ -17,10 +17,16 @@ namespace resource
 {
     namespace impl
     {
+        template <typename TBehavior, typename TLockPolicy>
+        class shared;
+
         // TODO:
         template <typename TBehavior, typename TLockPolicy>
         class weak
         {
+            template <typename, typename>
+            friend class shared;
+
         public:
             using behavior_type = TBehavior;
             using handle_type = typename behavior_type::handle_type;

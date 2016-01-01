@@ -16,6 +16,7 @@
 #include "./tests.hpp"
 #include "./tests_unique.hpp"
 #include "./tests_shared.hpp"
+#include "./tests_weak.hpp"
 
 namespace test
 {
@@ -47,6 +48,13 @@ namespace test
         RUN_T(shared_13);
         RUN_T(shared_14);
         RUN_T(shared_15);
+
+        RUN_T(weak_0);
+        RUN_T(weak_1);
+        RUN_T(weak_2);
+        RUN_T(weak_3);
+        RUN_T(weak_4);
+        RUN_T(weak_5);
 
 #undef RUN_T
     }

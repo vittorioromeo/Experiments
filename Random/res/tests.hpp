@@ -40,8 +40,7 @@ namespace test
 
         static void deinit(const handle_type& h)
         {
-            if(h != null_handle())
-                ++killed;
+            if(h != null_handle()) ++killed;
         }
     };
     static_assert(is_valid_behavior<test_behavior>{}, "");
@@ -49,20 +48,24 @@ namespace test
     using unique_test = resource::unique<test_behavior>;
     using shared_test = resource::shared<test_behavior>;
 
+    // TODO:
+    using weak_test = resource::impl::weak<test_behavior,
+        resource::impl::shared_lock_policy::none>;
+
     void assert_ck(int a_created, int a_killed)
     {
         bool failed = false;
 
-        if(created != a_created)
-            failed = true;
-        
-        if(killed != a_killed)
-            failed = true;
+        if(created != a_created) failed = true;
+
+        if(killed != a_killed) failed = true;
 
         if(failed)
         {
-            std::cout << "created: " << created << " (expected:" << a_created << ")\n";
-            std::cout << "killed: " << killed << " (expected:" << a_killed << ")\n";
+            std::cout << "created: " << created << " (expected:" << a_created
+                      << ")\n";
+            std::cout << "killed: " << killed << " (expected:" << a_killed
+                      << ")\n";
             std::terminate();
         }
     }

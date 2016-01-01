@@ -29,6 +29,9 @@ namespace resource
         template <typename TBehavior, typename TLockPolicy>
         class shared : public impl::resource_base<TBehavior>, TLockPolicy
         {
+            template <typename, typename>
+            friend class weak;
+
         public:
             using base_type = impl::resource_base<TBehavior>;
             using behavior_type = typename base_type::behavior_type;

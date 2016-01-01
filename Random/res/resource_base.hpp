@@ -11,9 +11,15 @@ namespace resource
 {
     namespace impl
     {
+        template <typename TBehavior, typename TLockPolicy>
+        class weak;
+
         template <typename TBehavior>
         class resource_base
         {
+            template <typename, typename>
+            friend class weak;
+
         public:
             using behavior_type = TBehavior;
             using handle_type = typename behavior_type::handle_type;
