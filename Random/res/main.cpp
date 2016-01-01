@@ -9,6 +9,7 @@
 #include "./resource_base.hpp"
 #include "./unique_resource.hpp"
 #include "./shared_resource.hpp"
+#include "./weak.hpp"
 #include "./make_resource.hpp"
 #include "./access.hpp"
 #include "./interface.hpp"
@@ -16,6 +17,7 @@
 #include "./tests_runner.hpp"
 
 #include <memory>
+
 
 template <typename TAccess>
 struct vbo_interface : TAccess
@@ -131,13 +133,12 @@ void example_ptrs()
 
         my_unique_ptr<int> pp = std::move(p);
         assert(*pp == 10);
-
     }
 
     // Shared
     {
         my_shared_ptr<int> p(bt::init(new int));
-        
+
         *p = 10;
         assert(*p == 10);
 

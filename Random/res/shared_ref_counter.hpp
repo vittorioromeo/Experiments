@@ -12,6 +12,7 @@ namespace resource
 {
     namespace impl
     {
+        // TODO: test polymorphism with custom shared_ptr
         class shared_ref_counter
         {
         private:
@@ -32,6 +33,11 @@ namespace resource
             auto real_count() const noexcept
             {
                 return access_metadata().count();
+            }
+
+            auto weak_count() const noexcept
+            {
+                return access_metadata().weak_count();
             }
 
             void decrement() noexcept
@@ -77,7 +83,7 @@ namespace resource
             void acquire_from_null()
             {
                 assert(is_null());
-                _metadata = new shared_metadata{1};
+                _metadata = new shared_metadata{1, 0};
                 // TODO: could throw `std::bad_alloc`.
             }
 

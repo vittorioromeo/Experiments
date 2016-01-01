@@ -17,9 +17,13 @@ namespace resource
         {
         private:
             shared_counter_type _count;
+            shared_counter_type _weak_count;
 
         public:
-            shared_metadata(shared_counter_type count) noexcept : _count{count}
+            shared_metadata(shared_counter_type count,
+                shared_counter_type weak_count) noexcept
+                : _count{count},
+                  _weak_count{weak_count}
             {
             }
 
@@ -43,6 +47,22 @@ namespace resource
             auto count() const noexcept
             {
                 return _count;
+            }
+
+            void increment_weak() noexcept
+            {
+                ++_weak_count;
+            }
+
+            void decrement_weak() noexcept
+            {
+                assert(_weak_count > 0);
+                --_weak_count;
+            }
+
+            auto weak_count() const noexcept
+            {
+                return _weak_count;
             }
         };
     }

@@ -76,42 +76,6 @@ namespace resource
             template <typename>
             friend void swap(shared& lhs, shared& rhs) noexcept;
         };
-
-        // TODO:
-        template <typename TBehavior, typename TLockPolicy>
-        class weak
-        {
-        public:
-            using behavior_type = TBehavior;
-            using handle_type = typename behavior_type::handle_type;
-            using ref_counter_type = impl::shared_ref_counter;
-            using lock_policy_type = TLockPolicy;
-            using shared_type = shared<TBehavior, TLockPolicy>;
-
-        private:
-        public:
-            weak() noexcept;
-            weak(const weak& rhs) noexcept;
-            weak(const shared_type& rhs) noexcept;
-            weak(weak&& rhs) noexcept;
-
-            weak& operator=(const weak& rhs) noexcept;
-            weak& operator=(const shared_type& rhs) noexcept;
-            weak& operator=(weak&& rhs) noexcept;
-
-            ~weak();
-
-            void swap(weak& rhs) noexcept;
-            void reset() noexcept;
-
-            auto use_count() const noexcept;
-            auto expired() const noexcept;
-
-            shared_type lock() const noexcept; 
-
-            template <typename>
-            friend void swap(weak& lhs, weak& rhs) noexcept;
-        };
     }
 
     template <typename TBehavior>
