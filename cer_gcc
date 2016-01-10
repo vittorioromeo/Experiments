@@ -22,7 +22,7 @@ g++ -std=c++14 -O0 \
         -Wsuggest-attribute=noreturn \
         -Wsuggest-attribute=format \
         -Wsequence-point \
-        $1 -o /tmp/x.x && /tmp/x.x
+        $1 -o /tmp/x.x && /tmp/x.x "${@:2}"
 
 exit 0
 
@@ -62,4 +62,4 @@ clang++ -std=c++14 -O0 \
         -Wno-unneeded-member-function \
         -Wno-covered-switch-default \
         -Wno-range-loop-analysis \
-        $1 -o /tmp/x.x && /tmp/x.x
+        $1 -o /tmp/x.x && /tmp/x.x "${@:2}"
