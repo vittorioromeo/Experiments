@@ -1,6 +1,6 @@
 callgrind.*
 CMakeLists.txt.user.*
-
+emscripten_tests
 lib/
 *.0000000
 doc/html
