@@ -230,18 +230,24 @@ VRM_SDL_NAMESPACE
 
     namespace impl
     {
+        const auto& shader_root() noexcept
+        {
+            static std::string result{"include/vrm/sdl/glsl/"};
+            return result;
+        }
+
         auto make_sprite_renderer_program()
         {
-            constexpr auto v_sh_path("vrm/sdl/glsl/sprite.vert");
-            constexpr auto f_sh_path("vrm/sdl/glsl/sprite.frag");
-            return make_program_from_file(v_sh_path, f_sh_path);
+            auto v_sh_path(shader_root() + "sprite.vert");
+            auto f_sh_path(shader_root() + "sprite.frag");
+            return make_program_from_file(v_sh_path.c_str(), f_sh_path.c_str());
         }
 
         auto make_batched_sprite_renderer_program()
         {
-            constexpr auto v_sh_path("vrm/sdl/glsl/batched_sprite.vert");
-            constexpr auto f_sh_path("vrm/sdl/glsl/batched_sprite.frag");
-            return make_program_from_file(v_sh_path, f_sh_path);
+            auto v_sh_path(shader_root() + "batched_sprite.vert");
+            auto f_sh_path(shader_root() + "batched_sprite.frag");
+            return make_program_from_file(v_sh_path.c_str(), f_sh_path.c_str());
         }
     }
 

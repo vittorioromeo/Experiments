@@ -1,13 +1,26 @@
 #!/bin/zsh
 
-sudo rm -R /usr/local/include/vrm/sdl/*
-sudo rm -R /usr/local/include/vrm/gl/*
-sudo cp -R ./vrm/ /usr/local/include/
-mkdir build
-
 g++ -g3 -fno-omit-frame-pointer -lSDL2 -lSDL2_ttf -lSDL2_image -lSDL2_gfx -lGL -lGLEW -lglut \
+    -Iinclude \
+    -pedantic \
+    -W \
+    -Wall \
+    -Wextra \
+    -Wno-unused-local-typedefs \
+    -Wwrite-strings \
+    -Wundef \
+    -Wno-missing-field-initializers \
+    -Wpointer-arith \
+    -Wcast-align \
+    -Wno-unreachable-code \
+    -Wnon-virtual-dtor \
+    -Woverloaded-virtual \
+    -Wsuggest-final-types \
+    -Wsuggest-final-methods \
+    -Wsuggest-override \
+    -Wsequence-point \
     -std=c++14 "${@:2}" \
-    -o ./build/"$1".x ./"$1".cpp \
+    -o ./build/"$1".x ./src/"$1".cpp \
 && vblank_mode=0 __GL_SYNC_TO_VBLANK=0 ./build/"$1".x 
 
 #    -O3 -ffast-math \
