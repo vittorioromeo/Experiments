@@ -542,8 +542,6 @@ enum class e_type : int
     toriel = 2
 };
 
-constexpr int e_type_count{3};
-
 struct my_game_entity
 {
     e_type type;
@@ -767,7 +765,7 @@ struct my_game
         e._hitbox_radius = 3.f;
 
         return e;
-    };
+    }
 
     auto soul_update(entity_type& x, game_state_type& state, sdl::ft step)
     {
@@ -806,7 +804,7 @@ struct my_game
         e.life = 100.f;
 
         return e;
-    };
+    }
 
     auto fireball_update(entity_type& x, game_state_type&, sdl::ft step)
     {
@@ -849,7 +847,7 @@ struct my_game
         e.curve = 0.f;
 
         return e;
-    };
+    }
 
     auto toriel_update(entity_type& x, game_state_type& state, sdl::ft step)
     {
@@ -877,7 +875,7 @@ struct my_game
 
     void update(my_game_state& state, sdl::ft step)
     {
-        const auto& entities(state._entities);
+        // const auto& entities(state._entities);
         auto& soul(state.soul());
 
         state.for_alive([this, &state, step](auto& e)
@@ -1023,7 +1021,7 @@ struct my_game
 
         {
             auto& state(_engine.current_state());
-            auto& entities(state._entities);
+            // auto& entities(state._entities);
 
             state.add(make_toriel(state, sdl::make_vec(500.f, 100.f)));
             state._soul_idx = state.add(make_soul(sdl::make_vec(500.f, 500.f)));
@@ -1086,6 +1084,4 @@ int main()
 
     auto game(std::make_unique<my_game<decltype(*c)>>(*c));
     sdl::run_global_context();
-
-    return 0;
 }
