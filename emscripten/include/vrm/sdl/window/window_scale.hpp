@@ -12,7 +12,7 @@ VRM_SDL_NAMESPACE
 {
     namespace window_scale
     {
-        auto fixed() noexcept
+        auto VRM_CORE_CONST_FN fixed() noexcept
         {
             return [](const vec2f& original_size, const vec2f&)
             {
@@ -20,7 +20,7 @@ VRM_SDL_NAMESPACE
             };
         }
 
-        auto stretch() noexcept
+        auto VRM_CORE_CONST_FN stretch() noexcept
         {
             return [](const vec2f&, const vec2f& window_size)
             {
@@ -28,7 +28,7 @@ VRM_SDL_NAMESPACE
             };
         }
 
-        auto ratio_aware() noexcept
+        auto VRM_CORE_CONST_FN ratio_aware() noexcept
         {
             return [](const vec2f& original_size, const vec2f& window_size)
             {
@@ -36,7 +36,8 @@ VRM_SDL_NAMESPACE
             };
         }
 
-        auto discrete_ratio_aware(const vec2f& increment) noexcept
+        auto VRM_CORE_CONST_FN discrete_ratio_aware(
+            const vec2f& increment) noexcept
         {
             return [=](const vec2f& original_size, const vec2f& window_size)
             {
@@ -45,7 +46,7 @@ VRM_SDL_NAMESPACE
             };
         }
 
-        auto pixel_perfect() noexcept
+        auto VRM_CORE_CONST_FN pixel_perfect() noexcept
         {
             return [=](const vec2f& original_size, const vec2f& window_size)
             {

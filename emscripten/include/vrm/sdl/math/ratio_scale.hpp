@@ -42,7 +42,8 @@ VRM_SDL_NAMESPACE
             }
         }
 
-        auto discrete_ratio_step(float value, float increment) noexcept
+        auto VRM_CORE_CONST_FN discrete_ratio_step(
+            float value, float increment) noexcept
         {
             return std::floor(value / increment) * increment;
         }

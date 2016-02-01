@@ -437,7 +437,7 @@ VRM_SDL_NAMESPACE
         }
 
     public:
-        void draw_sprite(const impl::gltexture2d& t,
+        void draw_sprite(const impl::gltexture2d& /*t*/,
             const quad_tex_coords& tex_coords, const vec2f& position,
             const vec2f& origin, const vec2f& size, float radians,
             const vec4f& color, float hue) noexcept
@@ -773,7 +773,7 @@ struct my_game
         return e;
     }
 
-    auto soul_update(entity_type& x, game_state_type& state, sdl::ft step)
+    auto soul_update(entity_type& x, game_state_type& /*state*/, sdl::ft step)
     {
         constexpr float speed{5.f};
         sdl::vec2f input;
@@ -842,7 +842,7 @@ struct my_game
             sdl::vec4f{1.f, 0.f, 1.f, x._opacity}, x.hue);
     }
 
-    auto make_toriel(game_state_type& state, sdl::vec2f pos)
+    auto make_toriel(game_state_type& /*state*/, sdl::vec2f pos)
     {
         entity_type e;
         e.type = e_type::toriel;
@@ -993,11 +993,11 @@ struct my_game
         auto& in_entities(interpolated._entities);
 
         interpolated._alive = s0._alive;
-        interpolated.for_alive_indices([&](auto i)
+        interpolated.for_alive_indices([&](auto xi)
             {
-                const auto& e0(s0._entities[i]);
-                const auto& e1(s1._entities[i]);
-                auto& ei(in_entities[i]);
+                const auto& e0(s0._entities[xi]);
+                const auto& e1(s1._entities[xi]);
+                auto& ei(in_entities[xi]);
 
                 ei._pos = lerp(e0._pos, e1._pos);
                 ei.type = e1.type;
