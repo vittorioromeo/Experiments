@@ -28,9 +28,9 @@ namespace resource
             static auto null_handle() noexcept;
 
         protected:
-            handle_type _handle{null_handle()};
+            handle_type _handle;
 
-            resource_base() noexcept = default;
+            resource_base() noexcept;
             explicit resource_base(const handle_type& handle) noexcept;
 
             auto is_null_handle() const noexcept;

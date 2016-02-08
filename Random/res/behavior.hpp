@@ -62,8 +62,8 @@ namespace behavior
     {
         struct vbo_handle
         {
-            legacy::GLuint _id;
-            legacy::GLsizei _n;
+            legacy::GLuint _id{-1};
+            legacy::GLsizei _n{0};
 
             auto operator==(const vbo_handle& rhs) const noexcept
             {

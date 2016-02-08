@@ -18,6 +18,11 @@ namespace resource
             return behavior_type::null_handle();
         }
 
+        // TODO: clang fmt
+        template <typename TBehavior>
+        resource_base<TBehavior>::resource_base() noexcept :
+        _handle{null_handle()} {}
+
         template <typename TBehavior>
         resource_base<TBehavior>::resource_base(
             const handle_type& handle) noexcept : _handle{handle}
