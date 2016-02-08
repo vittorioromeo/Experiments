@@ -10,6 +10,7 @@
 
 namespace resource
 {
+    /// @brief Resource class with $unique$ ownership semantics.
     template <typename TBehavior>
     class unique : public impl::resource_base<TBehavior>
     {

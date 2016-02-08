@@ -12,6 +12,8 @@ namespace resource
     template <typename TBehavior>
     unique<TBehavior>::~unique() noexcept
     {
+        // Release ownership of the stored handle, deinitializing it.
+        // The behavior must handle $null_handle$ deinitialization. 
         reset();
     }
 
@@ -29,8 +31,11 @@ namespace resource
     template <typename TBehavior>
     auto& unique<TBehavior>::operator=(unique&& rhs) noexcept
     {
+        // Avoid self-assignment.
         assert(this != &rhs);
         
+        // $rhs$ releases his handle, becoming a $null_handle$ holder.
+        // We take ownership of his previous handle.
         reset(rhs.release());
         return *this;
     }
@@ -38,20 +43,30 @@ namespace resource
     template <typename TBehavior>
     auto unique<TBehavior>::release() noexcept
     {
+        // Release ownership of the current handle, returning it.
+        // Sets the current handle to $null_handle$.
         return base_type::release_and_nullify();
     }
 
     template <typename TBehavior>
     void unique<TBehavior>::reset() noexcept
     {
+        // Call the behavior's $deinit$ static method.
+        // The behavior must handle $null_handle$ deinitialization. 
         base_type::deinit();
+
+        // Sets the stored handle to $null_handle$.
         base_type::nullify();
     }
 
     template <typename TBehavior>
     void unique<TBehavior>::reset(const handle_type& handle) noexcept
     {
+        // Call the behavior's $deinit$ static method.
+        // The behavior must handle $null_handle$ deinitialization. 
         base_type::deinit();
+
+        // Sets the stored handle to $handle$.
         base_type::_handle = handle;
     }
 

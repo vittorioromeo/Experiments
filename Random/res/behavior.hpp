@@ -31,6 +31,12 @@ using is_valid_behavior = std::integral_constant<bool, // .
 
 // TODO: check other methods
 
+// A valid behavior must fulfill the following points:
+// * Contain an handle_type typename.
+// * Be stateless and non-istantiable.
+// * Define a null_handle static method.
+// * Define a init static method, taking any parameter.
+// * Define a deinit static method.
 
 namespace behavior
 {

@@ -17,6 +17,7 @@ namespace resource
 {
     namespace impl
     {
+        // TODO: fwd hpp
         template <typename TBehavior, typename TLockPolicy>
         class shared;
 

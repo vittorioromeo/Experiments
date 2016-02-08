@@ -19,19 +19,29 @@ namespace resource
 {
     namespace impl
     {
+        // TODO: fwd declarations header
         template <typename TBehavior, typename TLockPolicy>
         class weak;
 
+        // Thread-safety policies.
         namespace shared_lock_policy
         {
+            /// @brief Non-thread-safe policy. No additional performance
+            /// overhead.
             struct none
             {
             };
+        
+            // TODO: other policies
         }
 
+        /// @brief Resource class with $shared$ ownership semantics.
+        /// @details A thread-safety policy can be specified as a template
+        /// parameter.
         template <typename TBehavior, typename TLockPolicy>
         class shared : public impl::resource_base<TBehavior>, TLockPolicy
         {
+            // $weak$ is a $friend$ of $shared$.
             template <typename, typename>
             friend class weak;
 
@@ -44,12 +54,16 @@ namespace resource
             using weak_type = weak<TBehavior, TLockPolicy>;
 
         private:
+            // In addition to an handle, we store a $ref_counter$.
+            // It is a class containing a pointer to an heap-allocated
+            // shared ownership metadata instance.
             ref_counter_type _ref_counter;
 
+            // Qualified $ref_counter$ access methods.
             auto& access_ref_counter() & noexcept;
             const auto& access_ref_counter() const& noexcept;
             auto access_ref_counter() && noexcept;
-
+            
             void lose_ownership() noexcept;
             void nullify_and_assert() noexcept;
             void acquire_from_null_if_required();
