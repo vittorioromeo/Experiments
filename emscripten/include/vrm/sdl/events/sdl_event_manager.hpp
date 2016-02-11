@@ -9,6 +9,9 @@
 #include <vrm/sdl/resource.hpp>
 #include <vrm/sdl/utils.hpp>
 
+// TODO: scrap this for a traditional polling system
+// * wrap SDL_EVENT enum in enum class with some sort of pattern matching
+
 VRM_SDL_NAMESPACE
 {
     namespace impl

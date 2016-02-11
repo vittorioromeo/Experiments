@@ -32,9 +32,10 @@ VRM_SDL_NAMESPACE
         {
         private:
             static constexpr GLenum target_value{(GLenum)(TTarget)};
-            
+
             // TODO: BUG: GCC: CLANG: gcc segfault
-            // static constexpr GLenum target_value{vrm::core::from_enum(TTarget)};
+            // static constexpr GLenum
+            // target_value{vrm::core::from_enum(TTarget)};
 
             GLuint _id, _n;
 
@@ -54,7 +55,7 @@ VRM_SDL_NAMESPACE
                         GL_ELEMENT_ARRAY_BUFFER_BINDING, &result));
                 }
 
-                return result == _id;
+                return vrmc::to_num<GLuint>(result) == _id;
             }
 
         public:

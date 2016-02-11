@@ -5,12 +5,5 @@
 
 #pragma once
 
-#include <vrm/sdl/dependencies.hpp>
-
 #include <vrm/sdl/common/typedefs.hpp>
 #include <vrm/sdl/common/error.hpp>
-#include <vrm/sdl/common/null_handlers.hpp>
-#include <vrm/sdl/common/kkey.hpp>
-#include <vrm/sdl/common/mbtn.hpp>
-
-#include <vrm/sdl/common/null_handlers.inl>

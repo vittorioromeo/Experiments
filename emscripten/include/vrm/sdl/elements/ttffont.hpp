@@ -14,6 +14,7 @@ VRM_SDL_NAMESPACE
     public:
         using base_type = impl::sdl_element<TTF_Font>;
 
+        ttffont() = default;
         ttffont(const std::string& path, sz_t font_size) noexcept
             : base_type{TTF_OpenFont(path.c_str(), font_size)}
         {

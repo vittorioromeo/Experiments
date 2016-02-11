@@ -24,6 +24,7 @@ VRM_SDL_NAMESPACE
         auto size() const noexcept;
         const auto& rect() const noexcept;
 
+        surface() = default;
         surface(const std::string& path) noexcept;
         surface(SDL_Surface* p) noexcept;
 

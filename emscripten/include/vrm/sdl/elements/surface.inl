@@ -9,12 +9,22 @@
 
 VRM_SDL_NAMESPACE
 {
-    const auto& surface::width() const noexcept { return get().w; }
-    const auto& surface::height() const noexcept { return get().h; }
+    const auto& VRM_CORE_PURE_FN surface::width() const noexcept
+    {
+        return get().w;
+    }
+
+    const auto& VRM_CORE_PURE_FN surface::height() const noexcept
+    {
+        return get().h;
+    }
 
     auto surface::size() const noexcept { return make_vec(width(), height()); }
 
-    const auto& surface::rect() const noexcept { return _rect; }
+    const auto& VRM_CORE_CONST_FN surface::rect() const noexcept
+    {
+        return _rect;
+    }
 
     surface::surface(const std::string& path) noexcept
         : base_type{IMG_Load(path.c_str())}
@@ -27,8 +37,15 @@ VRM_SDL_NAMESPACE
 
     surface::surface(SDL_Surface * p) noexcept : base_type{p} {}
 
-    auto surface::pixels() const noexcept { return get().pixels; }
-    auto surface::format() const noexcept { return get().format; }
+    auto VRM_CORE_PURE_FN surface::pixels() const noexcept
+    {
+        return get().pixels;
+    }
+
+    auto VRM_CORE_PURE_FN surface::format() const noexcept
+    {
+        return get().format;
+    }
 
     void surface::clear(int r, int g, int b) noexcept
     {

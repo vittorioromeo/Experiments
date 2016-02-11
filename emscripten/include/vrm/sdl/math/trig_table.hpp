@@ -21,14 +21,14 @@ VRM_SDL_NAMESPACE
 
     public:
         template <typename TF>
-        trig_table(TF&& mFn) noexcept
+        trig_table(TF&& f) noexcept
         {
-            for(auto i(0u); i < count; ++i) arr[i] = mFn(i / ratio);
+            for(auto i(0u); i < count; ++i) arr[i] = f(i / ratio);
         }
 
-        VRM_SDL_ALWAYS_INLINE auto get(float mX) const noexcept
+        VRM_SDL_ALWAYS_INLINE auto get(float x) const noexcept
         {
-            auto idx(vrmc::to_sz_t(mX * ratio));
+            auto idx(vrmc::to_sz_t(x * ratio));
             VRM_CORE_ASSERT(idx < count);
 
             return arr[idx];

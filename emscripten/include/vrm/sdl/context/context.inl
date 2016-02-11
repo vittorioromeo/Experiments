@@ -54,19 +54,22 @@ VRM_SDL_NAMESPACE
 
 
         template <typename TSettings>
-        auto& non_interpolated_engine<TSettings>::update_fn() noexcept
+        auto& VRM_CORE_CONST_FN // .
+            non_interpolated_engine<TSettings>::update_fn() noexcept
         {
             return _update_fn;
         }
 
         template <typename TSettings>
-        auto& non_interpolated_engine<TSettings>::draw_fn() noexcept
+        auto& VRM_CORE_CONST_FN // .
+            non_interpolated_engine<TSettings>::draw_fn() noexcept
         {
             return _draw_fn;
         }
 
         template <typename TSettings>
-        auto& non_interpolated_engine<TSettings>::interpolate_fn() noexcept
+        auto& VRM_CORE_CONST_FN // .
+            non_interpolated_engine<TSettings>::interpolate_fn() noexcept
         {
             return _interpolate_fn;
         }
@@ -86,25 +89,25 @@ VRM_SDL_NAMESPACE
 
 
         template <typename TSettings>
-        auto& context<TSettings>::on_key_up() noexcept
+        auto& VRM_CORE_CONST_FN context<TSettings>::on_key_up() noexcept
         {
             return _on_key_up;
         }
 
         template <typename TSettings>
-        auto& context<TSettings>::on_key_down() noexcept
+        auto& VRM_CORE_CONST_FN context<TSettings>::on_key_down() noexcept
         {
             return _on_key_down;
         }
 
         template <typename TSettings>
-        auto& context<TSettings>::on_btn_up() noexcept
+        auto& VRM_CORE_CONST_FN context<TSettings>::on_btn_up() noexcept
         {
             return _on_btn_up;
         }
 
         template <typename TSettings>
-        auto& context<TSettings>::on_btn_down() noexcept
+        auto& VRM_CORE_CONST_FN context<TSettings>::on_btn_down() noexcept
         {
             return _on_btn_down;
         }
@@ -152,25 +155,29 @@ VRM_SDL_NAMESPACE
         }
 
         template <typename TSettings>
-        const auto& context<TSettings>::update_duration() const noexcept
+        const auto& VRM_CORE_CONST_FN // .
+            context<TSettings>::update_duration() const noexcept
         {
             return _update_duration;
         }
 
         template <typename TSettings>
-        const auto& context<TSettings>::draw_duration() const noexcept
+        const auto& VRM_CORE_CONST_FN // .
+            context<TSettings>::draw_duration() const noexcept
         {
             return _draw_duration;
         }
 
         template <typename TSettings>
-        const auto& context<TSettings>::total_duration() const noexcept
+        const auto& VRM_CORE_CONST_FN // .
+            context<TSettings>::total_duration() const noexcept
         {
             return _total_duration;
         }
 
         template <typename TSettings>
-        const auto& context<TSettings>::real_duration() const noexcept
+        const auto& VRM_CORE_CONST_FN // .
+            context<TSettings>::real_duration() const noexcept
         {
             return _real_duration;
         }
@@ -186,25 +193,25 @@ VRM_SDL_NAMESPACE
         }
 
         template <typename TSettings>
-        auto context<TSettings>::update_ms() const noexcept
+        auto VRM_CORE_PURE_FN context<TSettings>::update_ms() const noexcept
         {
             return ms_from_duration(update_duration());
         }
 
         template <typename TSettings>
-        auto context<TSettings>::draw_ms() const noexcept
+        auto VRM_CORE_PURE_FN context<TSettings>::draw_ms() const noexcept
         {
             return ms_from_duration(draw_duration());
         }
 
         template <typename TSettings>
-        auto context<TSettings>::total_ms() const noexcept
+        auto VRM_CORE_PURE_FN context<TSettings>::total_ms() const noexcept
         {
             return ms_from_duration(total_duration());
         }
 
         template <typename TSettings>
-        auto context<TSettings>::real_ms() const noexcept
+        auto VRM_CORE_PURE_FN context<TSettings>::real_ms() const noexcept
         {
             return ms_from_duration(real_duration());
         }
@@ -274,7 +281,7 @@ VRM_SDL_NAMESPACE
         }
 
         template <typename TSettings>
-        auto context<TSettings>::fps() const noexcept
+        auto VRM_CORE_PURE_FN context<TSettings>::fps() const noexcept
         {
             // constexpr float seconds_ft_ratio{60.f};
             // return seconds_ft_ratio / total_ms();
@@ -302,7 +309,7 @@ VRM_SDL_NAMESPACE
         }
 
         template <typename TSettings>
-        auto context<TSettings>::key(kkey k) const noexcept
+        auto VRM_CORE_PURE_FN context<TSettings>::key(kkey k) const noexcept
         {
             return _input_state.key(k);
         }

@@ -15,6 +15,8 @@ VRM_SDL_NAMESPACE
     {
     public:
         using base_type = impl::sdl_element<SDL_Renderer>;
+
+        renderer() = default;
         renderer(sdl_window& w) noexcept;
 
         void draw_color(int r, int g, int b, int a) noexcept;

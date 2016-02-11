@@ -13,11 +13,11 @@ VRM_SDL_NAMESPACE
 {
     namespace impl
     {
-        static constexpr sdl::sz_t trig_table_precision{628};
+        static constexpr sz_t trig_table_precision{628};
 
         VRM_SDL_ALWAYS_INLINE const auto& sin_table() noexcept
         {
-            static sdl::trig_table<trig_table_precision> result{[](auto x)
+            static trig_table<trig_table_precision> result{[](auto x)
                 {
                     return std::sin(x);
                 }};
@@ -27,7 +27,7 @@ VRM_SDL_NAMESPACE
 
         VRM_SDL_ALWAYS_INLINE const auto& cos_table() noexcept
         {
-            static sdl::trig_table<trig_table_precision> result{[](auto x)
+            static trig_table<trig_table_precision> result{[](auto x)
                 {
                     return std::cos(x);
                 }};
