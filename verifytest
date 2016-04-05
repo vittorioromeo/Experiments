@@ -1,7 +1,7 @@
 #!/bin/bash
 clear; clear;
 
-FLAGS="-std=c++14 -g3 -W -Wall -Wextra -Wpedantic"
+FLAGS='-std=c++14 -g3 -W -Wall -Wextra -Wpedantic -I/home/vittorioromeo/OHWorkspace/ecs_thesis/project/include -I/home/vittorioromeo/OHWorkspace/vrm_core/include -I/home/vittorioromeo/OHWorkspace/vrm_pp/include -lboost_thread -lboost_chrono -lboost_system'
 
 fn()
 {
@@ -11,19 +11,19 @@ fn()
 	echo "$1 $2 done"
 }
 
-(fn clang++ undefined x0 $1) &
-(fn clang++ address x1 $1) &
-(fn clang++ memory x2 $1) &
-# (fn clang++ thread x5 $1) &
+(fn clang++ undefined x0 $1)
+(fn clang++ address x1 $1)
+(fn clang++ memory x2 $1)
+# (fn clang++ thread x5 $1)
 
-(fn g++ undefined x3 $1) &
-(fn g++ address x4 $1) &
+(fn g++ undefined x3 $1)
+(fn g++ address x4 $1)
 
-(fn g++ shift x5 $1) &
-(fn g++ integer-divide-by-zero x6 $1) &
-(fn g++ null x7 $1) &
-(fn g++ return x8 $1) &
-(fn g++ signed-integer-overflow x9 $1) &
-(fn g++ thread x10 $1) &
+(fn g++ shift x5 $1)
+(fn g++ integer-divide-by-zero x6 $1)
+(fn g++ null x7 $1)
+(fn g++ return x8 $1)
+(fn g++ signed-integer-overflow x9 $1)
+(fn g++ thread x10 $1)
 
 wait
