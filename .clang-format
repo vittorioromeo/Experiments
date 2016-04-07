@@ -5,7 +5,7 @@ AlignEscapedNewlinesLeft: true
 AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: None
+AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
 AlwaysBreakBeforeMultilineStrings: true
@@ -20,7 +20,6 @@ IndentWidth: 4
 MaxEmptyLinesToKeep: 3
 NamespaceIndentation: All
 PointerBindsToType: true
-DerivePointerAlignment: false
 PointerAlignment: "Left"
 SpaceAfterCStyleCast: false
 SpaceBeforeAssignmentOperators: true
