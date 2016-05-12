@@ -4,6 +4,8 @@
 #include <utility>
 #include <vrm/core/casts.hpp>
 
+// TODO: won't work, use vtable approach
+
 template <typename TSignature, std::size_t TBufferSize>
 class fixed_function_queue;
 
