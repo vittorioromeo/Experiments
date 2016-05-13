@@ -123,8 +123,7 @@ private:
                       << offset_from_beginning(fn_start_ptr) << "\n"; // .
             );
 
-        ptr = emplace_fn_at(fn_start_ptr, FWD(f));
-        auto& fn = *(reinterpret_cast<TF*>(ptr));
+        ptr = emplace_fn_at(fn_start_ptr, FWD(f));        
 
         ELOG( // .
             std::cout << "fn offset: " << offset_from_beginning(ptr)
