@@ -1,23 +1,26 @@
 #include <cstddef>
 #include <vector>
+#include <array>
 #include <iostream>
 #include <utility>
+#include <vrm/core/assert.hpp>
 #include <vrm/core/casts.hpp>
 
-#if 0
+#if 1
 #define ELOG(...) __VA_ARGS__
 #else
 #define ELOG(...)
 #endif
 
-int roundUp(int numToRound, int multiple)
+template <typename T0, typename T1>
+constexpr auto multiple_round_up(T0 x, T1 multiple) noexcept
 {
-    assert(multiple);
-    return ((numToRound + multiple - 1) / multiple) * multiple;
+    VRM_CORE_CONSTEXPR_ASSERT(multiple != 0);
+    return ((x + multiple - 1) / multiple) * multiple;
 }
 
-template <typename TReturn, typename... TArgs>
-using fn_ptr = TReturn (*)(TArgs...);
+template <typename TSignature>
+using fn_ptr = TSignature*;
 
 template <typename TSignature, std::size_t TBufferSize>
 class fixed_function_queue;
@@ -34,39 +37,59 @@ private:
     template <typename T>
     constexpr auto round_up_to_alignment(T x) const noexcept
     {
-        return roundUp(x, alignment);
+        return multiple_round_up(x, alignment);
     }
+
+    using call_fn_ptr = fn_ptr<return_type(byte*, TArgs...)>;
+    using destroy_fn_ptr = fn_ptr<void(byte*)>;
 
     struct vtable
     {
-        fn_ptr<TReturn, byte*, TArgs...> _call;
-        fn_ptr<void, byte*> _destroy;
+        call_fn_ptr _call;
+        destroy_fn_ptr _destroy;
     };
 
     std::aligned_storage_t<buffer_size, alignment> _buffer;
     std::vector<vtable*> _vtable_ptrs;
     byte* _next;
 
+    auto buffer_ptr() noexcept
+    {
+        return reinterpret_cast<byte*>(&_buffer);
+    }
+
+    auto buffer_ptr() const noexcept
+    {
+        return reinterpret_cast<const byte*>(&_buffer);
+    }
+
     auto offset_from_beginning(byte* ptr) const noexcept
     {
-        return ptr - (byte*)&_buffer;
+        return ptr - buffer_ptr();
     }
 
     template <typename T>
     auto buffer_ptr_from_offset(T x) const noexcept
     {
-        return (byte*)&_buffer + x;
+        return buffer_ptr() + x;
+    }
+
+    template <typename T, typename... TNewArgs>
+    auto aligned_placement_new(byte* ptr, TNewArgs&&... xs)
+    {
+        ptr = get_next_aligned_ptr(ptr);
+        new(ptr) T{FWD(xs)...};
+        return ptr;
     }
 
     auto emplace_vtable_at(byte* ptr)
     {
-        ELOG(                                     // .
-            std::cout << "emplacing vtable...\n"; // .
+        ELOG( // .
+            std::cout << "emplacing vtable... (size: " << sizeof(vtable)
+                      << ")\n"; // .
             );
 
-        ptr = get_next_aligned_ptr(ptr);
-        new(ptr) vtable;
-        return ptr;
+        return aligned_placement_new<vtable>(ptr);
     }
 
     template <typename TF>
@@ -76,9 +99,7 @@ private:
             std::cout << "emplacing fn... (size: " << sizeof(TF) << ")\n"; // .
             );
 
-        ptr = get_next_aligned_ptr(ptr);
-        new(ptr) TF{FWD(f)};
-        return ptr;
+        return aligned_placement_new<TF>(ptr, FWD(f));
     }
 
     template <typename TF>
@@ -118,22 +139,22 @@ private:
 
         auto fn_start_ptr = ptr + sizeof(vtable);
 
-        ELOG( // .
-            std::cout << "fn start offset: "
+        ELOG(                                                         // .
+            std::cout << "fn start offset: "                          // .
                       << offset_from_beginning(fn_start_ptr) << "\n"; // .
             );
 
-        ptr = emplace_fn_at(fn_start_ptr, FWD(f));        
+        ptr = emplace_fn_at(fn_start_ptr, FWD(f));
 
-        ELOG( // .
-            std::cout << "fn offset: " << offset_from_beginning(ptr)
-                      << "\n"; // .
+        ELOG(                                                        // .
+            std::cout << "fn offset: " << offset_from_beginning(ptr) // .
+                      << "\n";                                       // .
             );
 
         bind_vtable_to_fn<TF>(vt);
         subscribe_vtable(vt);
 
-        _next = ptr;
+        _next = ptr + sizeof(TF);
 
         ELOG( // .
             std::cout << "stored next offset: " << offset_from_beginning(_next)
@@ -169,14 +190,41 @@ private:
         for(auto vt_ptr : _vtable_ptrs)
         {
             auto fn_ptr = get_fn_ptr_from_vtable(vt_ptr);
-            f(*vt_ptr, (byte*)fn_ptr);
+            f(*vt_ptr, fn_ptr);
+        }
+    }
+
+    template <typename TF>
+    void for_fns_reverse(TF&& f)
+    {
+        for(auto itr = std::rbegin(_vtable_ptrs); itr != std::rend(_vtable_ptrs); ++itr)
+        {
+            auto vt_ptr = *itr;
+            auto fn_ptr = get_fn_ptr_from_vtable(vt_ptr);
+            f(*vt_ptr, fn_ptr);
         }
     }
 
     void destroy_all()
     {
-        for_fns([](auto& vt, auto fn_ptr)
+        ELOG(                                             // .
+            std::cout << "destroying all functions...\n"; // .
+            for(auto vt_ptr
+                : _vtable_ptrs) // .
             {
+                std::cout << "    vt_ptr offset: "                         // .
+                          << offset_from_beginning((byte*)vt_ptr) << "\n"; // .
+            }                                                              // .
+            );
+
+        for_fns_reverse([this](auto& vt, auto fn_ptr)
+            {
+                ELOG(                                              // .
+                    std::cout << "    vt_ptr offset: "             // .
+                              << offset_from_beginning((byte*)&vt) // .
+                              << "\n";                             // .
+                    );
+
                 vt._destroy(fn_ptr);
             });
     }
@@ -213,10 +261,28 @@ public:
 
     auto call_all(TArgs... xs)
     {
+        ELOG(                                          // .
+            std::cout << "calling all functions...\n"; // .
+            // .
+            for(auto vt_ptr
+                : _vtable_ptrs) // .
+            {
+                std::cout << "    vt_ptr offset: "                         // .
+                          << offset_from_beginning((byte*)vt_ptr) << "\n"; // .
+            }                                                              // .
+            );
+
         for_fns([&xs...](auto& vt, auto fn_ptr)
             {
                 vt._call(fn_ptr, xs...);
             });
+    }
+
+    void clear()
+    {
+        destroy_all();
+        _vtable_ptrs.clear();
+        _next = buffer_ptr();
     }
 };
 
@@ -236,19 +302,24 @@ int main()
 {
     lmao xxx;
 
-    fixed_function_queue<void(), 256> f0;
+    fixed_function_queue<void(int), 512> f0;
 
 
-    f0.emplace([xxx]
+    f0.emplace([ xxx, aaa = 100 ](int x)
         {
-            std::cout << "hi!\n";
+            std::cout << x <<  " hi!\n";
         });
 
-    f0.emplace([xxx]
+    f0.emplace([ xxx, bbb = std::vector<int>{0} ](int x)
         {
-            std::cout << "hi again!\n";
+            std::cout << x << " hi again!\n";
+        });
+
+    f0.emplace([&xxx](int x)
+        {
+            std::cout << x << " hi byref!\n";
         });
 
 
-    f0.call_all();
+    f0.call_all(5);
 }
