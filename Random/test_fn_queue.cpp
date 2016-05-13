@@ -4,7 +4,20 @@
 #include <utility>
 #include <vrm/core/casts.hpp>
 
-// TODO: won't work, use vtable approach
+#if 0
+#define ELOG(...) __VA_ARGS__
+#else
+#define ELOG(...)
+#endif
+
+int roundUp(int numToRound, int multiple)
+{
+    assert(multiple);
+    return ((numToRound + multiple - 1) / multiple) * multiple;
+}
+
+template <typename TReturn, typename... TArgs>
+using fn_ptr = TReturn (*)(TArgs...);
 
 template <typename TSignature, std::size_t TBufferSize>
 class fixed_function_queue;
@@ -12,72 +25,165 @@ class fixed_function_queue;
 template <typename TReturn, typename... TArgs, std::size_t TBufferSize>
 class fixed_function_queue<TReturn(TArgs...), TBufferSize>
 {
-public:
-    using return_type = TReturn;
-    using fn_ptr_type = TReturn (*)(TArgs...);
-
-    static constexpr auto buffer_size = TBufferSize;
-
 private:
     using byte = char;
+    using return_type = TReturn;
+    static constexpr auto buffer_size = TBufferSize;
+    static constexpr auto alignment = alignof(std::max_align_t);
 
-    std::aligned_storage_t<buffer_size, alignof(std::max_align_t)> _buffer;
-    // std::vector<fn_ptr> _fn_ptrs;
-
-    template <typename TF>
-    void impl_store_fn(byte* p, TF&& f)
+    template <typename T>
+    constexpr auto round_up_to_alignment(T x) const noexcept
     {
+        return roundUp(x, alignment);
+    }
+
+    struct vtable
+    {
+        fn_ptr<TReturn, byte*, TArgs...> _call;
+        fn_ptr<void, byte*> _destroy;
+    };
+
+    std::aligned_storage_t<buffer_size, alignment> _buffer;
+    std::vector<vtable*> _vtable_ptrs;
+    byte* _next;
+
+    auto offset_from_beginning(byte* ptr) const noexcept
+    {
+        return ptr - (byte*)&_buffer;
+    }
+
+    template <typename T>
+    auto buffer_ptr_from_offset(T x) const noexcept
+    {
+        return (byte*)&_buffer + x;
+    }
+
+    auto emplace_vtable_at(byte* ptr)
+    {
+        ELOG(                                     // .
+            std::cout << "emplacing vtable...\n"; // .
+            );
+
+        ptr = get_next_aligned_ptr(ptr);
+        new(ptr) vtable;
+        return ptr;
     }
 
     template <typename TF>
-    void store_caller(TF&& f)
+    auto emplace_fn_at(byte* ptr, TF&& f)
     {
-        // store caller in buffer
-        // get fn ptr to caller
-        // store fn ptr in some vector
+        ELOG(                                                              // .
+            std::cout << "emplacing fn... (size: " << sizeof(TF) << ")\n"; // .
+            );
+
+        ptr = get_next_aligned_ptr(ptr);
+        new(ptr) TF{FWD(f)};
+        return ptr;
     }
 
     template <typename TF>
-    void store_destroyer(TF&& f)
+    void bind_vtable_to_fn(vtable& vt)
     {
-        // store destroyer in buffer
-        // get fn ptr to destroyer
-        // store fn ptr in some vector
+        ELOG(                                         // .
+            std::cout << "binding vtable to fn...\n"; // .
+            );
+
+        vt._call = [](byte* obj, TArgs... xs)
+        {
+            return reinterpret_cast<TF*>(obj)->operator()(xs...);
+        };
+
+        vt._destroy = [](byte* obj)
+        {
+            return reinterpret_cast<TF*>(obj)->~TF();
+        };
+    }
+
+    void subscribe_vtable(vtable& vt)
+    {
+        _vtable_ptrs.emplace_back(&vt);
     }
 
     template <typename TF>
-    void store_callable(TF&& f)
+    auto emplace_starting_at(byte* ptr, TF&& f)
     {
-        // store callable in buffer
-        // get fn ptr to callable
-        // store fn ptr in some vector
+        ptr = emplace_vtable_at(ptr);
+        auto& vt = *(reinterpret_cast<vtable*>(ptr));
+
+        ELOG( // .
+            std::cout << "vtable offset: " << offset_from_beginning(ptr)
+                      << "\n"; // .
+            );
+
+
+        auto fn_start_ptr = ptr + sizeof(vtable);
+
+        ELOG( // .
+            std::cout << "fn start offset: "
+                      << offset_from_beginning(fn_start_ptr) << "\n"; // .
+            );
+
+        ptr = emplace_fn_at(fn_start_ptr, FWD(f));
+        auto& fn = *(reinterpret_cast<TF*>(ptr));
+
+        ELOG( // .
+            std::cout << "fn offset: " << offset_from_beginning(ptr)
+                      << "\n"; // .
+            );
+
+        bind_vtable_to_fn<TF>(vt);
+        subscribe_vtable(vt);
+
+        _next = ptr;
+
+        ELOG( // .
+            std::cout << "stored next offset: " << offset_from_beginning(_next)
+                      << "\n"; // .
+            );
     }
 
-    auto get_caller_ptr_from_beginning_ptr(byte* p) noexcept
+    auto get_next_aligned_ptr(byte* ptr) noexcept
     {
-        return p;
+        auto ofb = offset_from_beginning(ptr);
+
+        ELOG(                                    // .
+            std::cout << "ofb: " << ofb << "\n"; // .
+            );
+
+        auto next_ofb = round_up_to_alignment(ofb);
+
+        ELOG(                                              // .
+            std::cout << "next_ofb: " << next_ofb << "\n"; // .
+            );
+
+        return (byte*)buffer_ptr_from_offset(next_ofb);
     }
 
-    auto get_destroyer_ptr_from_beginning_ptr(byte* p) noexcept
+    auto get_fn_ptr_from_vtable(vtable* vt_ptr) noexcept
     {
-        constexpr auto caller_size = 1;
-        return get_caller_ptr_from_beginning_ptr(p) + caller_size;
+        return get_next_aligned_ptr((byte*)vt_ptr + sizeof(vtable));
     }
 
-    auto get_function_ptr_from_beginning_ptr(byte* p) noexcept
+    template <typename TF>
+    void for_fns(TF&& f)
     {
-        constexpr auto destroyer_size = 1;
-        return get_destroyer_ptr_from_beginning_ptr(p) + destroyer_size;
+        for(auto vt_ptr : _vtable_ptrs)
+        {
+            auto fn_ptr = get_fn_ptr_from_vtable(vt_ptr);
+            f(*vt_ptr, (byte*)fn_ptr);
+        }
     }
 
     void destroy_all()
     {
-        // for every beginning fn_ptr...
-        // get destroyer and call it after calculating real function address
+        for_fns([](auto& vt, auto fn_ptr)
+            {
+                vt._destroy(fn_ptr);
+            });
     }
 
 public:
-    fixed_function_queue() noexcept
+    fixed_function_queue() noexcept : _next{(byte*)&_buffer}
     {
     }
 
@@ -95,31 +201,55 @@ public:
     template <typename TF>
     void emplace(TF&& f)
     {
-        using callable_type = std::decay_t<TF>;
-        constexpr auto callable_size = sizeof(callable_type);
+        ELOG(                              // .
+            std::cout << "emplacing...\n"; // .
+            );
 
-        auto f_caller = [](byte* ptr, TArgs... xs) -> return_type
-        {
-            return (reinterpret_cast<TF*>(ptr))->operator()(xs...);
-        };
+        emplace_starting_at(_next, FWD(f));
 
-        auto f_destroyer = [](byte* ptr)
-        {
-            reinterpret_cast<TF*>(ptr)->~TF();
-        };
-
-        store_caller(std::move(f_caller));
-        store_destroyer(std::move(f_destroyer));
-        store_callable(std::move(f));
+        ELOG(                                  // .
+            std::cout << "done emplacing\n\n"; // .
+            );
     }
 
-    void call_all(TArgs... xs)
+    auto call_all(TArgs... xs)
     {
-        // for every beginning fn_ptr...
-        // get caller and call it after calculating real function address
+        for_fns([&xs...](auto& vt, auto fn_ptr)
+            {
+                vt._call(fn_ptr, xs...);
+            });
+    }
+};
+
+struct lmao
+{
+    lmao()
+    {
+        std::cout << "ctor\n";
+    }
+    ~lmao()
+    {
+        std::cout << "dtor\n";
     }
 };
 
 int main()
 {
+    lmao xxx;
+
+    fixed_function_queue<void(), 256> f0;
+
+
+    f0.emplace([xxx]
+        {
+            std::cout << "hi!\n";
+        });
+
+    f0.emplace([xxx]
+        {
+            std::cout << "hi again!\n";
+        });
+
+
+    f0.call_all();
 }
