@@ -3,6 +3,7 @@
 #include <array>
 #include <iostream>
 #include <utility>
+#include <functional>
 #include <vrm/core/assert.hpp>
 #include <vrm/core/casts.hpp>
 
@@ -49,6 +50,10 @@ private:
         destroy_fn_ptr _destroy;
     };
 
+    // TODO: use this instead of vector
+    static constexpr auto max_vtable_ptrs = 
+        sizeof(vtable*) / buffer_size;
+
     std::aligned_storage_t<buffer_size, alignment> _buffer;
     std::vector<vtable*> _vtable_ptrs;
     byte* _next;
@@ -75,14 +80,15 @@ private:
     }
 
     template <typename T, typename... TNewArgs>
-    auto aligned_placement_new(byte* ptr, TNewArgs&&... xs)
+    auto aligned_placement_new(byte* ptr, TNewArgs&&... xs) // .
+        noexcept(std::is_nothrow_constructible<T, TNewArgs...>{})
     {
         ptr = get_next_aligned_ptr(ptr);
         new(ptr) T{FWD(xs)...};
         return ptr;
     }
 
-    auto emplace_vtable_at(byte* ptr)
+    auto emplace_vtable_at(byte* ptr) noexcept
     {
         ELOG( // .
             std::cout << "emplacing vtable... (size: " << sizeof(vtable)
@@ -93,7 +99,8 @@ private:
     }
 
     template <typename TF>
-    auto emplace_fn_at(byte* ptr, TF&& f)
+    auto emplace_fn_at(byte* ptr, TF&& f) // .
+        noexcept(std::is_nothrow_constructible<TF, decltype(FWD(f))>{})
     {
         ELOG(                                                              // .
             std::cout << "emplacing fn... (size: " << sizeof(TF) << ")\n"; // .
@@ -103,7 +110,7 @@ private:
     }
 
     template <typename TF>
-    void bind_vtable_to_fn(vtable& vt)
+    void bind_vtable_to_fn(vtable& vt) noexcept
     {
         ELOG(                                         // .
             std::cout << "binding vtable to fn...\n"; // .
@@ -127,6 +134,7 @@ private:
 
     template <typename TF>
     auto emplace_starting_at(byte* ptr, TF&& f)
+        // TODO: noexcept
     {
         ptr = emplace_vtable_at(ptr);
         auto& vt = *(reinterpret_cast<vtable*>(ptr));
@@ -185,7 +193,8 @@ private:
     }
 
     template <typename TF>
-    void for_fns(TF&& f)
+    void for_fns(TF&& f) 
+        // TODO: noexcept
     {
         for(auto vt_ptr : _vtable_ptrs)
         {
@@ -196,6 +205,7 @@ private:
 
     template <typename TF>
     void for_fns_reverse(TF&& f)
+        // TODO: noexcept
     {
         for(auto itr = std::rbegin(_vtable_ptrs); itr != std::rend(_vtable_ptrs); ++itr)
         {
@@ -230,11 +240,12 @@ private:
     }
 
 public:
-    fixed_function_queue() noexcept : _next{(byte*)&_buffer}
+    fixed_function_queue() noexcept : _next{buffer_ptr()}
     {
     }
 
-    ~fixed_function_queue()
+    ~fixed_function_queue() 
+        // TODO: noexcept
     {
         destroy_all();
     }
@@ -247,6 +258,7 @@ public:
 
     template <typename TF>
     void emplace(TF&& f)
+        // TODO: noexcept
     {
         ELOG(                              // .
             std::cout << "emplacing...\n"; // .
@@ -260,6 +272,7 @@ public:
     }
 
     auto call_all(TArgs... xs)
+        // TODO: noexcept
     {
         ELOG(                                          // .
             std::cout << "calling all functions...\n"; // .
@@ -298,8 +311,92 @@ struct lmao
     }
 };
 
+template<typename TSignature, std::size_t TBufferSize>
+struct function_queue_test_adapter
+{
+private:
+    std::vector<std::function<TSignature>> _fn_vec;
+    fixed_function_queue<TSignature, TBufferSize> _fn_queue;
+
+public:
+    template<typename TF> 
+    void emplace(TF&& f) 
+    {  
+        _fn_vec.emplace_back(FWD(f));
+        _fn_queue.emplace(FWD(f));
+    }
+
+    template<typename... Ts>
+    void call_all(Ts&&... xs)
+    {
+        for(auto& f : _fn_vec) 
+        {
+            f(FWD(xs)...);
+        }
+
+        _fn_queue.call_all(FWD(xs)...);
+    }
+};
+
+void tests()
+{
+    #define TEST_ASSERT(...) \
+        if(!(__VA_ARGS__)) \
+        { \
+            std::terminate(); \
+        }
+
+    {
+        int acc = 0;
+        int one = 1;
+
+        function_queue_test_adapter<void(int), 128> ta;
+
+        ta.emplace([&acc](int x){ acc += x; });
+        ta.emplace([&acc, one](int){ acc += one; });
+        ta.emplace([&acc](int x){ acc -= x; });
+        ta.emplace([&acc, one](int x){ acc -= one; });
+
+        ta.call_all(5);
+        std::cout << acc << "\n";
+        TEST_ASSERT(acc == 0);
+    }
+
+    {
+        int acc = 0;
+
+        struct tx
+        {
+            int& _acc_ref;
+            bool _dec{true};
+
+            tx(int& acc_ref) : _acc_ref(acc_ref) { ++_acc_ref; }
+            tx(const tx& x) : _acc_ref(x._acc_ref), _dec{false}{ }
+
+            ~tx() { if(_dec) { --_acc_ref; } }
+        };
+
+        {
+            function_queue_test_adapter<void(int), 256> ta;
+            tx c_tx(acc);
+
+            ta.emplace([&acc](int x){ acc += x; });
+            ta.emplace([&acc, my_tx = tx{acc}](int){ acc += 1; });
+            ta.emplace([&acc](int x){ acc -= x; });
+            ta.emplace([&acc, c_tx](int){ acc -= 1; });
+
+            ta.call_all(5);
+        }
+
+        std::cout << acc << "\n";
+        TEST_ASSERT(acc == 0);
+    }   
+}
+
 int main()
 {
+tests();
+
     lmao xxx;
 
     fixed_function_queue<void(int), 512> f0;
