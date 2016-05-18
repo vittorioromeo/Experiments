@@ -33,55 +33,19 @@ namespace vtable
 {
     namespace policy
     {
-        namespace impl
-        {
-            struct by_ptr
-            {
-            };
-
-            struct by_offset
-            {
-            };
-
-            template <typename T>
-            constexpr auto is_by_ptr{std::is_same<T, by_ptr>{}};
-
-            template <typename T>
-            constexpr auto is_by_offset{std::is_same<T, by_offset>{}};
-        }
-
-        constexpr impl::by_ptr by_ptr{};
-        constexpr impl::by_offset by_offset{};
+        constexpr bh::int_<0> by_ptr{};
+        constexpr bh::int_<1> by_offset{};
     }
 
-    namespace options
+    namespace option
     {
-        namespace impl
-        {
-            struct call
-            {
-            };
-
-            struct dtor
-            {
-            };
-
-            struct copy
-            {
-            };
-
-            struct move
-            {
-            };
-        }
-
-        constexpr impl::call call{};
-        constexpr impl::dtor dtor{};
-        constexpr impl::copy copy{};
-        constexpr impl::move move{};
+        constexpr bh::int_<0> call{};
+        constexpr bh::int_<1> dtor{};
+        constexpr bh::int_<2> copy{};
+        constexpr bh::int_<3> move{};
 
         template <typename... TOptions>
-        auto make(TOptions... os) noexcept
+        auto make_list(TOptions... os) noexcept
         {
             return bh::make_basic_tuple(os...);
         }
@@ -89,61 +53,88 @@ namespace vtable
 
     namespace impl
     {
-        template <typename TF, typename TSignature>
-        struct maker;
+        template <typename TSignature>
+        class maker;
 
-        template <typename TF, typename TReturn, typename... TArgs>
-        struct maker<TF, TReturn(TArgs...)>
+        template <typename TReturn, typename... TArgs>
+        class maker<TReturn(TArgs...)>
         {
+        private:
+            using call_fp = fn_ptr<TReturn(byte*, TArgs...)>;
+            using dtor_fp = fn_ptr<void(byte*)>;
+            using copy_fp = fn_ptr<void(byte*, byte*)>;
+            using move_fp = fn_ptr<void(byte*, byte*)>;
+
+            template <typename TOptionsList>
+            static auto make_by_ptr(TOptionsList ol) noexcept
+            {
+                auto fp_tuple = bh::make_tuple(             // .
+                    bh::make_pair(option::call, call_fp{}), // .
+                    bh::make_pair(option::dtor, dtor_fp{}), // .
+                    bh::make_pair(option::copy, copy_fp{}), // .
+                    bh::make_pair(option::move, move_fp{})  // .
+                    );
+
+                auto fp_filtered_tuple = bh::filter(fp_tuple, [ol](auto x)
+                    {
+                        return bh::contains(ol, bh::first(x));
+                    });
+
+                return bh::to_map(fp_filtered_tuple);
+            }
+
+            template <typename TOptionsList>
+            static auto make_by_offset(TOptionsList ol) noexcept
+            {
+                auto fp_tuple = bh::make_tuple(                  // .
+                    bh::make_pair(option::call, std::size_t(0)), // .
+                    bh::make_pair(option::dtor, std::size_t(0)), // .
+                    bh::make_pair(option::copy, std::size_t(0)), // .
+                    bh::make_pair(option::move, std::size_t(0))  // .
+                    );
+
+                auto fp_filtered_tuple = bh::filter(fp_tuple, [ol](auto x)
+                    {
+                        return bh::contains(ol, bh::first(x));
+                    });
+
+                // TODO:
+
+                return bh::to_map(fp_filtered_tuple);
+            }
+
+        public:
             template <typename TPolicy, typename TOptionsList>
             static auto make(TPolicy p, TOptionsList ol) noexcept
             {
-                return vrm::core::static_if(policy::impl::is_by_ptr<TPolicy>)
+                return vrm::core::static_if(p == policy::by_ptr)
                     .then([ol]
                         {
-                            using call_fp = fn_ptr<TReturn(byte*, TArgs...)>;
-                            using dtor_fp = fn_ptr<void(byte*)>;
-                            using copy_fp = fn_ptr<TF(const TF&)>;
-                            using move_fp = fn_ptr<TF(TF && )>;
-
-                            auto fp_map = bh::make_map( // .
-                                bh::make_pair(
-                                    options::call, bh::type_c<call_fp>), // .
-                                bh::make_pair(
-                                    options::dtor, bh::type_c<dtor_fp>), // .
-                                bh::make_pair(
-                                    options::copy, bh::type_c<copy_fp>), // .
-                                bh::make_pair(
-                                    options::move, bh::type_c<move_fp>) // .
-                                );
-
-                            return bh::filter(fp_map, [ol](auto x)
-                                {
-                                    return bh::contains(ol, bh::first(x));
-                                });
+                            return make_by_ptr(ol);
                         })
-                    .else_if(policy::impl::is_by_offset<TPolicy>)
+                    .else_if(p == policy::by_offset)
                     .then([]
                         {
+                            // TODO:
+                            std::terminate();
                         })
                     .else_([]
                         {
+                            // TODO:
                             std::terminate();
                         })();
             }
         };
     }
 
-    template <typename TF, typename TSignature, typename TPolicy,
-        typename TOptionsList>
+    template <typename TSignature, typename TPolicy, typename TOptionsList>
     auto make(TPolicy p, TOptionsList ol) noexcept
     {
-        return impl::maker<TF, TSignature>::make(p, ol);
+        return impl::maker<TSignature>::make(p, ol);
     }
 
-    template <typename TF, typename TSignature, typename TPolicy,
-        typename TOptionsList>
-    using type = decltype(make<TF, TSignature>(TPolicy{}, TOptionsList{}));
+    template <typename TSignature, typename TPolicy, typename TOptionsList>
+    using type = decltype(make<TSignature>(TPolicy{}, TOptionsList{}));
 
     namespace impl
     {
@@ -159,7 +150,7 @@ namespace vtable
             template <typename TF, typename TVTable>
             static void set_call_fp(TVTable& vt) noexcept
             {
-                vt._call = [](byte* obj, TArgs... xs)
+                bh::at_key(vt, option::call) = [](byte* obj, TArgs... xs)
                 {
                     return reinterpret_cast<TF*>(obj)->operator()(xs...);
                 };
@@ -168,20 +159,30 @@ namespace vtable
             template <typename TF, typename TVTable>
             static void set_dtor_fp(TVTable& vt) noexcept
             {
-                vt._destroy = [](byte* obj)
+                bh::at_key(vt, option::dtor) = [](byte* obj)
                 {
                     return reinterpret_cast<TF*>(obj)->~TF();
                 };
             }
 
             template <typename TF, typename TVTable>
-            static void set_copy_fp(TVTable&) noexcept
+            static void set_copy_fp(TVTable& vt) noexcept
             {
+                bh::at_key(vt, option::copy) = [](byte* src, byte* dst)
+                {
+                    return *(reinterpret_cast<TF*>(dst)) =
+                               *(reinterpret_cast<TF*>(src));
+                };
             }
 
             template <typename TF, typename TVTable>
-            static void set_move_fp(TVTable&) noexcept
+            static void set_move_fp(TVTable& vt) noexcept
             {
+                bh::at_key(vt, option::move) = [](byte* src, byte* dst)
+                {
+                    return *(reinterpret_cast<TF*>(dst)) =
+                               std::move(*(reinterpret_cast<TF*>(src)));
+                };
             }
         };
     }
@@ -199,6 +200,20 @@ namespace vtable
         using sh = impl::sig_helper<TSignature>;
         sh::template set_dtor_fp<TF>(vt);
     }
+
+    template <typename TVTable, typename... Ts>
+    void exec_call_fp(TVTable& vt, Ts&&... xs)
+    {
+        auto& fp = bh::at_key(vt, option::call);
+        (*fp)(FWD(xs)...);
+    }
+
+    template <typename TVTable, typename... Ts>
+    void exec_dtor_fp(TVTable& vt, Ts&&... xs)
+    {
+        auto& fp = bh::at_key(vt, option::dtor);
+        (*fp)(FWD(xs)...);
+    }
 }
 
 template <typename TSignature, std::size_t TBufferSize>
@@ -208,6 +223,7 @@ template <typename TReturn, typename... TArgs, std::size_t TBufferSize>
 class fixed_function_queue<TReturn(TArgs...), TBufferSize>
 {
 private:
+    using signature = TReturn(TArgs...);
     using return_type = TReturn;
     static constexpr auto buffer_size = TBufferSize;
     static constexpr auto alignment = alignof(std::max_align_t);
@@ -218,20 +234,14 @@ private:
         return multiple_round_up(x, alignment);
     }
 
-    using call_fn_ptr = fn_ptr<return_type(byte*, TArgs... c)>;
-    using destroy_fn_ptr = fn_ptr<void(byte*)>;
-
-    struct vtable
-    {
-        call_fn_ptr _call;
-        destroy_fn_ptr _destroy;
-    };
+    using vtable_type = decltype(vtable::make<signature>(vtable::policy::by_ptr,
+        vtable::option::make_list(vtable::option::call, vtable::option::dtor)));
 
     // TODO: use this instead of vector
-    static constexpr auto max_vtable_ptrs = sizeof(vtable*) / buffer_size;
+    static constexpr auto max_vtable_ptrs = sizeof(vtable_type*) / buffer_size;
 
     std::aligned_storage_t<buffer_size, alignment> _buffer;
-    std::vector<vtable*> _vtable_ptrs;
+    std::vector<vtable_type*> _vtable_ptrs;
     byte* _next;
 
     auto buffer_ptr() noexcept
@@ -267,11 +277,11 @@ private:
     auto emplace_vtable_at(byte* ptr) noexcept
     {
         ELOG( // .
-            std::cout << "emplacing vtable... (size: " << sizeof(vtable)
+            std::cout << "emplacing vtable... (size: " << sizeof(vtable_type)
                       << ")\n"; // .
             );
 
-        return aligned_placement_new<vtable>(ptr);
+        return aligned_placement_new<vtable_type>(ptr);
     }
 
     template <typename TF>
@@ -286,24 +296,17 @@ private:
     }
 
     template <typename TF>
-    void bind_vtable_to_fn(vtable& vt) noexcept
+    void bind_vtable_to_fn(vtable_type& vt) noexcept
     {
         ELOG(                                         // .
             std::cout << "binding vtable to fn...\n"; // .
             );
 
-        vt._call = [](byte* obj, TArgs... xs)
-        {
-            return reinterpret_cast<TF*>(obj)->operator()(xs...);
-        };
-
-        vt._destroy = [](byte* obj)
-        {
-            return reinterpret_cast<TF*>(obj)->~TF();
-        };
+        vtable::template set_call_fp<TF, signature>(vt);
+        vtable::template set_dtor_fp<TF, signature>(vt);
     }
 
-    void subscribe_vtable(vtable& vt)
+    void subscribe_vtable(vtable_type& vt)
     {
         _vtable_ptrs.emplace_back(&vt);
     }
@@ -313,7 +316,7 @@ private:
     // TODO: noexcept
     {
         ptr = emplace_vtable_at(ptr);
-        auto& vt = *(reinterpret_cast<vtable*>(ptr));
+        auto& vt = *(reinterpret_cast<vtable_type*>(ptr));
 
         ELOG( // .
             std::cout << "vtable offset: " << offset_from_beginning(ptr)
@@ -321,7 +324,7 @@ private:
             );
 
 
-        auto fn_start_ptr = ptr + sizeof(vtable);
+        auto fn_start_ptr = ptr + sizeof(vtable_type);
 
         ELOG(                                                         // .
             std::cout << "fn start offset: "                          // .
@@ -363,9 +366,9 @@ private:
         return (byte*)buffer_ptr_from_offset(next_ofb);
     }
 
-    auto get_fn_ptr_from_vtable(vtable* vt_ptr) noexcept
+    auto get_fn_ptr_from_vtable(vtable_type* vt_ptr) noexcept
     {
-        return get_next_aligned_ptr((byte*)vt_ptr + sizeof(vtable));
+        return get_next_aligned_ptr((byte*)vt_ptr + sizeof(vtable_type));
     }
 
     template <typename TF>
@@ -412,7 +415,7 @@ private:
                               << "\n";                             // .
                     );
 
-                vt._destroy(fn_ptr);
+                vtable::exec_dtor_fp(vt, fn_ptr);
             });
     }
 
@@ -464,7 +467,7 @@ public:
 
         for_fns([&xs...](auto& vt, auto fn_ptr)
             {
-                vt._call(fn_ptr, xs...);
+                vtable::exec_call_fp(vt, fn_ptr, xs...);
             });
     }
 
@@ -607,6 +610,9 @@ void tests()
 
 int main()
 {
+    // std::cout << sizeof(void*) << "\n";
+    // return 0;
+
     tests();
 
     lmao xxx;
