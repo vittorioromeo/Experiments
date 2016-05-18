@@ -194,7 +194,7 @@ namespace vtable
                 // TODO: probably no std way of doing this
                 // auto offset = offsetof(TF, operator());
             
-                bh::at_key(vt, option::call) = offset;
+                // bh::at_key(vt, option::call) = offset;
             }
 
             template <typename TF, typename TVTable>
