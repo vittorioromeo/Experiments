@@ -191,7 +191,8 @@ namespace vtable
             template <typename TF, typename TVTable>
             static void set_call_offset(TVTable& vt) noexcept
             {
-                auto offset = offsetof(TF, operator());
+                // TODO: probably no std way of doing this
+                // auto offset = offsetof(TF, operator());
             
                 bh::at_key(vt, option::call) = offset;
             }
