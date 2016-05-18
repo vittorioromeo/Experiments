@@ -184,6 +184,26 @@ namespace vtable
                                std::move(*(reinterpret_cast<TF*>(src)));
                 };
             }
+
+            // 
+
+
+            template <typename TF, typename TVTable>
+            static void set_call_offset(TVTable& vt) noexcept
+            {
+                auto offset = offsetof(TF, operator());
+            
+                bh::at_key(vt, option::call) = offset;
+            }
+
+            template <typename TF, typename TVTable>
+            static void set_dtor_offset(TVTable& vt) noexcept
+            {
+                bh::at_key(vt, option::dtor) = [](byte* obj)
+                {
+                    return reinterpret_cast<TF*>(obj)->~TF();
+                };
+            }
         };
     }
 
@@ -214,6 +234,23 @@ namespace vtable
         auto& fp = bh::at_key(vt, option::dtor);
         (*fp)(FWD(xs)...);
     }
+
+    // 
+
+    template <typename TF, typename TSignature, typename TVTable>
+    void set_call_offset(TVTable& vt)
+    {
+        using sh = impl::sig_helper<TSignature>;
+        sh::template set_call_offset<TF>(vt);
+    }
+
+    template <typename TF, typename TSignature, typename TVTable>
+    void set_dtor_offset(TVTable& vt)
+    {
+        using sh = impl::sig_helper<TSignature>;
+        sh::template set_dtor_offset<TF>(vt);
+    }
+
 }
 
 template <typename TSignature, std::size_t TBufferSize>
