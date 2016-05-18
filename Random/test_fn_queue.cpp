@@ -10,12 +10,14 @@
 #include <boost/hana.hpp>
 #include <cstring>
 
-#if 1
+// Debug logging.
+#if 0
 #define ELOG(...) __VA_ARGS__
 #else
 #define ELOG(...)
 #endif
 
+/// @brief Round up `x` to the nearest multiple of `multiple`.
 template <typename T0, typename T1>
 constexpr auto multiple_round_up(T0 x, T1 multiple) noexcept
 {
@@ -23,31 +25,46 @@ constexpr auto multiple_round_up(T0 x, T1 multiple) noexcept
     return ((x + multiple - 1) / multiple) * multiple;
 }
 
+/// @brief Alias for a function pointer.
 template <typename TSignature>
 using fn_ptr = TSignature*;
 
+/// @brief Alias for `char`.
 using byte = char;
 
+/// @brief Alias for `boost::hana` namespace.
 namespace bh = boost::hana;
 
+/// @brief Namespace dealing with vtable options and construction.
 namespace vtable
 {
     namespace option
     {
+        /// @brief Enables the vtable to store a call operator ptr.
         constexpr bh::int_<0> call{};
+
+        /// @brief Enables the vtable to store a dtor ptr.
         constexpr bh::int_<1> dtor{};
+
+        /// @brief Enables the vtable to store a copy ctor ptr.
         constexpr bh::int_<2> copy{};
+
+        /// @brief Enables the vtable to store a move ctor ptr.
         constexpr bh::int_<3> move{};
 
+        /// @brief Create a list of options that can be passed to
+        /// `vtable::make`.
         template <typename... TOptions>
         auto make_list(TOptions... os) noexcept
         {
+            // TODO: statically assert that `os...` are options.
             return bh::make_basic_tuple(os...);
         }
     }
 
     namespace impl
     {
+        /// @brief Helper struct that creates the vtable.
         template <typename TSignature>
         class maker;
 
@@ -55,15 +72,31 @@ namespace vtable
         class maker<TReturn(TArgs...)>
         {
         private:
+            /// @brief Call function pointer type.
+            /// @details The first parameter is the callable object.
             using call_fp = fn_ptr<TReturn(byte*, TArgs...)>;
+
+            /// @brief Dtor function pointer type.
+            /// @details The first parameter is the callable object.
             using dtor_fp = fn_ptr<void(byte*)>;
+
+            /// @brief Copy ctor function pointer type.
+            /// @details The first parameter is the vtable.
+            /// The second parameter is the src callable object.
+            /// The third parameter is the dst callable object.
             using copy_fp = fn_ptr<void(byte*, byte*, byte*)>;
-            using move_fp = fn_ptr<void(byte*, byte*)>;
+
+            /// @brief Move ctor function pointer type.
+            /// @details The first parameter is the vtable.
+            /// The second parameter is the src callable object.
+            /// The third parameter is the dst callable object.
+            using move_fp = fn_ptr<void(byte*, byte*, byte*)>;
 
         public:
             template <typename TOptionsList>
             static auto make(TOptionsList ol) noexcept
             {
+                // Map the options to their function pointer types.
                 auto fp_tuple = bh::make_tuple(             // .
                     bh::make_pair(option::call, call_fp{}), // .
                     bh::make_pair(option::dtor, dtor_fp{}), // .
@@ -71,27 +104,52 @@ namespace vtable
                     bh::make_pair(option::move, move_fp{})  // .
                     );
 
+                // Filter only the selected options (passed in `ol`).
                 auto fp_filtered_tuple = bh::filter(fp_tuple, [ol](auto x)
                     {
                         return bh::contains(ol, bh::first(x));
                     });
 
+                // Return the result as a `boost::hana::map`.
                 return bh::to_map(fp_filtered_tuple);
             }
         };
     }
 
+    /// @brief Creates a vtable for callable objects with signature
+    /// `TSignature`, using the passed `ol` options.
+    /// @details Option lists can be created using `vtable::option::make_list`.
     template <typename TSignature, typename TOptionsList>
     auto make(TOptionsList ol) noexcept
     {
         return impl::maker<TSignature>::make(ol);
     }
 
-    template <typename TSignature, typename TOptionsList>
-    using type = decltype(make<TSignature>(TOptionsList{}));
+    template <typename TVTable, typename... Ts>
+    void exec_call_fp(TVTable& vt, Ts&&... xs)
+    {
+        auto& fp = bh::at_key(vt, option::call);
+        (*fp)(FWD(xs)...);
+    }
+
+    template <typename TVTable, typename... Ts>
+    void exec_dtor_fp(TVTable& vt, Ts&&... xs)
+    {
+        auto& fp = bh::at_key(vt, option::dtor);
+        (*fp)(FWD(xs)...);
+    }
+
+    template <typename TVTable, typename... Ts>
+    void exec_copy_fp(TVTable& vt, Ts&&... xs)
+    {
+        auto& fp = bh::at_key(vt, option::copy);
+        (*fp)((byte*)&vt, FWD(xs)...);
+    }
 
     namespace impl
     {
+        // TODO: docs and merge with `impl::maker`.
+
         template <typename TSignature>
         struct sig_helper;
 
@@ -115,78 +173,70 @@ namespace vtable
             {
                 bh::at_key(vt, option::dtor) = [](byte* obj)
                 {
-                    return reinterpret_cast<TF*>(obj)->~TF();
+                    reinterpret_cast<TF*>(obj)->~TF();
                 };
             }
 
             template <typename TF, typename TVTable>
             static void set_copy_fp(TVTable& vt) noexcept
             {
-                bh::at_key(vt, option::copy) = [](byte* x_vt_ptr, byte* src, byte* dst)
+                bh::at_key(vt, option::copy) = [](
+                    byte* x_vt_ptr, byte* src, byte* dst)
                 {
-                    auto& x_vt = *reinterpret_cast<TVTable*>(x_vt_ptr);
-                    auto& dtor_fp = bh::at_key(x_vt, option::dtor);
-                    (*dtor_fp)(dst);
-
+                    // Copy-construct `src` into `dst`.
                     new(dst) TF(*(reinterpret_cast<TF*>(src)));
 
-                    // return *(reinterpret_cast<TF*>(dst)) =
-                    //         *(reinterpret_cast<TF*>(src));
+                    // TODO: remove?
+                    // Destroy the source callable object.
+                    auto& x_vt = *reinterpret_cast<TVTable*>(x_vt_ptr);
+                    exec_dtor_fp(x_vt, src);
                 };
             }
 
             template <typename TF, typename TVTable>
             static void set_move_fp(TVTable& vt) noexcept
             {
-                bh::at_key(vt, option::move) = [](byte* src, byte* dst)
+                bh::at_key(vt, option::move) = [](
+                    byte* x_vt_ptr, byte* src, byte* dst)
                 {
-                    return *(reinterpret_cast<TF*>(dst)) =
-                               std::move(*(reinterpret_cast<TF*>(src)));
+                    // Move-construct `src` into `dst`.
+                    new(dst) TF(std::move(*(reinterpret_cast<TF*>(src))));
+
+                    // TODO: remove?
+                    // Destroy the source callable object.
+                    auto& x_vt = *reinterpret_cast<TVTable*>(x_vt_ptr);
+                    exec_dtor_fp(x_vt, src);
                 };
             }
         };
     }
 
     template <typename TF, typename TSignature, typename TVTable>
-    void set_call_fp(TVTable& vt)
+    void set_call_fp(TVTable& vt) noexcept
     {
         using sh = impl::sig_helper<TSignature>;
         sh::template set_call_fp<TF>(vt);
     }
 
     template <typename TF, typename TSignature, typename TVTable>
-    void set_dtor_fp(TVTable& vt)
+    void set_dtor_fp(TVTable& vt) noexcept
     {
         using sh = impl::sig_helper<TSignature>;
         sh::template set_dtor_fp<TF>(vt);
     }
 
     template <typename TF, typename TSignature, typename TVTable>
-    void set_copy_fp(TVTable& vt)
+    void set_copy_fp(TVTable& vt) noexcept
     {
         using sh = impl::sig_helper<TSignature>;
         sh::template set_copy_fp<TF>(vt);
     }
 
-    template <typename TVTable, typename... Ts>
-    void exec_call_fp(TVTable& vt, Ts&&... xs)
+    template <typename TF, typename TSignature, typename TVTable>
+    void set_move_fp(TVTable& vt) noexcept
     {
-        auto& fp = bh::at_key(vt, option::call);
-        (*fp)(FWD(xs)...);
-    }
-
-    template <typename TVTable, typename... Ts>
-    void exec_dtor_fp(TVTable& vt, Ts&&... xs)
-    {
-        auto& fp = bh::at_key(vt, option::dtor);
-        (*fp)(FWD(xs)...);
-    }
-
-    template <typename TVTable, typename... Ts>
-    void exec_copy_fp(TVTable& vt, Ts&&... xs)
-    {
-        auto& fp = bh::at_key(vt, option::copy);
-        (*fp)(FWD(xs)...);
+        using sh = impl::sig_helper<TSignature>;
+        sh::template set_move_fp<TF>(vt);
     }
 }
 
@@ -208,11 +258,14 @@ private:
         return multiple_round_up(x, alignment);
     }
 
+    // TODO:
+    // Support call, dtor and copy.
     using vtable_type = decltype(vtable::make<signature>( // .
         vtable::option::make_list(
             vtable::option::call, vtable::option::dtor, vtable::option::copy)));
 
-    // TODO: use this instead of vector
+    // TODO: use a preallocated fixed buffer instead of `std::vector`, we know
+    // the max vtable ptr count
     static constexpr auto max_vtable_ptrs = sizeof(vtable_type*) / buffer_size;
 
     std::aligned_storage_t<buffer_size, alignment> _buffer;
@@ -277,6 +330,8 @@ private:
             std::cout << "binding vtable to fn...\n"; // .
             );
 
+        // TODO: conditionally set fn ptrs depending on the options
+        // TODO: vtable::template setup<TF, signature>(vt)
         vtable::template set_call_fp<TF, signature>(vt);
         vtable::template set_dtor_fp<TF, signature>(vt);
         vtable::template set_copy_fp<TF, signature>(vt);
@@ -291,6 +346,11 @@ private:
     auto emplace_starting_at(byte* ptr, TF&& f)
     // TODO: noexcept
     {
+        VRM_CORE_ASSERT_OP(
+            offset_from_beginning(ptr) + sizeof(vtable_type) + sizeof(TF), <,
+            buffer_size);
+
+        // Emplace the vtable and get a reference to it.
         ptr = emplace_vtable_at(ptr);
         auto& vt = *(reinterpret_cast<vtable_type*>(ptr));
 
@@ -299,7 +359,7 @@ private:
                       << "\n"; // .
             );
 
-
+        // Get the aligned position where the callable object will be emplaced.
         auto fn_start_ptr = ptr + sizeof(vtable_type);
 
         ELOG(                                                         // .
@@ -307,6 +367,7 @@ private:
                       << offset_from_beginning(fn_start_ptr) << "\n"; // .
             );
 
+        // Emplace the callable object.
         ptr = emplace_fn_at(fn_start_ptr, FWD(f));
 
         ELOG(                                                        // .
@@ -314,9 +375,13 @@ private:
                       << "\n";                                       // .
             );
 
+        // Bind the vtable to the callable object and add it to the vtable
+        // vector.
         bind_vtable_to_fn<TF>(vt);
         subscribe_vtable(vt);
 
+        // Move the "next emplacement pointer" forward.
+        // (`ptr` contains the address of the emplaced callable object.)
         _next = ptr + sizeof(TF);
 
         ELOG( // .
@@ -325,7 +390,7 @@ private:
             );
     }
 
-    auto get_next_aligned_ptr(byte* ptr) noexcept
+    auto get_next_aligned_ptr(byte* ptr) const noexcept
     {
         auto ofb = offset_from_beginning(ptr);
 
@@ -342,10 +407,12 @@ private:
         return (byte*)buffer_ptr_from_offset(next_ofb);
     }
 
-    auto get_fn_ptr_from_vtable(vtable_type* vt_ptr) noexcept
+    auto get_fn_ptr_from_vtable(vtable_type* vt_ptr) const noexcept
     {
         return get_next_aligned_ptr((byte*)vt_ptr + sizeof(vtable_type));
     }
+
+    // TODO: docs, repetition, asserts
 
     template <typename TF>
     void for_vts(TF&& f)
@@ -359,6 +426,27 @@ private:
 
     template <typename TF>
     void for_fns(TF&& f)
+    // TODO: noexcept
+    {
+        for(auto vt_ptr : _vtable_ptrs)
+        {
+            auto fn_ptr = get_fn_ptr_from_vtable(vt_ptr);
+            f(*vt_ptr, fn_ptr);
+        }
+    }
+
+    template <typename TF>
+    void for_vts(TF&& f) const
+    // TODO: noexcept
+    {
+        for(auto vt_ptr : _vtable_ptrs)
+        {
+            f(vt_ptr);
+        }
+    }
+
+    template <typename TF>
+    void for_fns(TF&& f) const
     // TODO: noexcept
     {
         for(auto vt_ptr : _vtable_ptrs)
@@ -416,13 +504,15 @@ public:
         destroy_all();
     }
 
-    // TODO: conditionally enable
+    // TODO: conditionally enable copy/move ops.
     // fixed_function_queue(const fixed_function_queue&) = delete;
 
     fixed_function_queue(const fixed_function_queue& rhs)
         : _vtable_ptrs{rhs._vtable_ptrs},
           _next{buffer_ptr() + (rhs._next - buffer_ptr())} // TODO: offset fn
     {
+        // TODO: optimize: traverse only once.
+
         rhs.for_fns([this, &rhs](auto& vt, auto fn_ptr)
             {
                 ELOG(                                              // .
@@ -432,12 +522,12 @@ public:
                     );
 
                 auto fn_offset = rhs.offset_from_beginning(fn_ptr);
-                vtable::exec_copy_fp(&vt, fn_ptr, buffer_ptr() + fn_offset);
+                vtable::exec_copy_fp(vt, fn_ptr, buffer_ptr() + fn_offset);
             });
 
         rhs.for_vts([this, &rhs](auto vt_ptr)
             {
-                auto vt_offset = rhs.offset_from_beginning(vt_ptr);
+                auto vt_offset = rhs.offset_from_beginning((byte*)vt_ptr);
                 std::memcpy(
                     buffer_ptr() + vt_offset, vt_ptr, sizeof(vtable_type));
             });
@@ -452,15 +542,7 @@ public:
     void emplace(TF&& f)
     // TODO: noexcept
     {
-        ELOG(                              // .
-            std::cout << "emplacing...\n"; // .
-            );
-
         emplace_starting_at(_next, FWD(f));
-
-        ELOG(                                  // .
-            std::cout << "done emplacing\n\n"; // .
-            );
     }
 
     auto call_all(TArgs... xs)
@@ -530,13 +612,52 @@ public:
     }
 };
 
+static volatile int ctors;
+static volatile int copy_ctors;
+static volatile int move_ctors;
+static volatile int dtors;
+
+struct cpyx
+{
+    cpyx()
+    {
+        ++ctors;
+    }
+    ~cpyx()
+    {
+        ++dtors;
+    }
+
+    cpyx(const cpyx&)
+    {
+        ++copy_ctors;
+    }
+
+    cpyx(cpyx&&) = delete;
+};
+
+#define TEST_ASSERT(...)                        \
+    if(!(__VA_ARGS__))                          \
+    {                                           \
+        std::cout << #__VA_ARGS__ << std::endl; \
+        std::terminate();                       \
+    }
+
+void cypx_reset()
+{
+    ctors = dtors = copy_ctors = move_ctors = 0;
+}
+
+void cypx_test(int xctors, int xcopy_ctors, int xmove_ctors, int xdtors)
+{
+    TEST_ASSERT(ctors == xctors);
+    TEST_ASSERT(copy_ctors == xcopy_ctors);
+    TEST_ASSERT(move_ctors == xmove_ctors);
+    TEST_ASSERT(dtors == xdtors);
+}
+
 void tests()
 {
-#define TEST_ASSERT(...)  \
-    if(!(__VA_ARGS__))    \
-    {                     \
-        std::terminate(); \
-    }
 
     {
         int acc = 0;
@@ -620,12 +741,77 @@ void tests()
     }
 }
 
+void copy_tests()
+{
+    {
+        cypx_reset();
+        std::cout << "a\n";
+        cypx_test(0, 0, 0, 0);
+
+        cpyx px;
+        std::cout << "b\n";
+        cypx_test(1, 0, 0, 0);
+
+        int acc = 0;
+        int one = 1;
+
+        fixed_function_queue<void(int), 512> ta;
+
+        ta.emplace([&acc, px](int x)
+            {
+                acc += x;
+            });
+        std::cout << "c\n";
+        std::cout << copy_ctors << "\n";
+        cypx_test(1, 2, 0, 1);
+
+
+        ta.emplace([&acc, one, px](int)
+            {
+                acc += one;
+            });
+        std::cout << "d\n";
+        cypx_test(1, 4, 0, 2);
+
+        ta.emplace([&acc, lel = std::vector<int>{} ](int x)
+            {
+                acc -= x;
+            });
+        ta.emplace([&acc, one](int)
+            {
+                acc -= one;
+            });
+
+
+
+        ta.call_all(5);
+        std::cout << acc << "\n";
+        TEST_ASSERT(acc == 0);
+
+        std::cout << "e\n";
+        cypx_test(1, 4, 0, 2);
+        acc = 0;
+        one = 1;
+
+        auto ta2 = ta;
+        std::cout << "f\n";
+
+        cypx_test(1, 6, 0, 4);
+        ta2.call_all(5);
+        std::cout << acc << "\n";
+        TEST_ASSERT(acc == 0);
+        std::cout << "g\n";
+        cypx_test(1, 6, 0, 4);
+    }
+}
+
 int main()
 {
     // std::cout << sizeof(void*) << "\n";
     // return 0;
 
     tests();
+    copy_tests();
 
     lmao xxx;
 
