@@ -1,11 +1,13 @@
-#include <cstddef>
-#include <vector>
 #include <array>
+#include <cstddef>
+#include <functional>
 #include <iostream>
 #include <utility>
-#include <functional>
+#include <vector>
 #include <vrm/core/assert.hpp>
 #include <vrm/core/casts.hpp>
+#include <vrm/core/static_if.hpp>
+#include <boost/hana.hpp>
 
 #if 1
 #define ELOG(...) __VA_ARGS__
@@ -23,6 +25,182 @@ constexpr auto multiple_round_up(T0 x, T1 multiple) noexcept
 template <typename TSignature>
 using fn_ptr = TSignature*;
 
+using byte = char;
+
+namespace bh = boost::hana;
+
+namespace vtable
+{
+    namespace policy
+    {
+        namespace impl
+        {
+            struct by_ptr
+            {
+            };
+
+            struct by_offset
+            {
+            };
+
+            template <typename T>
+            constexpr auto is_by_ptr{std::is_same<T, by_ptr>{}};
+
+            template <typename T>
+            constexpr auto is_by_offset{std::is_same<T, by_offset>{}};
+        }
+
+        constexpr impl::by_ptr by_ptr{};
+        constexpr impl::by_offset by_offset{};
+    }
+
+    namespace options
+    {
+        namespace impl
+        {
+            struct call
+            {
+            };
+
+            struct dtor
+            {
+            };
+
+            struct copy
+            {
+            };
+
+            struct move
+            {
+            };
+        }
+
+        constexpr impl::call call{};
+        constexpr impl::dtor dtor{};
+        constexpr impl::copy copy{};
+        constexpr impl::move move{};
+
+        template <typename... TOptions>
+        auto make(TOptions... os) noexcept
+        {
+            return bh::make_basic_tuple(os...);
+        }
+    }
+
+    namespace impl
+    {
+        template <typename TF, typename TSignature>
+        struct maker;
+
+        template <typename TF, typename TReturn, typename... TArgs>
+        struct maker<TF, TReturn(TArgs...)>
+        {
+            template <typename TPolicy, typename TOptionsList>
+            static auto make(TPolicy p, TOptionsList ol) noexcept
+            {
+                return vrm::core::static_if(policy::impl::is_by_ptr<TPolicy>)
+                    .then([ol]
+                        {
+                            using call_fp = fn_ptr<TReturn(byte*, TArgs...)>;
+                            using dtor_fp = fn_ptr<void(byte*)>;
+                            using copy_fp = fn_ptr<TF(const TF&)>;
+                            using move_fp = fn_ptr<TF(TF && )>;
+
+                            auto fp_map = bh::make_map( // .
+                                bh::make_pair(
+                                    options::call, bh::type_c<call_fp>), // .
+                                bh::make_pair(
+                                    options::dtor, bh::type_c<dtor_fp>), // .
+                                bh::make_pair(
+                                    options::copy, bh::type_c<copy_fp>), // .
+                                bh::make_pair(
+                                    options::move, bh::type_c<move_fp>) // .
+                                );
+
+                            return bh::filter(fp_map, [ol](auto x)
+                                {
+                                    return bh::contains(ol, bh::first(x));
+                                });
+                        })
+                    .else_if(policy::impl::is_by_offset<TPolicy>)
+                    .then([]
+                        {
+                        })
+                    .else_([]
+                        {
+                            std::terminate();
+                        })();
+            }
+        };
+    }
+
+    template <typename TF, typename TSignature, typename TPolicy,
+        typename TOptionsList>
+    auto make(TPolicy p, TOptionsList ol) noexcept
+    {
+        return impl::maker<TF, TSignature>::make(p, ol);
+    }
+
+    template <typename TF, typename TSignature, typename TPolicy,
+        typename TOptionsList>
+    using type = decltype(make<TF, TSignature>(TPolicy{}, TOptionsList{}));
+
+    namespace impl
+    {
+        template <typename TSignature>
+        struct sig_helper;
+
+        template <typename TReturn, typename... TArgs>
+        struct sig_helper<TReturn(TArgs...)>
+        {
+            using return_type = TReturn;
+            using args_list = bh::tuple<TArgs...>;
+
+            template <typename TF, typename TVTable>
+            static void set_call_fp(TVTable& vt) noexcept
+            {
+                vt._call = [](byte* obj, TArgs... xs)
+                {
+                    return reinterpret_cast<TF*>(obj)->operator()(xs...);
+                };
+            }
+
+            template <typename TF, typename TVTable>
+            static void set_dtor_fp(TVTable& vt) noexcept
+            {
+                vt._destroy = [](byte* obj)
+                {
+                    return reinterpret_cast<TF*>(obj)->~TF();
+                };
+            }
+
+            template <typename TF, typename TVTable>
+            static void set_copy_fp(TVTable&) noexcept
+            {
+            }
+
+            template <typename TF, typename TVTable>
+            static void set_move_fp(TVTable&) noexcept
+            {
+            }
+        };
+    }
+
+    template <typename TF, typename TSignature, typename TVTable>
+    void set_call_fp(TVTable& vt)
+    {
+        using sh = impl::sig_helper<TSignature>;
+        sh::template set_call_fp<TF>(vt);
+    }
+
+    template <typename TF, typename TSignature, typename TVTable>
+    void set_dtor_fp(TVTable& vt)
+    {
+        using sh = impl::sig_helper<TSignature>;
+        sh::template set_dtor_fp<TF>(vt);
+    }
+}
+
 template <typename TSignature, std::size_t TBufferSize>
 class fixed_function_queue;
 
@@ -30,7 +208,6 @@ template <typename TReturn, typename... TArgs, std::size_t TBufferSize>
 class fixed_function_queue<TReturn(TArgs...), TBufferSize>
 {
 private:
-    using byte = char;
     using return_type = TReturn;
     static constexpr auto buffer_size = TBufferSize;
     static constexpr auto alignment = alignof(std::max_align_t);
@@ -41,7 +218,7 @@ private:
         return multiple_round_up(x, alignment);
     }
 
-    using call_fn_ptr = fn_ptr<return_type(byte*, TArgs...)>;
+    using call_fn_ptr = fn_ptr<return_type(byte*, TArgs... c)>;
     using destroy_fn_ptr = fn_ptr<void(byte*)>;
 
     struct vtable
@@ -51,8 +228,7 @@ private:
     };
 
     // TODO: use this instead of vector
-    static constexpr auto max_vtable_ptrs = 
-        sizeof(vtable*) / buffer_size;
+    static constexpr auto max_vtable_ptrs = sizeof(vtable*) / buffer_size;
 
     std::aligned_storage_t<buffer_size, alignment> _buffer;
     std::vector<vtable*> _vtable_ptrs;
@@ -134,7 +310,7 @@ private:
 
     template <typename TF>
     auto emplace_starting_at(byte* ptr, TF&& f)
-        // TODO: noexcept
+    // TODO: noexcept
     {
         ptr = emplace_vtable_at(ptr);
         auto& vt = *(reinterpret_cast<vtable*>(ptr));
@@ -193,8 +369,8 @@ private:
     }
 
     template <typename TF>
-    void for_fns(TF&& f) 
-        // TODO: noexcept
+    void for_fns(TF&& f)
+    // TODO: noexcept
     {
         for(auto vt_ptr : _vtable_ptrs)
         {
@@ -205,9 +381,10 @@ private:
 
     template <typename TF>
     void for_fns_reverse(TF&& f)
-        // TODO: noexcept
+    // TODO: noexcept
     {
-        for(auto itr = std::rbegin(_vtable_ptrs); itr != std::rend(_vtable_ptrs); ++itr)
+        for(auto itr = std::rbegin(_vtable_ptrs);
+            itr != std::rend(_vtable_ptrs); ++itr)
         {
             auto vt_ptr = *itr;
             auto fn_ptr = get_fn_ptr_from_vtable(vt_ptr);
@@ -244,8 +421,8 @@ public:
     {
     }
 
-    ~fixed_function_queue() 
-        // TODO: noexcept
+    ~fixed_function_queue()
+    // TODO: noexcept
     {
         destroy_all();
     }
@@ -258,7 +435,7 @@ public:
 
     template <typename TF>
     void emplace(TF&& f)
-        // TODO: noexcept
+    // TODO: noexcept
     {
         ELOG(                              // .
             std::cout << "emplacing...\n"; // .
@@ -272,7 +449,7 @@ public:
     }
 
     auto call_all(TArgs... xs)
-        // TODO: noexcept
+    // TODO: noexcept
     {
         ELOG(                                          // .
             std::cout << "calling all functions...\n"; // .
@@ -311,7 +488,7 @@ struct lmao
     }
 };
 
-template<typename TSignature, std::size_t TBufferSize>
+template <typename TSignature, std::size_t TBufferSize>
 struct function_queue_test_adapter
 {
 private:
@@ -319,17 +496,17 @@ private:
     fixed_function_queue<TSignature, TBufferSize> _fn_queue;
 
 public:
-    template<typename TF> 
-    void emplace(TF&& f) 
-    {  
+    template <typename TF>
+    void emplace(TF&& f)
+    {
         _fn_vec.emplace_back(FWD(f));
         _fn_queue.emplace(FWD(f));
     }
 
-    template<typename... Ts>
+    template <typename... Ts>
     void call_all(Ts&&... xs)
     {
-        for(auto& f : _fn_vec) 
+        for(auto& f : _fn_vec)
         {
             f(FWD(xs)...);
         }
@@ -340,11 +517,11 @@ public:
 
 void tests()
 {
-    #define TEST_ASSERT(...) \
-        if(!(__VA_ARGS__)) \
-        { \
-            std::terminate(); \
-        }
+#define TEST_ASSERT(...)  \
+    if(!(__VA_ARGS__))    \
+    {                     \
+        std::terminate(); \
+    }
 
     {
         int acc = 0;
@@ -352,10 +529,22 @@ void tests()
 
         function_queue_test_adapter<void(int), 128> ta;
 
-        ta.emplace([&acc](int x){ acc += x; });
-        ta.emplace([&acc, one](int){ acc += one; });
-        ta.emplace([&acc](int x){ acc -= x; });
-        ta.emplace([&acc, one](int x){ acc -= one; });
+        ta.emplace([&acc](int x)
+            {
+                acc += x;
+            });
+        ta.emplace([&acc, one](int)
+            {
+                acc += one;
+            });
+        ta.emplace([&acc](int x)
+            {
+                acc -= x;
+            });
+        ta.emplace([&acc, one](int)
+            {
+                acc -= one;
+            });
 
         ta.call_all(5);
         std::cout << acc << "\n";
@@ -370,32 +559,55 @@ void tests()
             int& _acc_ref;
             bool _dec{true};
 
-            tx(int& acc_ref) : _acc_ref(acc_ref) { ++_acc_ref; }
-            tx(const tx& x) : _acc_ref(x._acc_ref), _dec{false}{ }
+            tx(int& acc_ref) : _acc_ref(acc_ref)
+            {
+                ++_acc_ref;
+            }
+            tx(const tx& x) : _acc_ref(x._acc_ref), _dec{false}
+            {
+            }
 
-            ~tx() { if(_dec) { --_acc_ref; } }
+            ~tx()
+            {
+                if(_dec)
+                {
+                    --_acc_ref;
+                }
+            }
         };
 
         {
             function_queue_test_adapter<void(int), 256> ta;
             tx c_tx(acc);
 
-            ta.emplace([&acc](int x){ acc += x; });
-            ta.emplace([&acc, my_tx = tx{acc}](int){ acc += 1; });
-            ta.emplace([&acc](int x){ acc -= x; });
-            ta.emplace([&acc, c_tx](int){ acc -= 1; });
+            ta.emplace([&acc](int x)
+                {
+                    acc += x;
+                });
+            ta.emplace([&acc, my_tx = tx{acc} ](int)
+                {
+                    acc += 1;
+                });
+            ta.emplace([&acc](int x)
+                {
+                    acc -= x;
+                });
+            ta.emplace([&acc, c_tx](int)
+                {
+                    acc -= 1;
+                });
 
             ta.call_all(5);
         }
 
         std::cout << acc << "\n";
         TEST_ASSERT(acc == 0);
-    }   
+    }
 }
 
 int main()
 {
-tests();
+    tests();
 
     lmao xxx;
 
@@ -404,7 +616,7 @@ tests();
 
     f0.emplace([ xxx, aaa = 100 ](int x)
         {
-            std::cout << x <<  " hi!\n";
+            std::cout << x << " hi!\n";
         });
 
     f0.emplace([ xxx, bbb = std::vector<int>{0} ](int x)
