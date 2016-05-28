@@ -2,7 +2,7 @@
 
 function fmtfile
 {
-    clang-format -style=file $1 > /tmp/tmpfmt
+    /usr/local/bin/clang-format-37 -style=file $1 > /tmp/tmpfmt
     cat /tmp/tmpfmt > $1
 }
 
