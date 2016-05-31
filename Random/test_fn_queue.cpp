@@ -413,8 +413,9 @@ private:
 
     // TODO: docs, repetition, asserts
 
-template <typename TSelf, typename TF>
-    static void call_fn_from_vt_ptr_impl(TSelf&& self, vtable_type* vt_ptr, TF&& f)
+    template <typename TSelf, typename TF>
+    static void call_fn_from_vt_ptr_impl(
+        TSelf&& self, vtable_type* vt_ptr, TF&& f)
     {
         auto fn_ptr = self.get_fn_ptr_from_vtable(vt_ptr);
         f(*vt_ptr, fn_ptr);
@@ -579,7 +580,7 @@ public:
     }
 
     fixed_function_queue(fixed_function_queue&& rhs)
-        : _vtable_ptrs{rhs._vtable_ptrs},
+        : _vtable_ptrs{std::move(rhs._vtable_ptrs)},
           _next{buffer_ptr() + offset_from_beginning(rhs._next)}
     {
         move_all(rhs);
@@ -587,7 +588,7 @@ public:
 
     fixed_function_queue& operator=(fixed_function_queue&& rhs)
     {
-        _vtable_ptrs = rhs._vtable_ptrs;
+        _vtable_ptrs = std::move(rhs._vtable_ptrs);
         _next = buffer_ptr() + offset_from_beginning(rhs._next);
         move_all(rhs);
 
