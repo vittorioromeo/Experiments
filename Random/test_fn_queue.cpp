@@ -222,24 +222,159 @@ namespace vtable
     using type = decltype(make<TSignature>(option::make_list(TOptions{}...)));
 }
 
+template <typename TSignature>
+using complete_vtable_type = vtable::type< // .
+    TSignature,                            // .
+    vtable::option::call_t,                // .
+    vtable::option::dtor_t,                // .
+    vtable::option::copy_t,                // .
+    vtable::option::move_t                 // .
+    >;
+
 // TODO:
 namespace impl
 {
     namespace storage
     {
-        template <typename TSignature, std::size_t TBufferSize>
+        template <typename TSignature, typename TVTable,
+            std::size_t TBufferSize>
         class fixed_storage
         {
+        private:
+            using signature = TSignature;
+            using vtable_type = TVTable;
+
+            static constexpr auto buffer_size = TBufferSize;
+            static constexpr auto alignment = alignof(std::max_align_t);
+
+            template <typename T>
+            constexpr auto round_up_to_alignment(T x) const noexcept
+            {
+                return multiple_round_up(x, alignment);
+            }
+
+            static constexpr auto max_vtable_ptrs =
+                sizeof(vtable_type*) / buffer_size;
+
+            std::aligned_storage_t<buffer_size, alignment> _buffer;
+            std::vector<vtable_type*> _vtable_ptrs;
+            char* _next;
+
+            auto get_next_aligned_ptr(char* ptr) const noexcept
+            {
+                auto ofb = offset_from_beginning(ptr);
+                auto next_ofb = round_up_to_alignment(ofb);
+                return (char*)buffer_ptr_from_offset(next_ofb);
+            }
+
+            auto get_fn_ptr_from_vtable(vtable_type* vt_ptr) const noexcept
+            {
+                return get_next_aligned_ptr(
+                    (char*)vt_ptr + sizeof(vtable_type));
+            }
+
+            auto buffer_ptr() noexcept
+            {
+                return reinterpret_cast<char*>(&_buffer);
+            }
+
+            auto buffer_ptr() const noexcept
+            {
+                return reinterpret_cast<const char*>(&_buffer);
+            }
+
+            auto offset_from_beginning(char* ptr) const noexcept
+            {
+                return ptr - buffer_ptr();
+            }
+
+            template <typename T>
+            auto buffer_ptr_from_offset(T x) const noexcept
+            {
+                return buffer_ptr() + x;
+            }
+
+            template <typename T, typename... TNewArgs>
+            auto aligned_placement_new(char* ptr, TNewArgs&&... xs) // .
+                noexcept(std::is_nothrow_constructible<T, TNewArgs...>{})
+            {
+                ptr = get_next_aligned_ptr(ptr);
+                new(ptr) T{FWD(xs)...};
+                return ptr;
+            }
+
+            auto emplace_vtable_at(char* ptr) noexcept
+            {
+                return aligned_placement_new<vtable_type>(ptr);
+            }
+
+            template <typename TF>
+            auto emplace_fn_at(char* ptr, TF&& f) // .
+                noexcept(std::is_nothrow_constructible<TF, decltype(FWD(f))>{})
+            {
+                return aligned_placement_new<TF>(ptr, FWD(f));
+            }
+
+            template <typename TF>
+            void bind_vtable_to_fn(vtable_type& vt) noexcept
+            {
+                vtable::template setup<TF, signature>(vt);
+            }
+
+            void subscribe_vtable(vtable_type& vt)
+            {
+                _vtable_ptrs.emplace_back(&vt);
+            }
+
+        public:
+            fixed_storage()
+            {
+            }
+
+            fixed_storage(const fixed_storage&)
+            {
+            }
+            fixed_storage& operator=(const fixed_storage&)
+            {
+            }
+
+            fixed_storage(fixed_storage&&)
+            {
+            }
+            fixed_storage& operator=(fixed_storage&&)
+            {
+            }
         };
 
-        template <typename TSignature, typename TAllocator>
+        template <typename TSignature, typename TVTable, typename TAllocator>
         class dynamic_storage
         {
+        private:
+            using signature = TSignature;
+            using vtable_type = TVTable;
+
+
+            static constexpr auto alignment = alignof(std::max_align_t);
+
+            template <typename T>
+            constexpr auto round_up_to_alignment(T x) const noexcept
+            {
+                return multiple_round_up(x, alignment);
+            }
+
+        public:
         };
     }
 
     template <typename TStoragePolicy>
-    class base_function_queue;
+    class base_function_queue
+    {
+    private:
+        using storage_type = TStoragePolicy;
+        using signature = typename storage_type::signature;
+
+    public:
+    };
 }
 
 template <typename TSignature, std::size_t TBufferSize>
@@ -259,13 +394,7 @@ private:
         return multiple_round_up(x, alignment);
     }
 
-    using vtable_type = vtable::type< // .
-        signature,                    // .
-        vtable::option::call_t,       // .
-        vtable::option::dtor_t,       // .
-        vtable::option::copy_t,       // .
-        vtable::option::move_t        // .
-        >;
+    using vtable_type = complete_vtable_type<signature>;
 
     // TODO: use a preallocated fixed buffer instead of `std::vector`, we know
     // the max vtable ptr count
@@ -580,7 +709,8 @@ public:
     }
 
     fixed_function_queue(fixed_function_queue&& rhs)
-        : _vtable_ptrs{std::move(rhs._vtable_ptrs)},
+        // Cannot move `_vtable_ptrs` as they contains the dtor fn ptrs.
+        : _vtable_ptrs{rhs._vtable_ptrs},
           _next{buffer_ptr() + offset_from_beginning(rhs._next)}
     {
         move_all(rhs);
@@ -588,7 +718,8 @@ public:
 
     fixed_function_queue& operator=(fixed_function_queue&& rhs)
     {
-        _vtable_ptrs = std::move(rhs._vtable_ptrs);
+        // Cannot move `_vtable_ptrs` as they contains the dtor fn ptrs.
+        _vtable_ptrs = rhs._vtable_ptrs;
         _next = buffer_ptr() + offset_from_beginning(rhs._next);
         move_all(rhs);
 
