@@ -61,7 +61,12 @@ namespace vtable
         auto make_list(TOptions... os) noexcept
         {
             // TODO: statically assert that `os...` are options.
-            return bh::make_basic_tuple(os...);
+            auto result = bh::make_basic_tuple(os...);
+
+            VRM_CORE_STATIC_ASSERT_NM(
+                bh::equal(bh::unique(bh::sort(result)), result));
+
+            return result;
         }
     }
 
@@ -116,58 +121,6 @@ namespace vtable
                 // Return the result as a `boost::hana::map`.
                 return bh::to_map(fp_filtered_tuple);
             }
-        };
-    }
-
-    /// @brief Creates a vtable for callable objects with signature
-    /// `TSignature`, using the passed `ol` options.
-    /// @details Option lists can be created using `vtable::option::make_list`.
-    template <typename TSignature, typename TOptionsList>
-    auto make(TOptionsList ol) noexcept
-    {
-        return impl::maker<TSignature>::make(ol);
-    }
-
-    template <typename TVTable, typename... Ts>
-    void exec_call_fp(TVTable& vt, Ts&&... xs)
-    {
-        auto& fp = bh::at_key(vt, option::call);
-        (*fp)(FWD(xs)...);
-    }
-
-    template <typename TVTable, typename... Ts>
-    void exec_dtor_fp(TVTable& vt, Ts&&... xs)
-    {
-        auto& fp = bh::at_key(vt, option::dtor);
-        (*fp)(FWD(xs)...);
-    }
-
-    template <typename TVTable, typename... Ts>
-    void exec_copy_fp(TVTable& vt, Ts&&... xs)
-    {
-        auto& fp = bh::at_key(vt, option::copy);
-        (*fp)((byte*)&vt, FWD(xs)...);
-    }
-
-    template <typename TVTable, typename... Ts>
-    void exec_move_fp(TVTable& vt, Ts&&... xs)
-    {
-        auto& fp = bh::at_key(vt, option::move);
-        (*fp)((byte*)&vt, FWD(xs)...);
-    }
-
-    namespace impl
-    {
-        // TODO: docs and merge with `impl::maker`.
-
-        template <typename TSignature>
-        struct sig_helper;
-
-        template <typename TReturn, typename... TArgs>
-        struct sig_helper<TReturn(TArgs...)>
-        {
-            using return_type = TReturn;
-            using args_list = bh::tuple<TArgs...>;
 
             template <typename TF, typename TVTable>
             static void set_call_fp(TVTable& vt) noexcept
@@ -213,31 +166,68 @@ namespace vtable
         };
     }
 
+    /// @brief Creates a vtable for callable objects with signature
+    /// `TSignature`, using the passed `ol` options.
+    /// @details Option lists can be created using `vtable::option::make_list`.
+    template <typename TSignature, typename TOptionsList>
+    auto make(TOptionsList ol) noexcept
+    {
+        return impl::maker<TSignature>::make(ol);
+    }
+
+    template <typename TVTable, typename... Ts>
+    void exec_call_fp(TVTable& vt, Ts&&... xs)
+    {
+        auto& fp = bh::at_key(vt, option::call);
+        (*fp)(FWD(xs)...);
+    }
+
+    template <typename TVTable, typename... Ts>
+    void exec_dtor_fp(TVTable& vt, Ts&&... xs)
+    {
+        auto& fp = bh::at_key(vt, option::dtor);
+        (*fp)(FWD(xs)...);
+    }
+
+    template <typename TVTable, typename... Ts>
+    void exec_copy_fp(TVTable& vt, Ts&&... xs)
+    {
+        auto& fp = bh::at_key(vt, option::copy);
+        (*fp)((byte*)&vt, FWD(xs)...);
+    }
+
+    template <typename TVTable, typename... Ts>
+    void exec_move_fp(TVTable& vt, Ts&&... xs)
+    {
+        auto& fp = bh::at_key(vt, option::move);
+        (*fp)((byte*)&vt, FWD(xs)...);
+    }
+
     template <typename TF, typename TSignature, typename TVTable>
     void set_call_fp(TVTable& vt) noexcept
     {
-        using sh = impl::sig_helper<TSignature>;
+        using sh = impl::maker<TSignature>;
         sh::template set_call_fp<TF>(vt);
     }
 
     template <typename TF, typename TSignature, typename TVTable>
     void set_dtor_fp(TVTable& vt) noexcept
     {
-        using sh = impl::sig_helper<TSignature>;
+        using sh = impl::maker<TSignature>;
         sh::template set_dtor_fp<TF>(vt);
     }
 
     template <typename TF, typename TSignature, typename TVTable>
     void set_copy_fp(TVTable& vt) noexcept
     {
-        using sh = impl::sig_helper<TSignature>;
+        using sh = impl::maker<TSignature>;
         sh::template set_copy_fp<TF>(vt);
     }
 
     template <typename TF, typename TSignature, typename TVTable>
     void set_move_fp(TVTable& vt) noexcept
     {
-        using sh = impl::sig_helper<TSignature>;
+        using sh = impl::maker<TSignature>;
         sh::template set_move_fp<TF>(vt);
     }
 
@@ -262,18 +252,40 @@ namespace vtable
                     set_dtor_fp<TF, TSignature>(x_vt);
                 })(vt);
 
-        vrmc::static_if(std::is_copy_constructible<TF>{} && has_option(vt, option::copy))
+        vrmc::static_if(
+            std::is_copy_constructible<TF>{} && has_option(vt, option::copy))
             .then([](auto& x_vt)
                 {
                     set_copy_fp<TF, TSignature>(x_vt);
                 })(vt);
 
-        vrmc::static_if(std::is_move_constructible<TF>{} &&has_option(vt, option::move))
+        vrmc::static_if(
+            std::is_move_constructible<TF>{} && has_option(vt, option::move))
             .then([](auto& x_vt)
                 {
                     set_move_fp<TF, TSignature>(x_vt);
                 })(vt);
     }
+}
+
+// TODO:
+namespace impl
+{
+    namespace storage
+    {
+        template <typename TSignature, std::size_t TBufferSize>
+        class fixed_storage
+        {
+        };
+
+        template <typename TSignature, typename TAllocator>
+        class dynamic_storage
+        {
+        };
+    }
+
+    template <typename TStoragePolicy>
+    class base_function_queue;
 }
 
 template <typename TSignature, std::size_t TBufferSize>
@@ -284,7 +296,6 @@ class fixed_function_queue<TReturn(TArgs...), TBufferSize>
 {
 private:
     using signature = TReturn(TArgs...);
-    using return_type = TReturn;
     static constexpr auto buffer_size = TBufferSize;
     static constexpr auto alignment = alignof(std::max_align_t);
 
@@ -736,7 +747,10 @@ struct cpyxm
 
     cpyxm(const cpyxm&) = delete;
 
-    cpyxm(cpyxm&&) { ++move_ctors; }
+    cpyxm(cpyxm&&)
+    {
+        ++move_ctors;
+    }
 };
 
 #define TEST_ASSERT(...)                                                    \
@@ -928,7 +942,7 @@ void move_tests()
 
         fixed_function_queue<void(int), 512> ta;
 
-        ta.emplace([&acc, px = std::move(px)](int x)
+        ta.emplace([&acc, px = std::move(px) ](int x)
             {
                 acc += x;
             });
@@ -937,7 +951,7 @@ void move_tests()
         cypx_test(1, 0, 2, 1);
 
 
-        ta.emplace([&acc, one, px = std::move(px)](int)
+        ta.emplace([&acc, one, px = std::move(px) ](int)
             {
                 acc += one;
             });
