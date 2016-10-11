@@ -1,0 +1,25 @@
+ 1583 ./yc_gcc/o3.s
+ 1983 ./yc_gcc/o1.s
+ 1583 ./yc_gcc/ofast.s
+ 1583 ./yc_gcc/o2.s
+ 4572 ./stdfn_gcc/o3.s
+ 4531 ./stdfn_gcc/o1.s
+ 4572 ./stdfn_gcc/ofast.s
+ 4572 ./stdfn_gcc/o2.s
+ 7146 ./stdfn_clang/o3.s
+18638 ./stdfn_clang/o1.s
+ 7146 ./stdfn_clang/ofast.s
+ 7146 ./stdfn_clang/o2.s
+  307 ./baseline_gcc/o3.s
+  257 ./baseline_gcc/o1.s
+  307 ./baseline_gcc/ofast.s
+  307 ./baseline_gcc/o2.s
+  680 ./baseline_clang/o3.s
+  680 ./baseline_clang/o1.s
+  680 ./baseline_clang/ofast.s
+  680 ./baseline_clang/o2.s
+  765 ./yc_clang/o3.s
+ 2347 ./yc_clang/o1.s
+  765 ./yc_clang/ofast.s
+ 1848 ./yc_clang/o2.s
+74678 total
