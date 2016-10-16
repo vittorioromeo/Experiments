@@ -36,8 +36,8 @@ clang 01
 |                  | Bytes | Relative size change |
 |------------------|-------|----------------------|
 | Baseline         | 680   |   0                  |
-| Y-combinator     | 1583  |   +245%              |
-| `std::function`  | 4572  |   +2640%             |
+| Y-combinator     | 2347  |   +245%              |
+| `std::function`  | 18638 |   +2640%             |
 
 
 
