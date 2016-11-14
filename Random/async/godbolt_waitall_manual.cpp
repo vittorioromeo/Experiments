@@ -1,8 +1,6 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
-#include <ecst/thread_pool.hpp>
-#include <ecst/utils.hpp>
 #include <experimental/tuple>
 #include <functional>
 #include <thread>
@@ -30,12 +28,6 @@ namespace ll
         std::puts(x);
         sleep_ms(ms);
     }
-
-    template <typename TTuple, typename TF>
-    void for_tuple(TTuple&& t, TF&& f)
-    {
-        std::experimental::apply([&f](auto&&... xs) { (f(xs), ...); }, t);
-    }
 }
 
 int main()
@@ -47,18 +39,19 @@ int main()
         if(--ctr == 0)
         {
             p.post([&] { ll::print_sleep_ms(250, "D"); });
-        };
+        }
     };
 
     ([&] {
         ll::print_sleep_ms(250, "A");
         p.post([&] {
             ll::print_sleep_ms(250, "B");
-
-            std::atomic<int> ctr{3};
-            cont("C0", ctr);
-            cont("C1", ctr);
-            cont("C2", ctr);
+            p.post([&] {
+                std::atomic<int> ctr{3};
+                cont("C0", ctr);
+                cont("C1", ctr);
+                cont("C2", ctr);
+            });
         });
     })();
 

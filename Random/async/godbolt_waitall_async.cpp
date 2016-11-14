@@ -1,8 +1,6 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
-#include <ecst/thread_pool.hpp>
-#include <ecst/utils.hpp>
 #include <experimental/tuple>
 #include <functional>
 #include <thread>
