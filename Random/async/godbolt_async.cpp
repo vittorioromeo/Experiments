@@ -8,8 +8,11 @@ namespace ll
 {
     struct pool
     {
-		template<typename TF>
-      	void post(TF&& f){ f(); }
+        template <typename TF>
+        void post(TF&& f)
+        {
+            f();
+        }
     };
 
     inline void sleep_ms(int ms)
