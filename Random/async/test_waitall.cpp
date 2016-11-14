@@ -27,7 +27,7 @@ namespace ll
     template <typename TTuple, typename TF>
     void for_tuple(TTuple&& t, TF&& f)
     {
-        std::experimental::apply(t, [&f](auto&&... xs) { (f(xs), ...); });
+        std::experimental::apply([&f](auto&&... xs) { (f(xs), ...); }, t);
     }
 
     struct context
@@ -69,7 +69,7 @@ namespace ll
         TF _f;
 
         node_then(context& ctx, TParent&& p, TF&& f)
-            : base_node{ctx}, _p{p}, _f{f}
+            : base_node{ctx}, _p{std::move(p)}, _f{f}
         {
         }
 
@@ -131,7 +131,7 @@ namespace ll
         movable_atomic<int> _ctr{sizeof...(TFs)};
 
         node_wait_all(context& ctx, TParent&& p, TFs&&... fs)
-            : base_node{ctx}, _p{p}, _fs{fs...}
+            : base_node{ctx}, _p{std::move(p)}, _fs{fs...}
         {
         }
 
@@ -151,7 +151,7 @@ namespace ll
             for_tuple(_fs, [&](auto&& f) {
                 _ctx._p.post([&] {
                     f();
-                    if(_ctr-- == 0)
+                    if(--_ctr == 0)
                     {
                         n.execute(ns...);
                     }
