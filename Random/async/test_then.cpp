@@ -1,9 +1,9 @@
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <ecst/thread_pool.hpp>
 #include <ecst/utils.hpp>
 #include <functional>
-#include <cstdio>
 #include <thread>
 
 namespace ll
@@ -102,15 +102,21 @@ namespace ll
     }
 }
 
+template <typename T>
+void execute_after_move(T x)
+{
+    x.start();
+    ll::sleep_ms(1200);
+}
+
 int main()
 {
     ll::pool p;
     ll::context ctx{p};
 
-    ctx.build([] { ll::print_sleep_ms(250, "A"); })
-        .then([] { ll::print_sleep_ms(250, "B"); })
-        .then([] { ll::print_sleep_ms(250, "C"); })
-        .start();
+    auto computation = ctx.build([] { ll::print_sleep_ms(250, "A"); })
+                           .then([] { ll::print_sleep_ms(250, "B"); })
+                           .then([] { ll::print_sleep_ms(250, "C"); });
 
-    ll::sleep_ms(1000);
+    execute_after_move(std::move(computation));
 }
