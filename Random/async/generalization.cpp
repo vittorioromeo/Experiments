@@ -59,10 +59,10 @@ namespace ll
             return std::move(as_derived());
         }
 
-        template <typename TContReturn, typename TCont>
+        template <typename TCont>
         auto then(TCont&& cont) &;
 
-        template <typename TContReturn, typename TCont>
+        template <typename TCont>
         auto then(TCont&& cont) &&;
     };
 
@@ -179,6 +179,21 @@ namespace ll
         return f();
     }
 
+    template <typename T>
+    struct void_to_nothing
+    {
+        using type = T;
+    };
+
+    template <>
+    struct void_to_nothing<void>
+    {
+        using type = nothing_t;
+    };
+
+    template <typename T>
+    using void_to_nothing_t = typename void_to_nothing<T>::type;
+
     template <typename TF, typename... Ts>
     decltype(auto) with_void_to_nothing(TF&& f, Ts&&... xs)
     {
@@ -199,12 +214,18 @@ namespace ll
 #undef BOUND_F
     }
 
-    template <typename TParent, typename TReturn, typename TF>
+    template <typename TParent, typename TF>
     struct node_then : child_of<TParent>,
-                       continuable<node_then<TParent, TReturn, TF>>,
+                       continuable<node_then<TParent, TF>>,
                        TF
     {
-        using this_type = node_then<TParent, TReturn, TF>;
+        using this_type = node_then<TParent, TF>;
+
+        /*
+        using input_type = void_to_nothing_t<typename TParent::return_type>;
+        using return_type = decltype(call_ignoring_nothing(
+            std::declval<TF>(), std::declval<input_type>()));
+        */
 
         auto& as_f() noexcept
         {
@@ -317,25 +338,24 @@ namespace ll
     template <typename TF>
     auto context::build(TF&& f)
     {
-        using return_type = decltype(f());
+        using return_type = void; // decltype(f());
         using root_type = root<return_type>;
-        return node_then<root_type, return_type, TF>(root_type{*this}, FWD(f));
+        return node_then<root_type, TF>(root_type{*this}, FWD(f));
     }
 
 
     template <typename TDerived>
-    template <typename TContReturn, typename TCont>
+    template <typename TCont>
     auto continuable<TDerived>::then(TCont&& cont) &
     {
-        return node_then<this_type, TContReturn, TCont>{
-            as_derived(), FWD(cont)};
+        return node_then<this_type, TCont>{as_derived(), FWD(cont)};
     }
 
     template <typename TDerived>
-    template <typename TContReturn, typename TCont>
+    template <typename TCont>
     auto continuable<TDerived>::then(TCont&& cont) &&
     {
-        return node_then<this_type, TContReturn, TCont>{
+        return node_then<this_type, TCont>{
             std::move(*this).as_derived(), FWD(cont)};
     }
 }
@@ -352,16 +372,16 @@ int main()
     ll::pool p;
     ll::context ctx{p};
 
-    auto computation =
-        ctx.build([] { return 10; })
-            .then<int>([](int x) { return std::to_string(x); })
-            .then<std::string>([](std::string x) { return "num: " + x; })
-            .then<void>([](std::string x) { std::printf("%s\n", x.c_str()); });
+    auto computation =               // .
+        ctx.build([] { return 10; }) // .
+            .then([](int x) { return std::to_string(x); })
+            .then([](std::string x) { return "num: " + x; })
+            .then([](std::string x) { std::printf("%s\n", x.c_str()); });
 
     ctx.build([] { return 10; })
-        .then<int>([](int x) { return std::to_string(x); })
-        .then<std::string>([](std::string x) { return "num: " + x; })
-        .then<void>([](std::string x) { std::printf("%s\n", x.c_str()); })
+        .then([](int x) { return std::to_string(x); })
+        .then([](std::string x) { return "num: " + x; })
+        .then([](std::string x) { std::printf("%s\n", x.c_str()); })
         .start();
 
     /* TODO:
