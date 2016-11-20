@@ -264,7 +264,7 @@ int main()
                                [] { ll::print_sleep_ms(150, "C1"); },
                                [] { ll::print_sleep_ms(150, "C2"); });
 
-std::printf("%lu\n", sizeof(lvalue_comp));
+    std::printf("%lu\n", sizeof(lvalue_comp));
 
     auto computation = lvalue_comp.then([] { ll::print_sleep_ms(150, "D"); })
                            .wait_all([] { ll::print_sleep_ms(150, "E0"); },
@@ -272,6 +272,6 @@ std::printf("%lu\n", sizeof(lvalue_comp));
                                [] { ll::print_sleep_ms(150, "E2"); })
                            .then([] { ll::print_sleep_ms(150, "F"); });
 
-std::printf("%lu\n", sizeof(computation));
+    std::printf("%lu\n", sizeof(computation));
     execute_after_move(std::move(computation));
 }
