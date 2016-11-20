@@ -8,6 +8,8 @@
 #include <thread>
 #include <tuple>
 
+#include "latch.hpp"
+
 namespace ll
 {
     using pool = ecst::thread_pool;
@@ -34,7 +36,6 @@ namespace ll
     struct context
     {
         pool& _p;
-        std::condition_variable _cv;
         context(pool& p) : _p{p}
         {
         }
@@ -59,13 +60,6 @@ namespace ll
         void start(TNode& n, TNodes&... ns) &
         {
             n.execute(ns...);
-        }
-
-        void wait() &
-        {
-            std::mutex m;
-            std::unique_lock<std::mutex> l(m);
-            _ctx._cv.wait(l);
         }
 
         auto& ctx() & noexcept
@@ -141,12 +135,7 @@ namespace ll
 
         auto execute() &
         {
-            this->ctx()._p.post(
-                [this]() {
-                  as_f()();
-                  this->ctx()._cv.notify_all();
-                }
-            );
+            this->ctx()._p.post(as_f());
         }
 
         template <typename TNode, typename... TNodes>
@@ -164,6 +153,12 @@ namespace ll
             return node_then<this_type, TCont>{std::move(*this), FWD(cont)};
         }
 
+        template <typename TCont>
+        auto then(TCont&& cont) &
+        {
+            return node_then<this_type&, TCont>{*this, FWD(cont)};
+        }
+
         template <typename... TConts>
         auto wait_all(TConts&&... cont) &&;
 
@@ -171,10 +166,6 @@ namespace ll
         auto start(TNodes&... ns) &
         {
             this->parent().start(*this, ns...);
-        }
-
-        auto wait() {
-            this->parent().wait();
         }
     };
 
@@ -212,10 +203,6 @@ namespace ll
         {
             (this->ctx()._p.post([&] {
                 static_cast<TFs&> (*this)();
-                if(--_ctr == 0)
-                {
-                    this->ctx()._cv.notify_all();
-                }
             }), ...);
         }
 
@@ -252,10 +239,6 @@ namespace ll
         {
             this->parent().start(*this, ns...);
         }
-
-        auto wait() {
-            this->parent().wait();
-        }
     };
 
     template <typename TParent, typename TF>
@@ -271,13 +254,38 @@ namespace ll
     {
         return node_then<root, TF>(root{*this}, FWD(f));
     }
-}
 
-template <typename T>
-void execute_after_move(T x)
-{
-    x.start();
-    x.wait();
+    template<typename TChain>  // not to be confused with TwoChainz
+    auto wait_until_complete(TChain&& chain) {
+        latch l{1};
+        auto latched_chain = chain.then([&l]{
+            l.count_down();
+        });
+        latched_chain.start();
+        l.wait();
+        // once returning results are implemented:
+        // return latched_chain.result();
+    }
+
+    template<typename TChain, typename Clock, typename Duration>
+    auto wait_until(TChain&& c, std::chrono::time_point<Clock, Duration>&& t) {
+        latch l{1};
+        auto latched_chain = c.then([&l]{
+            l.count_down();
+        });
+        latched_chain.start();
+        l.wait_until(t);
+    }
+
+    template<typename TChain, typename Rep, typename Period>
+    auto wait_for(TChain&& c, std::chrono::duration<Rep, Period>&& t) {
+        latch l{1};
+        auto latched_chain = c.then([&l]{
+            l.count_down();
+        });
+        latched_chain.start();
+        l.wait_for(t);
+    }
 }
 
 int main()
@@ -301,7 +309,8 @@ int main()
 
     std::printf("%lu\n", sizeof(computation));
     auto start = std::chrono::steady_clock::now();
-    execute_after_move(std::move(computation));
+    ll::wait_until_complete(std::move(computation));
+    // ll::wait_for(std::move(computation), std::chrono::milliseconds(400));
     auto end = std::chrono::steady_clock::now();
     std::printf("Completed chained futures after %lu milliseconds\n",
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
