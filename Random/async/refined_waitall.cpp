@@ -34,6 +34,7 @@ namespace ll
     struct context
     {
         pool& _p;
+        std::condition_variable _cv;
         context(pool& p) : _p{p}
         {
         }
@@ -58,6 +59,13 @@ namespace ll
         void start(TNode& n, TNodes&... ns) &
         {
             n.execute(ns...);
+        }
+
+        void wait() &
+        {
+            std::mutex m;
+            std::unique_lock<std::mutex> l(m);
+            _ctx._cv.wait(l);
         }
 
         auto& ctx() & noexcept
@@ -133,7 +141,12 @@ namespace ll
 
         auto execute() &
         {
-            this->ctx()._p.post(as_f());
+            this->ctx()._p.post(
+                [this]() {
+                  as_f()();
+                  this->ctx()._cv.notify_all();
+                }
+            );
         }
 
         template <typename TNode, typename... TNodes>
@@ -158,6 +171,10 @@ namespace ll
         auto start(TNodes&... ns) &
         {
             this->parent().start(*this, ns...);
+        }
+
+        auto wait() {
+            this->parent().wait();
         }
     };
 
@@ -193,7 +210,13 @@ namespace ll
 
         auto execute() &
         {
-            (this->ctx()._p.post([&] { static_cast<TFs&> (*this)(); }), ...);
+            (this->ctx()._p.post([&] {
+                static_cast<TFs&> (*this)();
+                if(--_ctr == 0)
+                {
+                    this->ctx()._cv.notify_all();
+                }
+            }), ...);
         }
 
         template <typename TNode, typename... TNodes>
@@ -229,6 +252,10 @@ namespace ll
         {
             this->parent().start(*this, ns...);
         }
+
+        auto wait() {
+            this->parent().wait();
+        }
     };
 
     template <typename TParent, typename TF>
@@ -250,7 +277,7 @@ template <typename T>
 void execute_after_move(T x)
 {
     x.start();
-    ll::sleep_ms(1200);
+    x.wait();
 }
 
 int main()
@@ -273,5 +300,11 @@ int main()
                            .then([] { ll::print_sleep_ms(150, "F"); });
 
     std::printf("%lu\n", sizeof(computation));
+    auto start = std::chrono::steady_clock::now();
     execute_after_move(std::move(computation));
+    auto end = std::chrono::steady_clock::now();
+    std::printf("Completed chained futures after %lu milliseconds\n",
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+
+    return 0;
 }
