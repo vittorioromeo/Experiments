@@ -214,12 +214,12 @@ namespace ll
 #undef BOUND_F
     }
 
-    template <typename TParent, typename TF>
+    template <typename TParent, typename... TFs>
     struct node_then : child_of<TParent>,
-                       continuable<node_then<TParent, TF>>,
-                       TF
+                       continuable<node_then<TParent, TFs...>>,
+                       TFs...
     {
-        using this_type = node_then<TParent, TF>;
+        using this_type = node_then<TParent, TFs...>;
 
         // TODO: might be useful?
         /*
@@ -228,36 +228,45 @@ namespace ll
             std::declval<TF>(), std::declval<input_type>()));
         */
 
-        auto& as_f() noexcept
-        {
-            return static_cast<TF&>(*this);
-        }
 
-        template <typename TParentFwd, typename TFFwd>
-        node_then(TParentFwd&& p, TFFwd&& f)
-            : child_of<TParent>{FWD(p)}, TF{FWD(f)}
+        template <typename TParentFwd, typename... TFFwds>
+        node_then(TParentFwd&& p, TFFwds&&... fs)
+            : child_of<TParent>{FWD(p)}, TFs{FWD(fs)}...
         {
         }
 
         template <typename T>
         auto execute(T&& x) &
         {
-            this->ctx()._p.post([ this, x = FWD(x) ]() mutable {
-                with_void_to_nothing(as_f(), FWD(x));
-            });
+            using tuple_type = std::tuple<decltype(
+                with_void_to_nothing(std::declval<TFs>(), FWD(x)))...>;
+
+            auto f = [ this, x = FWD(x) ](auto& xf) mutable
+            {
+                with_void_to_nothing(xf, FWD(x));
+            };
+
+
+            (this->ctx()._p.post(f(static_cast<TFs&>(*this))), ...);
         }
 
         template <typename T, typename TNode, typename... TNodes>
         auto execute(T&& x, TNode& n, TNodes&... ns) &
         {
-            this->ctx()._p.post([ this, x = FWD(x), &n, &ns... ]() mutable {
-                decltype(auto) res = with_void_to_nothing(as_f(), FWD(x));
+            using tuple_type = std::tuple<decltype(
+                with_void_to_nothing(std::declval<TFs>(), FWD(x)))...>;
+
+            auto f = [ this, x = FWD(x), &n, &ns... ](auto& xf) mutable
+            {
+                decltype(auto) res = with_void_to_nothing(xf, FWD(x));
 
                 this->ctx()._p.post(
                     [ res = std::move(res), &n, &ns... ]() mutable {
                         n.execute(std::move(res), ns...);
                     });
-            });
+            };
+
+            (this->ctx()._p.post(f(static_cast<TFs&>(*this))), ...);
         }
 
         template <typename... TNodes>
@@ -349,39 +358,15 @@ namespace ll
     template <typename... TConts>
     auto continuable<TDerived>::then(TConts&&... conts) &
     {
-        IF_CONSTEXPR(sizeof...(conts) == 0)
-        {
-            static_assert("u wot m8");
-        }
-        else IF_CONSTEXPR(sizeof...(conts) == 1)
-        {
-            return node_then<this_type, TConts...>{as_derived(), FWD(conts)...};
-        }
-        else
-        {
-            return node_wait_all<this_type, TConts...>{
-                as_derived(), FWD(conts)...};
-        }
+        return node_then<this_type, TConts...>{as_derived(), FWD(conts)...};
     }
 
     template <typename TDerived>
     template <typename... TConts>
     auto continuable<TDerived>::then(TConts&&... conts) &&
     {
-        IF_CONSTEXPR(sizeof...(conts) == 0)
-        {
-            static_assert("u wot m8");
-        }
-        else IF_CONSTEXPR(sizeof...(conts) == 1)
-        {
-            return node_then<this_type, TConts...>{
-                std::move(as_derived()), FWD(conts)...};
-        }
-        else
-        {
-            return node_wait_all<this_type, TConts...>{
-                std::move(as_derived()), FWD(conts)...};
-        }
+        return node_then<this_type, TConts...>{
+            std::move(*this).as_derived(), FWD(conts)...};
     }
 }
 
