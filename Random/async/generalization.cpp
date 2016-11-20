@@ -386,6 +386,14 @@ int main()
             .start();
     */
 
+    /* TODO:
+        ctx.build<int>([] { return 10; })
+            .then<int>([](int x) { return std::to_string(x); })
+            .then_timeout<std::string>(200ms, [](std::string x) { return "num: " + x; })
+            .then<void>([](std::optional<std::string> x) { std::printf("%s\n", x.c_str()); })
+            .start();
+    */
+
     // TODO: deduce return type when possible!
     // (generalize stuff from variant articles)
     // (generic lambdas are probably not deducible)
