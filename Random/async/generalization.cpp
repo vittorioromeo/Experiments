@@ -81,7 +81,7 @@ namespace ll
         {
         }
 
-        template <typename TReturn, typename TF>
+        template <typename TF>
         auto build(TF&& f);
     };
 
@@ -93,8 +93,10 @@ namespace ll
         }
     };
 
+    template <typename TReturn>
     struct root : base_node
     {
+        using return_type = TReturn;
         using base_node::base_node;
 
         template <typename TNode, typename... TNodes>
@@ -312,10 +314,12 @@ namespace ll
                 std::move(*this), FWD(conts)...};
         }
     */
-    template <typename TReturn, typename TF>
+    template <typename TF>
     auto context::build(TF&& f)
     {
-        return node_then<root, TReturn, TF>(root{*this}, FWD(f));
+        using return_type = decltype(f());
+        using root_type = root<return_type>;
+        return node_then<root_type, return_type, TF>(root_type{*this}, FWD(f));
     }
 
 
@@ -349,12 +353,12 @@ int main()
     ll::context ctx{p};
 
     auto computation =
-        ctx.build<int>([] { return 10; })
+        ctx.build([] { return 10; })
             .then<int>([](int x) { return std::to_string(x); })
             .then<std::string>([](std::string x) { return "num: " + x; })
             .then<void>([](std::string x) { std::printf("%s\n", x.c_str()); });
 
-    ctx.build<int>([] { return 10; })
+    ctx.build([] { return 10; })
         .then<int>([](int x) { return std::to_string(x); })
         .then<std::string>([](std::string x) { return "num: " + x; })
         .then<void>([](std::string x) { std::printf("%s\n", x.c_str()); })
@@ -389,8 +393,10 @@ int main()
     /* TODO:
         ctx.build<int>([] { return 10; })
             .then<int>([](int x) { return std::to_string(x); })
-            .then_timeout<std::string>(200ms, [](std::string x) { return "num: " + x; })
-            .then<void>([](std::optional<std::string> x) { std::printf("%s\n", x.c_str()); })
+            .then_timeout<std::string>(200ms, [](std::string x) { return "num: "
+       + x; })
+            .then<void>([](std::optional<std::string> x) { std::printf("%s\n",
+       x.c_str()); })
             .start();
     */
 
