@@ -8,6 +8,14 @@
 #include <thread>
 #include <tuple>
 
+#ifdef NOT_ATOM
+#define IF_CONSTEXPR \
+    if               \
+    constexpr
+#else
+#define IF_CONSTEXPR if
+#endif
+
 namespace ll
 {
     using pool = ecst::thread_pool;
@@ -31,15 +39,20 @@ namespace ll
             [&f](auto&&... xs) { (f(FWD(xs)), ...); }, FWD(t));
     }
 
+    struct nothing_t
+    {
+    };
+
+    constexpr nothing_t nothing{};
+
     struct context
     {
         pool& _p;
-        std::condition_variable _cv;
         context(pool& p) : _p{p}
         {
         }
 
-        template <typename TF>
+        template <typename TReturn, typename TF>
         auto build(TF&& f);
     };
 
@@ -56,16 +69,9 @@ namespace ll
         using base_node::base_node;
 
         template <typename TNode, typename... TNodes>
-        void start(TNode& n, TNodes&... ns) &
+        void start(TNode& n, TNodes&... ns)
         {
-            n.execute(ns...);
-        }
-
-        void wait() &
-        {
-            std::mutex m;
-            std::unique_lock<std::mutex> l(m);
-            _ctx._cv.wait(l);
+            n.execute(nothing, ns...);
         }
 
         auto& ctx() & noexcept
@@ -121,12 +127,57 @@ namespace ll
         }
     };
 
+    template <typename TF>
+    decltype(auto) call_ignoring_nothing(TF&& f);
 
+    template <typename TF, typename... Ts>
+    decltype(auto) call_ignoring_nothing(TF&& f, nothing_t, Ts&&... xs);
 
-    template <typename TParent, typename TF>
+    template <typename TF, typename T, typename... Ts>
+    decltype(auto) call_ignoring_nothing(TF&& f, T&& x, Ts&&... xs)
+    {
+        return call_ignoring_nothing(
+            [ f = FWD(f), x = FWD(x) ](auto&&... ys) mutable->decltype(
+                auto) { return f(FWD(x), FWD(ys)...); },
+            FWD(xs)...);
+    }
+
+    template <typename TF, typename... Ts>
+    decltype(auto) call_ignoring_nothing(TF&& f, nothing_t, Ts&&... xs)
+    {
+        return call_ignoring_nothing(f, FWD(xs)...);
+    }
+
+    template <typename TF>
+    decltype(auto) call_ignoring_nothing(TF&& f)
+    {
+        return f();
+    }
+
+    template <typename TF, typename... Ts>
+    decltype(auto) with_void_to_nothing(TF&& f, Ts&&... xs)
+    {
+#define BOUND_F() call_ignoring_nothing(f, FWD(xs)...)
+
+        // clang-format off
+        IF_CONSTEXPR(std::is_same<decltype(BOUND_F()), void>{})
+        {
+            BOUND_F();
+            return nothing;
+        }
+        else
+        {
+            return BOUND_F();
+        }
+// clang-format on
+
+#undef BOUND_F
+    }
+
+    template <typename TParent, typename TReturn, typename TF>
     struct node_then : child_of<TParent>, TF
     {
-        using this_type = node_then<TParent, TF>;
+        using this_type = node_then<TParent, TReturn, TF>;
 
         auto& as_f() noexcept
         {
@@ -139,42 +190,41 @@ namespace ll
         {
         }
 
-        auto execute() &
+        template <typename T>
+        auto execute(T&& x) &
         {
-            this->ctx()._p.post(
-                [this]() {
-                  as_f()();
-                  this->ctx()._cv.notify_all();
-                }
-            );
-        }
-
-        template <typename TNode, typename... TNodes>
-        auto execute(TNode& n, TNodes&... ns) &
-        {
-            this->ctx()._p.post([&] {
-                as_f()();
-                this->ctx()._p.post([&] { n.execute(ns...); });
+            this->ctx()._p.post([ this, x = FWD(x) ]() mutable {
+                with_void_to_nothing(as_f(), FWD(x));
             });
         }
 
-        template <typename TCont>
+        template <typename T, typename TNode, typename... TNodes>
+        auto execute(T&& x, TNode& n, TNodes&... ns) &
+        {
+            this->ctx()._p.post([ this, x = FWD(x), &n, &ns... ]() mutable {
+                decltype(auto) res = with_void_to_nothing(as_f(), FWD(x));
+
+                this->ctx()._p.post(
+                    [ res = std::move(res), &n, &ns... ]() mutable {
+                        n.execute(std::move(res), ns...);
+                    });
+            });
+        }
+
+        template <typename TContReturn, typename TCont>
         auto then(TCont&& cont) &&
         {
-            return node_then<this_type, TCont>{std::move(*this), FWD(cont)};
+            return node_then<this_type, TContReturn, TCont>{
+                std::move(*this), FWD(cont)};
         }
 
         template <typename... TConts>
         auto wait_all(TConts&&... cont) &&;
 
         template <typename... TNodes>
-        auto start(TNodes&... ns) &
+        auto start(TNodes&... ns)
         {
             this->parent().start(*this, ns...);
-        }
-
-        auto wait() {
-            this->parent().wait();
         }
     };
 
@@ -210,13 +260,7 @@ namespace ll
 
         auto execute() &
         {
-            (this->ctx()._p.post([&] {
-                static_cast<TFs&> (*this)();
-                if(--_ctr == 0)
-                {
-                    this->ctx()._cv.notify_all();
-                }
-            }), ...);
+            //(this->ctx()._p.post([&] { static_cast<TFs&> (*this)(); }), ...);
         }
 
         template <typename TNode, typename... TNodes>
@@ -232,19 +276,20 @@ namespace ll
                 });
             };
 
-            (exec(static_cast<TFs&>(*this)), ...);
+            // TODO: gcc bug?
+            //    (exec(static_cast<TFs&>(*this)), ...);
         }
 
-        template <typename TCont>
+        template <typename TReturn, typename TCont>
         auto then(TCont&& cont) &
         {
-            return node_then<this_type&, TCont>{*this, FWD(cont)};
+            return node_then<this_type&, TReturn, TCont>{*this, FWD(cont)};
         }
-
-        template <typename TCont>
+        template <typename TReturn, typename TCont>
         auto then(TCont&& cont) &&
         {
-            return node_then<this_type, TCont>{std::move(*this), FWD(cont)};
+            return node_then<this_type, TReturn, TCont>{
+                std::move(*this), FWD(cont)};
         }
 
         template <typename... TNodes>
@@ -252,24 +297,20 @@ namespace ll
         {
             this->parent().start(*this, ns...);
         }
-
-        auto wait() {
-            this->parent().wait();
-        }
     };
 
-    template <typename TParent, typename TF>
+    template <typename TParent, typename TReturn, typename TF>
     template <typename... TConts>
-    auto node_then<TParent, TF>::wait_all(TConts&&... conts) &&
+    auto node_then<TParent, TReturn, TF>::wait_all(TConts&&... conts) &&
     {
         return node_wait_all<this_type, TConts...>{
             std::move(*this), FWD(conts)...};
     }
 
-    template <typename TF>
+    template <typename TReturn, typename TF>
     auto context::build(TF&& f)
     {
-        return node_then<root, TF>(root{*this}, FWD(f));
+        return node_then<root, TReturn, TF>(root{*this}, FWD(f));
     }
 }
 
@@ -277,7 +318,7 @@ template <typename T>
 void execute_after_move(T x)
 {
     x.start();
-    x.wait();
+    ll::sleep_ms(1200);
 }
 
 int main()
@@ -285,26 +326,18 @@ int main()
     ll::pool p;
     ll::context ctx{p};
 
-    auto lvalue_comp = ctx.build([] { ll::print_sleep_ms(150, "A"); })
-                           .then([] { ll::print_sleep_ms(150, "B"); })
-                           .wait_all([] { ll::print_sleep_ms(150, "C0"); },
-                               [] { ll::print_sleep_ms(150, "C1"); },
-                               [] { ll::print_sleep_ms(150, "C2"); });
+    auto computation =
+        ctx.build<int>([] { return 10; })
+            .then<int>([](int x) { return std::to_string(x); })
+            .then<std::string>([](std::string x) { return "num: " + x; })
+            .then<void>([](std::string x) { std::printf("%s\n", x.c_str()); });
 
-    std::printf("%lu\n", sizeof(lvalue_comp));
+    ctx.build<int>([] { return 10; })
+        .then<int>([](int x) { return std::to_string(x); })
+        .then<std::string>([](std::string x) { return "num: " + x; })
+        .then<void>([](std::string x) { std::printf("%s\n", x.c_str()); })
+        .start();
 
-    auto computation = lvalue_comp.then([] { ll::print_sleep_ms(150, "D"); })
-                           .wait_all([] { ll::print_sleep_ms(150, "E0"); },
-                               [] { ll::print_sleep_ms(150, "E1"); },
-                               [] { ll::print_sleep_ms(150, "E2"); })
-                           .then([] { ll::print_sleep_ms(150, "F"); });
-
-    std::printf("%lu\n", sizeof(computation));
-    auto start = std::chrono::steady_clock::now();
     execute_after_move(std::move(computation));
-    auto end = std::chrono::steady_clock::now();
-    std::printf("Completed chained futures after %lu milliseconds\n",
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
-
-    return 0;
+    ll::sleep_ms(200);
 }

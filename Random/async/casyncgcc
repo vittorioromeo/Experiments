@@ -1,0 +1,45 @@
+#!/bin/bash
+
+g++7 -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 \
+        -DNOT_ATOM=1 \
+        -I/home/vittorioromeo/OHWorkspace/ecst/include \
+        -pedantic \
+        -W \
+        -Wall \
+        -Wextra \
+        -Wno-unused-local-typedefs \
+        -Wwrite-strings \
+        -Wshadow \
+        -Wundef \
+        -Wno-missing-field-initializers \
+        -Wpointer-arith \
+        -Wcast-align \
+        -Wno-unreachable-code \
+        -Wnon-virtual-dtor \
+        -Woverloaded-virtual \
+        -pthread \
+        -fdiagnostics-color=always \
+        -fsanitize=undefined \
+        $1 -o /tmp/x.x && /tmp/x.x "${@:2}"
+
+g++7 -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 \
+        -DNOT_ATOM=1 \
+        -I/home/vittorioromeo/OHWorkspace/ecst/include \
+        -pedantic \
+        -W \
+        -Wall \
+        -Wextra \
+        -Wno-unused-local-typedefs \
+        -Wwrite-strings \
+        -Wshadow \
+        -Wundef \
+        -Wno-missing-field-initializers \
+        -Wpointer-arith \
+        -Wcast-align \
+        -Wno-unreachable-code \
+        -Wnon-virtual-dtor \
+        -Woverloaded-virtual \
+        -pthread \
+        -fdiagnostics-color=always \
+        -fsanitize=address \
+        $1 -o /tmp/x.x && /tmp/x.x "${@:2}"
