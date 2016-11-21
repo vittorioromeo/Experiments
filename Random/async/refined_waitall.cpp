@@ -1,4 +1,6 @@
 #include <atomic>
+#include <boost/hana/tuple.hpp>
+#include <boost/hana/transform.hpp>
 #include <chrono>
 #include <cstdio>
 #include <ecst/thread_pool.hpp>
@@ -255,36 +257,59 @@ namespace ll
         return node_then<root, TF>(root{*this}, FWD(f));
     }
 
-    template<typename TChain>  // not to be confused with TwoChainz
-    auto wait_until_complete(TChain&& chain) {
-        latch l{1};
-        auto latched_chain = chain.then([&l]{
-            l.count_down();
+    template<typename... TChains>
+    auto get_latched_chains(latch& l, TChains&&...chains) {
+      namespace hana = boost::hana;
+      return hana::transform(
+          std::make_tuple(FWD(chains)...),
+          [&l](auto&& c) {
+          return c.then([&l]{
+              l.count_down();
+          });
         });
-        latched_chain.start();
+    }
+
+
+    template<typename... TChains>
+    auto wait_until_complete(TChains&&...chains) {
+        namespace hana = boost::hana;
+        static_assert(sizeof...(TChains) > 0,
+            "wait_until_complete requires 1 or more chains of computation");
+        latch l{sizeof...(TChains)};
+
+        // when uncommented, causes a segfault, possibly due to inlining?
+        // auto latched_chains = get_latched_chains(l, FWD(chains)...)
+        // copy/pasting until I figure out what's wrong
+        auto latched_chains = hana::transform(
+            std::make_tuple(FWD(chains)...),
+            [&l](auto&& c) { return c.then([&l]{ l.count_down(); }); });
+
+        for_tuple(latched_chains, [](auto& c) { c.start(); });
         l.wait();
-        // once returning results are implemented:
-        // return latched_chain.result();
+        // In the future, we would combine the results of the finished chains in a tuple
     }
 
-    template<typename TChain, typename Clock, typename Duration>
-    auto wait_until(TChain&& c, std::chrono::time_point<Clock, Duration>&& t) {
-        latch l{1};
-        auto latched_chain = c.then([&l]{
-            l.count_down();
-        });
-        latched_chain.start();
-        l.wait_until(t);
-    }
+    template<typename... TChains, typename Rep, typename Period>
+    auto wait_for(std::chrono::duration<Rep, Period>&& t, TChains&&... chains) {
+        namespace hana = boost::hana;
+        static_assert(sizeof...(TChains) > 0,
+            "wait_until_complete requires 1 or more chains of computation");
+        latch l{sizeof...(TChains)};
 
-    template<typename TChain, typename Rep, typename Period>
-    auto wait_for(TChain&& c, std::chrono::duration<Rep, Period>&& t) {
-        latch l{1};
-        auto latched_chain = c.then([&l]{
-            l.count_down();
-        });
-        latched_chain.start();
-        l.wait_for(t);
+        // when uncommented, causes a segfault, possibly due to inlining?
+        // auto latched_chains = get_latched_chains(l, FWD(chains)...)
+        // copy/pasting until I figure out what's wrong
+        auto latched_chains = hana::transform(
+            std::make_tuple(FWD(chains)...),
+            [&l](auto&& c) { return c.then([&l]{ l.count_down(); }); });
+
+        for_tuple(latched_chains, [](auto& c) { c.start(); });
+        auto status = l.wait_for(t);
+        /*
+        if (status == std::cv_status::timeout) {
+          // TODO gracefully clean up hanging threads or state in each chain?
+        }
+        */
     }
 }
 
@@ -301,7 +326,7 @@ int main()
 
     std::printf("%lu\n", sizeof(lvalue_comp));
 
-    auto computation = lvalue_comp.then([] { ll::print_sleep_ms(150, "D"); })
+    auto computation = ctx.build([] { ll::print_sleep_ms(150, "D"); })
                            .wait_all([] { ll::print_sleep_ms(150, "E0"); },
                                [] { ll::print_sleep_ms(150, "E1"); },
                                [] { ll::print_sleep_ms(150, "E2"); })
@@ -309,8 +334,9 @@ int main()
 
     std::printf("%lu\n", sizeof(computation));
     auto start = std::chrono::steady_clock::now();
-    ll::wait_until_complete(std::move(computation));
-    // ll::wait_for(std::move(computation), std::chrono::milliseconds(400));
+    ll::wait_until_complete(std::move(lvalue_comp), std::move(computation));
+    // TODO segfaults if uncommented out
+    // ll::wait_for(std::chrono::milliseconds(200), std::move(lvalue_comp), std::move(computation));
     auto end = std::chrono::steady_clock::now();
     std::printf("Completed chained futures after %lu milliseconds\n",
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
