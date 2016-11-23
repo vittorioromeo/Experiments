@@ -1,20 +1,23 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <thread>
+#include <mutex>
+#include <mingw.thread.h>
+#include <mingw.mutex.h>
+#include <mingw.condition_variable.h>
 #include <ecst/thread_pool.hpp>
 #include <ecst/utils.hpp>
 #include <experimental/tuple>
 #include <functional>
 #include <thread>
 #include <tuple>
+#include "perfect_capture.hpp"
+#include "nothing.hpp"
 
-#ifdef NOT_ATOM
 #define IF_CONSTEXPR \
     if               \
     constexpr
-#else
-#define IF_CONSTEXPR if
-#endif
 
 namespace ll
 {
@@ -30,13 +33,6 @@ namespace ll
     {
         std::puts(x);
         sleep_ms(ms);
-    }
-
-    template <typename TTuple, typename TF>
-    void for_tuple(TTuple&& t, TF&& f)
-    {
-        std::experimental::apply(
-            [&f](auto&&... xs) { (f(FWD(xs)), ...); }, FWD(t));
     }
 
     template <typename TDerived>
@@ -65,14 +61,6 @@ namespace ll
         template <typename... TConts>
         auto then(TConts&&... conts) &&;
     };
-
-
-
-    struct nothing_t
-    {
-    };
-
-    constexpr nothing_t nothing{};
 
     struct context
     {
@@ -151,68 +139,6 @@ namespace ll
             return parent().ctx();
         }
     };
-
-    template <typename TF>
-    decltype(auto) call_ignoring_nothing(TF&& f);
-
-    template <typename TF, typename... Ts>
-    decltype(auto) call_ignoring_nothing(TF&& f, nothing_t, Ts&&... xs);
-
-    template <typename TF, typename T, typename... Ts>
-    decltype(auto) call_ignoring_nothing(TF&& f, T&& x, Ts&&... xs)
-    {
-        return call_ignoring_nothing(
-            [ f = FWD(f), x = FWD(x) ](auto&&... ys) mutable->decltype(
-                auto) { return f(FWD(x), FWD(ys)...); },
-            FWD(xs)...);
-    }
-
-    template <typename TF, typename... Ts>
-    decltype(auto) call_ignoring_nothing(TF&& f, nothing_t, Ts&&... xs)
-    {
-        return call_ignoring_nothing(f, FWD(xs)...);
-    }
-
-    template <typename TF>
-    decltype(auto) call_ignoring_nothing(TF&& f)
-    {
-        return f();
-    }
-
-    template <typename T>
-    struct void_to_nothing
-    {
-        using type = T;
-    };
-
-    template <>
-    struct void_to_nothing<void>
-    {
-        using type = nothing_t;
-    };
-
-    template <typename T>
-    using void_to_nothing_t = typename void_to_nothing<T>::type;
-
-    template <typename TF, typename... Ts>
-    decltype(auto) with_void_to_nothing(TF&& f, Ts&&... xs)
-    {
-#define BOUND_F() call_ignoring_nothing(f, FWD(xs)...)
-
-        // clang-format off
-        IF_CONSTEXPR(std::is_same<decltype(BOUND_F()), void>{})
-        {
-            BOUND_F();
-            return nothing;
-        }
-        else
-        {
-            return BOUND_F();
-        }
-// clang-format on
-
-#undef BOUND_F
-    }
 
     template <typename TParent, typename TF>
     struct node_then : child_of<TParent>,

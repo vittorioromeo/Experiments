@@ -1,4 +1,5 @@
 callgrind.*
+*.gch
 CMakeLists.txt.user.*
 emscripten_tests
 lib/

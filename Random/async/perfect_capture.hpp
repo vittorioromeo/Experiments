@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tuple>
 #include <thread>
 #include <mutex>
 #include <mingw.thread.h>
@@ -39,13 +40,18 @@ private:
     T _x;
 
 public:
-    perfect_capture(T&& x) : _x{std::move(x)} { }
+    constexpr perfect_capture(T&& x)
+        noexcept(std::is_nothrow_move_constructible<T>{})
+        : _x{std::move(x)} { }
 
-    perfect_capture(perfect_capture&& rhs) : _x{std::move(rhs._x)}
+    constexpr perfect_capture(perfect_capture&& rhs)
+        noexcept(std::is_nothrow_move_constructible<T>{})
+        : _x{std::move(rhs._x)}
     {
     }
 
-    perfect_capture& operator=(perfect_capture&& rhs)
+    constexpr perfect_capture& operator=(perfect_capture&& rhs)
+        noexcept(std::is_nothrow_move_assignable<T>{})
     {
         _x = std::move(rhs._x);
         return *this;
@@ -55,8 +61,14 @@ public:
     perfect_capture(const perfect_capture&) = delete;
     perfect_capture& operator=(const perfect_capture&) = delete;
 
-    operator T&&() { return std::move(_x); }
-    operator T&&() const { return std::move(_x); }
+    constexpr auto& get() & noexcept { return _x; }
+    constexpr const auto& get() const& noexcept { return _x; }
+
+    constexpr operator T&() & noexcept { return _x; }
+    constexpr operator const T&() const& noexcept { return _x; }
+
+    constexpr auto get() && noexcept(std::is_nothrow_move_constructible<T>{}) { return std::move(_x); }
+    constexpr operator T&&() && noexcept(std::is_nothrow_move_constructible<T>{}) { return std::move(_x); }
 };
 
 template <typename T>
@@ -65,16 +77,16 @@ struct perfect_capture<T&>
     static_assert(!std::is_rvalue_reference<T>{});
 
 private:
-    T& _x;
+    std::reference_wrapper<T> _x;
 
 public:
-    perfect_capture(T& x) : _x{x} { }
+    constexpr perfect_capture(T& x) noexcept : _x{x} { }
 
-    perfect_capture(perfect_capture&& rhs) : _x{rhs._x}
+    constexpr perfect_capture(perfect_capture&& rhs) noexcept : _x{rhs._x}
     {
     }
 
-    perfect_capture& operator=(perfect_capture&& rhs)
+    constexpr perfect_capture& operator=(perfect_capture&& rhs) noexcept
     {
         _x = rhs._x;
         return *this;
@@ -84,20 +96,29 @@ public:
     perfect_capture(const perfect_capture&) = delete;
     perfect_capture& operator=(const perfect_capture&) = delete;
 
-    operator T&() noexcept { return _x; }
-    operator const T&() const noexcept { return _x; }
+    constexpr auto& get() & noexcept { return _x.get(); }
+    constexpr const auto& get() const& noexcept { return _x.get(); }
+
+    constexpr operator T&() & noexcept { return _x.get(); }
+    constexpr operator const T&() const& noexcept { return _x.get(); }
 };
 
 template <typename T>
-auto pcap(T&& x)
+auto fwd_capture(T&& x)
 {
     return perfect_capture<T>(FWD(x));
 }
 
-STATIC_ASSERT_SAME(pcap(1), perfect_capture<int>);
-STATIC_ASSERT_SAME(pcap(std::declval<int>()), perfect_capture<int>);
-STATIC_ASSERT_SAME(pcap(std::declval<int&>()), perfect_capture<int&>);
-STATIC_ASSERT_SAME(pcap(std::declval<int&&>()), perfect_capture<int>);
+template <typename... Ts>
+auto fwd_capture_as_tuple(Ts&&... xs)
+{
+    return std::make_tuple(fwd_capture(xs)...);
+}
+
+STATIC_ASSERT_SAME(fwd_capture(1), perfect_capture<int>);
+STATIC_ASSERT_SAME(fwd_capture(std::declval<int>()), perfect_capture<int>);
+STATIC_ASSERT_SAME(fwd_capture(std::declval<int&>()), perfect_capture<int&>);
+STATIC_ASSERT_SAME(fwd_capture(std::declval<int&&>()), perfect_capture<int>);
 
 #if defined(STATIC_TESTS)
 namespace
@@ -105,20 +126,20 @@ namespace
     void  test0()[[maybe_unused]]
     {
         int x;
-        auto p = pcap(x);
+        auto p = fwd_capture(x);
         STATIC_ASSERT_SAME(p, perfect_capture<int&>);
     }
 
     void test1()[[maybe_unused]]
     {
         int x;
-        auto p = pcap(std::move(x));
+        auto p = fwd_capture(std::move(x));
         STATIC_ASSERT_SAME(p, perfect_capture<int>);
     }
 
     void test2()[[maybe_unused]]
     {
-        auto p = pcap(1);
+        auto p = fwd_capture(1);
         STATIC_ASSERT_SAME(p, perfect_capture<int>);
     }
 }
