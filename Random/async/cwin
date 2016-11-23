@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# -I"D:/hana/include" \
+g++ -std=c++1z -O0 -g \
+        -I"D:/vrm_pp/include" \
+        -I"D:/vrm_core/include" \
+        -I"D:/ecst/include" \
+        -I"D:/mingw-std-threads" \
+        -I"D:/hana/include" \
+        -pedantic \
+        -W \
+        -Wall \
+        -Wextra \
+        -Wno-unused-local-typedefs \
+        -Wwrite-strings \
+        -Wundef \
+        -Wno-missing-field-initializers \
+        -Wpointer-arith \
+        -Wcast-align \
+        -fdiagnostics-color=always \
+        $1 -o /tmp/x.x && /tmp/x.x "${@:2}"
