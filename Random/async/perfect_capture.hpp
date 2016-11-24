@@ -30,6 +30,31 @@ STATIC_ASSERT_SAME_TYPE(value_or_rvalue_t<int>, int);
 STATIC_ASSERT_SAME_TYPE(value_or_rvalue_t<int&>, int&);
 STATIC_ASSERT_SAME_TYPE(value_or_rvalue_t<int&&>, int);
 
+namespace
+{
+    template <typename T>
+    void sanity_test0(T&&)
+    {
+        STATIC_ASSERT_SAME_TYPE(T, int);
+    }
+
+    template <typename T>
+    void sanity_test1(T&&)
+    {
+        STATIC_ASSERT_SAME_TYPE(T, int&);
+    }
+
+    [[maybe_unused]] void sanity()
+    {
+        sanity_test0(int{});
+
+        int a=0;
+        sanity_test0(std::move(a));
+        sanity_test1(a);
+    }
+}
+
+
 template <typename T>
 struct perfect_capture
 {
@@ -123,7 +148,7 @@ STATIC_ASSERT_SAME(fwd_capture(std::declval<int&&>()), perfect_capture<int>);
 #if defined(STATIC_TESTS)
 namespace
 {
-    void  test0()[[maybe_unused]]
+    void test0()[[maybe_unused]]
     {
         int x;
         auto p = fwd_capture(x);

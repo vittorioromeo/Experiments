@@ -99,4 +99,13 @@ int main()
         assert(bl() == 3);
         assert(l() == 3);
     }
+
+    {
+        // Constness
+        int a = 0;
+        const int& aref = a;
+        auto test = [aa = fwd_capture(aref)]() mutable { /*++(aa.get());*/ };
+        test();
+        assert(a == 0);
+    }
 }
