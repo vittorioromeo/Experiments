@@ -266,17 +266,33 @@ namespace ll
         {
         }
 
-        auto execute() &
+        template <typename T>
+        auto execute(T&& x) &
         {
-            //(this->ctx()._p.post([&] { static_cast<TFs&> (*this)(); }), ...);
+            // TODO: figure out lifetime of `x`!
+            auto exec = [this, x](auto& f) {
+                this->post([this, x, &f] {
+
+                    // TODO: un-hardcode
+                    // TODO: never move? always copy? always ref?
+                    f(std::get<0>(x));
+                });
+            };
+
+            // TODO: gcc bug?
+            (exec(static_cast<TFs&>(*this)), ...);
         }
 
-        template <typename TNode, typename... TNodes>
-        auto execute(TNode& n, TNodes&... ns) &
+        template <typename T, typename TNode, typename... TNodes>
+        auto execute(T&& x, TNode& n, TNodes&... ns) &
         {
-            auto exec = [this, &n, &ns...](auto& f) {
-                this->ctx()._p.post([&] {
-                    f();
+            // TODO: figure out lifetime of `x`!
+            auto exec = [this, x, &n, &ns...](auto& f) {
+                this->post([this, x, &n, &ns..., &f] {
+
+                    // TODO: un-hardcode
+                    // TODO: never move? always copy? always ref?
+                    f(std::get<0>(x));
                     if(--_ctr == 0)
                     {
                         n.execute(ns...);
@@ -285,11 +301,11 @@ namespace ll
             };
 
             // TODO: gcc bug?
-            //    (exec(static_cast<TFs&>(*this)), ...);
+            (exec(static_cast<TFs&>(*this)), ...);
         }
 
         template <typename... TNodes>
-        auto start(TNodes&... ns) &
+        auto start(TNodes&... ns)
         {
             this->parent().start(*this, ns...);
         }
@@ -365,6 +381,8 @@ int main()
             .then([](std::string x) { return "num: " + x; })
             .then([](std::string x) { std::printf("%s\n", x.c_str()); });
 
+// TODO: test on linux with sanitizer
+#if 0
     ctx.build([] { return 10; })
         .then([](int x) { return std::to_string(x); })
         .then([](std::string x) { return "num: " + x; })
@@ -383,6 +401,12 @@ int main()
     // with moveonly
     ctx.build([] { return nocopy{}; })
         .then([](nocopy) {})
+        .start();
+#endif
+
+    // when_all
+    ctx.build([] { return 5; })
+        .then([](int y) { std::printf(">>%d\n", y); }, [](int y) { std::printf(">>%d\n", y); })
         .start();
 
     /* TODO:
