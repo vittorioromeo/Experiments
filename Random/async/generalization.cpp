@@ -21,6 +21,7 @@
 
 namespace ll
 {
+    using vrm::core::forward_like;
     using pool = ecst::thread_pool;
 
     inline void sleep_ms(int ms)
@@ -33,6 +34,18 @@ namespace ll
     {
         std::puts(x);
         sleep_ms(ms);
+    }
+
+    template <typename, typename>
+    struct node_then;
+
+    template <typename, typename...>
+    struct node_wait_all;
+
+    namespace continuation
+    {
+        template <typename TContinuable, typename... TConts>
+        auto then(TContinuable&& c, TConts&&... conts);
     }
 
     template <typename TDerived>
@@ -56,10 +69,16 @@ namespace ll
         }
 
         template <typename... TConts>
-        auto then(TConts&&... conts) &;
+        auto then(TConts&&... conts) &
+        {
+            return continuation::then(*this, FWD(conts)...);
+        }
 
         template <typename... TConts>
-        auto then(TConts&&... conts) &&;
+        auto then(TConts&&... conts) &&
+        {
+            return continuation::then(std::move(*this), FWD(conts)...);
+        }
     };
 
     struct context
@@ -90,7 +109,7 @@ namespace ll
         template <typename TNode, typename... TNodes>
         void start(TNode& n, TNodes&... ns)
         {
-            n.execute(nothing, ns...);
+            n.execute(std::make_tuple(nothing), ns...);
         }
 
         auto& ctx() & noexcept
@@ -138,6 +157,12 @@ namespace ll
         {
             return parent().ctx();
         }
+
+        template <typename TF>
+        void post(TF&& f)
+        {
+            this->ctx()._p.post(FWD(f));
+        }
     };
 
     template <typename TParent, typename TF>
@@ -168,18 +193,34 @@ namespace ll
         template <typename T>
         auto execute(T&& x) &
         {
-            this->ctx()._p.post([ this, x = FWD(x) ]() mutable {
+            // TODO: fwd_capture?
+            /*this->ctx()._p.post([ this, x = FWD(x) ]() mutable {
                 with_void_to_nothing(as_f(), FWD(x));
+            });*/
+
+            this->post([this, x = fwd_capture(FWD(x))]() mutable {
+                apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
             });
         }
 
         template <typename T, typename TNode, typename... TNodes>
         auto execute(T&& x, TNode& n, TNodes&... ns) &
         {
-            this->ctx()._p.post([ this, x = FWD(x), &n, &ns... ]() mutable {
+            // TODO: fwd_capture?
+            /*this->ctx()._p.post([ this, x = FWD(x), &n, &ns... ]() mutable {
                 decltype(auto) res = with_void_to_nothing(as_f(), FWD(x));
 
                 this->ctx()._p.post(
+                    [ res = std::move(res), &n, &ns... ]() mutable {
+                        n.execute(std::move(res), ns...);
+                    });
+            });*/
+            this->post([ this, x = fwd_capture(FWD(x)), &n, &ns... ]() mutable {
+
+                decltype(auto) res_value = apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
+                std::tuple<decltype(res_value)> res(FWD(res_value));
+
+                this->post(
                     [ res = std::move(res), &n, &ns... ]() mutable {
                         n.execute(std::move(res), ns...);
                     });
@@ -270,43 +311,27 @@ namespace ll
         return node_then<root_type, TF>(root_type{*this}, FWD(f));
     }
 
-
-    template <typename TDerived>
-    template <typename... TConts>
-    auto continuable<TDerived>::then(TConts&&... conts) &
+    namespace continuation
     {
-        IF_CONSTEXPR(sizeof...(conts) == 0)
+        template <typename TContinuable, typename... TConts>
+        auto then(TContinuable&& c, TConts&&... conts)
         {
-            static_assert("u wot m8");
-        }
-        else IF_CONSTEXPR(sizeof...(conts) == 1)
-        {
-            return node_then<this_type, TConts...>{as_derived(), FWD(conts)...};
-        }
-        else
-        {
-            return node_wait_all<this_type, TConts...>{
-                as_derived(), FWD(conts)...};
-        }
-    }
+            using c_type = typename TContinuable::this_type;
 
-    template <typename TDerived>
-    template <typename... TConts>
-    auto continuable<TDerived>::then(TConts&&... conts) &&
-    {
-        IF_CONSTEXPR(sizeof...(conts) == 0)
-        {
-            static_assert("u wot m8");
-        }
-        else IF_CONSTEXPR(sizeof...(conts) == 1)
-        {
-            return node_then<this_type, TConts...>{
-                std::move(as_derived()), FWD(conts)...};
-        }
-        else
-        {
-            return node_wait_all<this_type, TConts...>{
-                std::move(as_derived()), FWD(conts)...};
+            IF_CONSTEXPR(sizeof...(conts) == 0)
+            {
+                static_assert("u wot m8");
+            }
+            else IF_CONSTEXPR(sizeof...(conts) == 1)
+            {
+                return node_then<c_type, TConts...>{
+                    FWD(c).as_derived(), FWD(conts)...};
+            }
+            else
+            {
+                return node_wait_all<c_type, TConts...>{
+                    FWD(c).as_derived(), FWD(conts)...};
+            }
         }
     }
 }
@@ -317,6 +342,17 @@ void execute_after_move(T x)
     x.start();
     ll::sleep_ms(1200);
 }
+
+struct nocopy
+{
+    nocopy() = default;
+
+    nocopy(const nocopy&) = delete;
+    nocopy& operator=(const nocopy&) = delete;
+
+    nocopy(nocopy&&) = default;
+    nocopy& operator=(nocopy&&) = default;
+};
 
 int main()
 {
@@ -333,6 +369,20 @@ int main()
         .then([](int x) { return std::to_string(x); })
         .then([](std::string x) { return "num: " + x; })
         .then([](std::string x) { std::printf("%s\n", x.c_str()); })
+        .start();
+
+    // with lvalue
+    int aaa = 10;
+    ctx.build([&aaa]() -> int& { return aaa; })
+        .then([](int& x) { return std::to_string(x); })
+        .then([](std::string x) { return "num: " + x; })
+        .then([](std::string x) { std::printf("%s\n", x.c_str()); })
+        .start();
+
+
+    // with moveonly
+    ctx.build([] { return nocopy{}; })
+        .then([](nocopy) {})
         .start();
 
     /* TODO:

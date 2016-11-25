@@ -100,6 +100,15 @@ namespace ll
     }
 
     template <typename TF, typename TTuple>
+    decltype(auto) apply_ignore_nothing(TF&& f, TTuple&& t)
+    {
+        return std::experimental::apply([f = fwd_capture(FWD(f))](auto&&... xs) mutable -> decltype(auto)
+        {
+            return call_ignoring_nothing(vrm::core::forward_like<TF>(f.get()), FWD(xs)...);
+        }, FWD(t));
+    }
+
+    template <typename TF, typename TTuple>
     decltype(auto) for_tuple(TF&& f, TTuple&& t)
     {
         return std::experimental::apply(
