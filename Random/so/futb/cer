@@ -1,0 +1,22 @@
+#!/bin/bash
+
+g++ -std=c++1z -Ofast \
+        -I"D:/vrm_pp/include" \
+        -I"D:/vrm_core/include" \
+        -I"D:/ecst/include" \
+        -I"D:/mingw-std-threads" \
+        -I"D:/hana/include" \
+        -I"C:/MinGW/include" \
+        -pedantic \
+        -W \
+        -Wall \
+        -Wextra \
+        -Wno-unused-local-typedefs \
+        -Wwrite-strings \
+        -Wundef \
+        -Wno-missing-field-initializers \
+        -Wpointer-arith \
+        -Wcast-align \
+        -Wno-terminate \
+        -fdiagnostics-color=always \
+        $1 -o /tmp/x.x && /tmp/x.x "${@:2}"
