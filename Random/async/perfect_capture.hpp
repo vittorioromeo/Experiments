@@ -1,11 +1,6 @@
 #pragma once
 
 #include <tuple>
-#include <thread>
-#include <mutex>
-#include <mingw.thread.h>
-#include <mingw.mutex.h>
-#include <mingw.condition_variable.h>
 #include <ecst/utils.hpp>
 #include <utility>
 #include <type_traits>

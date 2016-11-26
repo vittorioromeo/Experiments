@@ -1,11 +1,17 @@
+
+
 #include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <thread>
 #include <mutex>
+
+#if defined(MINGW)
 #include <mingw.thread.h>
 #include <mingw.mutex.h>
 #include <mingw.condition_variable.h>
+#endif
+
 #include <ecst/thread_pool.hpp>
 #include <ecst/utils.hpp>
 #include <experimental/tuple>
@@ -381,8 +387,6 @@ int main()
             .then([](std::string x) { return "num: " + x; })
             .then([](std::string x) { std::printf("%s\n", x.c_str()); });
 
-// TODO: test on linux with sanitizer
-#if 0
     ctx.build([] { return 10; })
         .then([](int x) { return std::to_string(x); })
         .then([](std::string x) { return "num: " + x; })
@@ -397,16 +401,19 @@ int main()
         .then([](std::string x) { std::printf("%s\n", x.c_str()); })
         .start();
 
-
     // with moveonly
     ctx.build([] { return nocopy{}; })
         .then([](nocopy) {})
         .start();
-#endif
 
     // when_all
     ctx.build([] { return 5; })
         .then([](int y) { std::printf(">>%d\n", y); }, [](int y) { std::printf(">>%d\n", y); })
+        .start();
+
+    // when_all with lvalue
+    ctx.build([&aaa]() -> int& { return aaa; })
+        .then([](int& y) { std::printf(">>%d\n", y); }, [](int& y) { std::printf(">>%d\n", y); })
         .start();
 
     /* TODO:
