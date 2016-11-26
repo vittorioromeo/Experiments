@@ -534,6 +534,31 @@ int main()
         })
         .start();
 
+    // when_all returns lvalues
+    {
+        int lv0 = 0;
+        int lv1 = 0;
+        ctx.build([&lv0, &lv1] -> std::tuple<int&, int&> {
+               return {lv0, lv1};
+           })
+            .then(
+                [](int& y) -> int& {
+                    y += 1;
+                    return y;
+                },
+                [](int& y) -> int& {
+                    y += 2;
+                    return y;
+                })
+            .then([&lv0, &lv1](int& z0, int& z1) {
+                assert(z0 == 1);
+                assert(z1 == 2);
+                assert(lv0 == 1);
+                assert(lv1 == 2);
+            })
+            .start();
+    }
+
     /* TODO:
         ctx.build<int>([] { return 10; })
             .when_all<int, float>
