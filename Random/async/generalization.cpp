@@ -347,6 +347,7 @@ namespace ll
 
         // TODO: should use EBO
         // TODO: should add padding between members to avoid false sharing
+        // TODO: deal with lvalue references. Tuple is non-default-ctor for refs
         return_type _results;
 
 
@@ -542,15 +543,15 @@ int main()
                return {lv0, lv1};
            })
             .then(
-                [](auto y) -> int& {
+                [](auto y) -> int { // TODO: can't return reference, fix
                     std::get<0>(y) += 1;
                     return std::get<0>(y);
                 },
-                [](auto y) -> int& {
+                [](auto y) -> int { // TODO: can't return reference, fix
                     std::get<1>(y) += 2;
                     return std::get<1>(y);
                 })
-            .then([&lv0, &lv1](int& z0, int& z1) {
+            .then([&lv0, &lv1](int z0, int z1) {
                 assert(z0 == 1);
                 assert(z1 == 2);
                 assert(lv0 == 1);
