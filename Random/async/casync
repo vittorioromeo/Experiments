@@ -42,8 +42,8 @@ clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 \
         -pthread \
         -fdiagnostics-color=always \
         -fsanitize=undefined \
-        $1 -o /tmp/x.x && /tmp/x.x "${@:2}"
-
+        $1 -o /tmp/x.x && /tmp/x.x "${@:2}" && \
+\
 clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 \
         -DNOT_ATOM=1 \
         -I/home/vittorioromeo/OHWorkspace/ecst/include \
