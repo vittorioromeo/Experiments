@@ -1,9 +1,9 @@
 #pragma once
 
-#include <tuple>
 #include <ecst/utils.hpp>
-#include <utility>
+#include <tuple>
 #include <type_traits>
+#include <utility>
 
 #define STATIC_ASSERT_SAME_TYPE(T0, T1) static_assert(std::is_same<T0, T1>{})
 #define STATIC_ASSERT_SAME(a, T) STATIC_ASSERT_SAME_TYPE(decltype(a), T)
@@ -13,10 +13,16 @@ STATIC_ASSERT_SAME(FWD(std::declval<int&>()), int&);
 STATIC_ASSERT_SAME(FWD(std::declval<int&&>()), int&&);
 
 template <typename T>
-struct value_or_rvalue { using type = T; };
+struct value_or_rvalue
+{
+    using type = T;
+};
 
 template <typename T>
-struct value_or_rvalue<T&&> { using type = T; };
+struct value_or_rvalue<T&&>
+{
+    using type = T;
+};
 
 template <typename T>
 using value_or_rvalue_t = typename value_or_rvalue<T>::type;
@@ -43,7 +49,7 @@ namespace
     {
         sanity_test0(int{});
 
-        int a=0;
+        int a = 0;
         sanity_test0(std::move(a));
         sanity_test1(a);
     }
@@ -60,18 +66,27 @@ private:
     T _x;
 
 public:
-    constexpr perfect_capture(T&& x)
-        noexcept(std::is_nothrow_move_constructible<T>{})
-        : _x{std::move(x)} { }
+    // TODO: ?
+    /*constexpr perfect_capture(const T& x)
+        noexcept(std::is_nothrow_copy_constructible<T>{})
+        : _x{x} { }*/
 
-    constexpr perfect_capture(perfect_capture&& rhs)
-        noexcept(std::is_nothrow_move_constructible<T>{})
+    perfect_capture(const T& x) = delete;
+
+    constexpr perfect_capture(T&& x) noexcept(
+        std::is_nothrow_move_constructible<T>{})
+        : _x{std::move(x)}
+    {
+    }
+
+    constexpr perfect_capture(perfect_capture&& rhs) noexcept(
+        std::is_nothrow_move_constructible<T>{})
         : _x{std::move(rhs._x)}
     {
     }
 
-    constexpr perfect_capture& operator=(perfect_capture&& rhs)
-        noexcept(std::is_nothrow_move_assignable<T>{})
+    constexpr perfect_capture& operator=(perfect_capture&& rhs) noexcept(
+        std::is_nothrow_move_assignable<T>{})
     {
         _x = std::move(rhs._x);
         return *this;
@@ -81,14 +96,33 @@ public:
     perfect_capture(const perfect_capture&) = delete;
     perfect_capture& operator=(const perfect_capture&) = delete;
 
-    constexpr auto& get() & noexcept { return _x; }
-    constexpr const auto& get() const& noexcept { return _x; }
+    constexpr auto& get() & noexcept
+    {
+        return _x;
+    }
+    constexpr const auto& get() const & noexcept
+    {
+        return _x;
+    }
 
-    constexpr operator T&() & noexcept { return _x; }
-    constexpr operator const T&() const& noexcept { return _x; }
+    constexpr operator T&() & noexcept
+    {
+        return _x;
+    }
+    constexpr operator const T&() const & noexcept
+    {
+        return _x;
+    }
 
-    constexpr auto get() && noexcept(std::is_nothrow_move_constructible<T>{}) { return std::move(_x); }
-    constexpr operator T&&() && noexcept(std::is_nothrow_move_constructible<T>{}) { return std::move(_x); }
+    constexpr auto get() && noexcept(std::is_nothrow_move_constructible<T>{})
+    {
+        return std::move(_x);
+    }
+    constexpr operator T &&() &&
+        noexcept(std::is_nothrow_move_constructible<T>{})
+    {
+        return std::move(_x);
+    }
 };
 
 template <typename T>
@@ -100,7 +134,9 @@ private:
     std::reference_wrapper<T> _x;
 
 public:
-    constexpr perfect_capture(T& x) noexcept : _x{x} { }
+    constexpr perfect_capture(T& x) noexcept : _x{x}
+    {
+    }
 
     constexpr perfect_capture(perfect_capture&& rhs) noexcept : _x{rhs._x}
     {
@@ -116,11 +152,23 @@ public:
     perfect_capture(const perfect_capture&) = delete;
     perfect_capture& operator=(const perfect_capture&) = delete;
 
-    constexpr auto& get() & noexcept { return _x.get(); }
-    constexpr const auto& get() const& noexcept { return _x.get(); }
+    constexpr auto& get() & noexcept
+    {
+        return _x.get();
+    }
+    constexpr const auto& get() const & noexcept
+    {
+        return _x.get();
+    }
 
-    constexpr operator T&() & noexcept { return _x.get(); }
-    constexpr operator const T&() const& noexcept { return _x.get(); }
+    constexpr operator T&() & noexcept
+    {
+        return _x.get();
+    }
+    constexpr operator const T&() const & noexcept
+    {
+        return _x.get();
+    }
 };
 
 template <typename T>
