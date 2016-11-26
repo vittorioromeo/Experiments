@@ -538,17 +538,17 @@ int main()
     {
         int lv0 = 0;
         int lv1 = 0;
-        ctx.build([&lv0, &lv1] -> std::tuple<int&, int&> {
+        ctx.build([&lv0, &lv1]() -> std::tuple<int&, int&> {
                return {lv0, lv1};
            })
             .then(
-                [](int& y) -> int& {
-                    y += 1;
-                    return y;
+                [](auto y) -> int& {
+                    std::get<0>(y) += 1;
+                    return std::get<0>(y);
                 },
-                [](int& y) -> int& {
-                    y += 2;
-                    return y;
+                [](auto y) -> int& {
+                    std::get<1>(y) += 2;
+                    return std::get<1>(y);
                 })
             .then([&lv0, &lv1](int& z0, int& z1) {
                 assert(z0 == 1);
