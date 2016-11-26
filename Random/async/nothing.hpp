@@ -99,7 +99,7 @@ namespace ll
     {
         return std::experimental::apply([f = fwd_capture(FWD(f))](auto&&... xs) mutable -> decltype(auto)
         {
-            return call_ignoring_nothing(vrm::core::forward_like<TF>(f.get()), FWD(xs)...);
+            return with_void_to_nothing(vrm::core::forward_like<TF>(f.get()), FWD(xs)...);
         }, FWD(t));
     }
 
