@@ -55,6 +55,7 @@ namespace
     }
 }
 
+using vrm::core::copy_if_rvalue;
 
 template <typename T>
 struct perfect_capture
@@ -66,12 +67,11 @@ private:
     T _x;
 
 public:
-    // TODO: ?
-    /*constexpr perfect_capture(const T& x)
-        noexcept(std::is_nothrow_copy_constructible<T>{})
-        : _x{x} { }*/
-
-    perfect_capture(const T& x) = delete;
+    constexpr perfect_capture(const T& x) noexcept(
+        std::is_nothrow_copy_constructible<T>{})
+        : _x{x}
+    {
+    }
 
     constexpr perfect_capture(T&& x) noexcept(
         std::is_nothrow_move_constructible<T>{})
@@ -92,9 +92,18 @@ public:
         return *this;
     }
 
-    // Prevent copies.
-    perfect_capture(const perfect_capture&) = delete;
-    perfect_capture& operator=(const perfect_capture&) = delete;
+    constexpr perfect_capture(const perfect_capture& rhs) noexcept(
+        std::is_nothrow_copy_constructible<T>{})
+        : _x{rhs._x}
+    {
+    }
+
+    constexpr perfect_capture& operator=(const perfect_capture& rhs) noexcept(
+        std::is_nothrow_copy_assignable<T>{})
+    {
+        _x = rhs._x;
+        return *this;
+    }
 
     constexpr auto& get() & noexcept
     {
@@ -177,10 +186,22 @@ auto fwd_capture(T&& x)
     return perfect_capture<T>(FWD(x));
 }
 
+template <typename T>
+auto fwd_copy_capture(T&& x)
+{
+    return perfect_capture<T>(copy_if_rvalue(FWD(x)));
+}
+
 template <typename... Ts>
 auto fwd_capture_as_tuple(Ts&&... xs)
 {
     return std::make_tuple(fwd_capture(xs)...);
+}
+
+template <typename... Ts>
+auto fwd_copy_capture_as_tuple(Ts&&... xs)
+{
+    return std::make_tuple(fwd_copy_capture(xs)...);
 }
 
 STATIC_ASSERT_SAME(fwd_capture(1), perfect_capture<int>);

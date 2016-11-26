@@ -1,6 +1,7 @@
 
 
 #include <atomic>
+#include <cassert>
 #include <chrono>
 #include <cstdio>
 #include <mutex>
@@ -28,7 +29,20 @@
 namespace ll
 {
     using vrm::core::forward_like;
+    using vrm::core::copy_if_rvalue;
+
+#if 0
     using pool = ecst::thread_pool;
+#else
+    struct pool
+    {
+        template <typename TF>
+        void post(TF&& f)
+        {
+            f();
+        }
+    };
+#endif
 
     inline void sleep_ms(int ms)
     {
@@ -200,6 +214,9 @@ namespace ll
         template <typename, typename>
         friend class node_then;
 
+        template <typename, typename...>
+        friend class node_wait_all;
+
         using this_type = node_then<TParent, TF>;
         using continuable_type = continuable<node_then<TParent, TF>>;
 
@@ -291,6 +308,9 @@ namespace ll
         template <typename, typename>
         friend class node_then;
 
+        template <typename, typename...>
+        friend class node_wait_all;
+
 
 
         using this_type = node_wait_all<TParent, TFs...>;
@@ -303,17 +323,20 @@ namespace ll
         template <typename T>
         auto execute(T&& x) &
         {
-            // TODO: figure out lifetime of `x`!
-            auto exec = [this, x](auto& f) {
-                this->post([this, x, &f] {
+            auto exec =
+                // `fwd_capture` the argument, forcing a copy instead of a move.
+                [ this, x = fwd_copy_capture(FWD(x)) ](auto& f) mutable
+            {
+                // `x` is now a `perfect_capture` wrapper, so it can be moved.
+                // The original `x` has already been copied.
+                this->post([ this, x = std::move(x), &f ]() mutable {
 
                     // TODO: un-hardcode
                     // TODO: never move? always copy? always ref?
-                    f(std::get<0>(x));
+                    f(std::get<0>(x.get()));
                 });
             };
 
-            // TODO: gcc bug?
             (exec(static_cast<TFs&>(*this)), ...);
         }
 
@@ -321,15 +344,24 @@ namespace ll
         auto execute(T&& x, TNode& n, TNodes&... ns) &
         {
             // TODO: figure out lifetime of `x`!
-            auto exec = [this, x, &n, &ns...](auto& f) {
-                this->post([this, x, &n, &ns..., &f] {
+            auto exec =
+                // `fwd_capture` the argument, forcing a copy instead of a move.
+                [ this, x = fwd_copy_capture(FWD(x)), &n, &ns... ](auto& f)
+            {
+                // `x` is now a `perfect_capture` wrapper, so it can be moved.
+                // The original `x` has already been copied.
+                this->post([ this, x = std::move(x), &n, &ns..., &f ] {
 
                     // TODO: un-hardcode
                     // TODO: never move? always copy? always ref?
-                    f(std::get<0>(x));
+                    f(std::get<0>(x.get()));
+
+                    // If this is the last `TFs...` function to end, trigger the
+                    // next continuation.
                     if(--_ctr == 0)
                     {
-                        n.execute(ns...);
+                        // TODO:
+                        n.execute(std::make_tuple(nothing), ns...);
                     }
                 });
             };
@@ -354,15 +386,7 @@ namespace ll
             this->parent().start(*this, ns...);
         }
     };
-    /*
-        template <typename TParent, typename TReturn, typename TF>
-        template <typename... TConts>
-        auto node_then<TParent, TReturn, TF>::wait_all(TConts&&... conts) &&
-        {
-            return node_wait_all<this_type, TConts...>{
-                std::move(*this), FWD(conts)...};
-        }
-    */
+
     template <typename TF>
     auto context::build(TF&& f)
     {
@@ -400,7 +424,7 @@ template <typename T>
 void execute_after_move(T x)
 {
     x.start();
-    ll::sleep_ms(1200);
+    ll::sleep_ms(200);
 }
 
 struct nocopy
@@ -449,9 +473,20 @@ int main()
         .start();
 
     // when_all with lvalue
-    ctx.build([&aaa]() -> int& { return aaa; })
+    int aaa2 = 10;
+    ctx.build([&aaa2]() -> int& { return aaa2; })
         .then([](int& y) { std::printf(">>%d\n", y); },
             [](int& y) { std::printf(">>%d\n", y); })
+        .start();
+
+    // when_all with atomic lvalue
+    std::atomic<int> aint{0};
+    ctx.build([&aint]() -> std::atomic<int>& { return aint; })
+        .then([](auto& y) { y += 5; }, [](auto& y) { y += 5; })
+        .then([&aint] {
+            std::printf("AINT: %d\n", aint.load());
+            assert(aint == 10);
+        })
         .start();
 
     /* TODO:
