@@ -35,6 +35,7 @@ namespace ll
     using vrm::core::int_v;
 
 #if 0
+// TODO: debug gcc asan error with real pool
     using pool = ecst::thread_pool;
 #else
     struct pool
@@ -133,14 +134,17 @@ namespace ll
         auto build(TF&& f);
     };
 
+    template <typename TContext>
     class base_node
     {
     private:
-        friend class context;
-        context& _ctx;
+        friend TContext;
+        TContext& _ctx;
 
     protected:
-        base_node(context& ctx) noexcept : _ctx{ctx}
+        using context_type = TContext;
+
+        base_node(TContext& ctx) noexcept : _ctx{ctx}
         {
         }
 
@@ -161,21 +165,25 @@ namespace ll
         }
     };
 
-    template <typename TReturn>
-    class root : protected base_node
+    // TODO: TReturn is unused
+    template <typename TContext, typename TReturn>
+    class root : protected base_node<TContext>
     {
     private:
-        friend class context;
+        friend TContext;
 
     protected:
+        using base_type = base_node<TContext>;
+        using context_type = typename base_type::context_type;
         using return_type = std::tuple<>;
-        using base_node::base_node;
+        using base_type::base_type;
 
     public:
         // TODO: should be `protected`?
         template <typename TNode, typename... TNodes>
         void start(TNode& n, TNodes&... ns)
         {
+            // TODO: empty tuple enough?
             n.execute(std::make_tuple(nothing), ns...);
         }
     };
@@ -212,9 +220,9 @@ namespace ll
                       protected child_of<TParent>,
                       public continuable<node_then<TParent, TF>>
     {
-        friend class context;
 
-        template <typename>
+
+        template <typename, typename>
         friend class root;
 
         template <typename, typename>
@@ -224,7 +232,10 @@ namespace ll
         friend class node_wait_all;
 
         using this_type = node_then<TParent, TF>;
+        using context_type = typename TParent::context_type;
         using continuable_type = continuable<node_then<TParent, TF>>;
+
+        friend context_type;
 
     protected:
         // TODO: pls cleanup
@@ -312,9 +323,9 @@ namespace ll
                           public continuable<node_wait_all<TParent, TFs...>>
 
     {
-        friend class context;
 
-        template <typename>
+
+        template <typename, typename>
         friend class root;
 
         template <typename, typename>
@@ -331,6 +342,8 @@ namespace ll
 
         using this_type = node_wait_all<TParent, TFs...>;
         using continuable_type = continuable<node_wait_all<TParent, TFs...>>;
+        using context_type = typename TParent::context_type;
+        friend context_type;
 
     protected:
         // TODO: pls cleanup
@@ -428,7 +441,7 @@ namespace ll
     auto context::build(TF&& f)
     {
         using return_type = decltype(f());
-        using root_type = root<return_type>;
+        using root_type = root<context, return_type>;
         return node_then<root_type, TF>(root_type{*this}, FWD(f));
     }
 
