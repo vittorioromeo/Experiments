@@ -427,6 +427,17 @@ namespace ll
         return node_then<root_type, TF>(root_type{ctx}, FWD(f));
     }
 
+    template <typename ...TConts>
+    auto context::compose(TConts&&... conts)
+    {
+        if constexpr(sizeof...(conts) == 0) {
+            static_assert("can't compose a chain of empty continuables");
+        } else {
+            auto make_start = [](auto&& c){ return [&]{ c.start(); }; };
+            return this->build([]{}).then(make_start(conts)... );
+        }
+    }
+
     namespace continuation
     {
         template <typename TContinuable, typename... TConts>
@@ -468,6 +479,16 @@ void execute_after_move(T x)
 {
     x.start();
     sleep_ms(200);
+}
+
+template<typename ...TChains>
+void wait_until_complete(ll::context& ctx, TChains&&... chains)
+{
+    ecst::latch l{1};
+    auto final_chain = ctx.compose(FWD(chains)...).then([&l]{ l.count_down(); } );
+    final_chain.start();
+
+    l.wait();
 }
 
 struct nocopy
@@ -633,6 +654,7 @@ int main()
                 DEDUCE with function traits
     */
 
-    execute_after_move(std::move(computation));
-    sleep_ms(200);
+    //execute_after_move(std::move(computation));
+    wait_until_complete(ctx, std::move(computation));
+    ll::sleep_ms(200);
 }
