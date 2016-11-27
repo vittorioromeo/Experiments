@@ -26,6 +26,18 @@
     if               \
     constexpr
 
+inline void sleep_ms(int ms)
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+}
+
+template <typename T>
+inline void print_sleep_ms(int ms, const T& x)
+{
+    std::puts(x);
+    sleep_ms(ms);
+}
+
 namespace ll
 {
     using vrm::core::forward_like;
@@ -34,16 +46,17 @@ namespace ll
     using vrm::core::for_args_data;
     using vrm::core::int_v;
 
-    inline void sleep_ms(int ms)
+    namespace result
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-    }
+        template <typename... Ts>
+        using t = std::tuple<void_to_nothing_t<Ts>...>;
 
-    template <typename T>
-    inline void print_sleep_ms(int ms, const T& x)
-    {
-        std::puts(x);
-        sleep_ms(ms);
+        using none_t = result_t<>;
+
+        constexpr none_t none{};
+
+        template <typename... Ts>
+        using of_apply = decltype(apply_ignore_nothing(std::declval<Ts>()...));
     }
 
     template <typename, typename>
@@ -137,6 +150,7 @@ namespace ll
         template <typename TF>
         void post(TF&& f)
         {
+            // TODO: context should just provide `post`
             this->ctx()._p.post(FWD(f));
         }
     };
@@ -150,7 +164,7 @@ namespace ll
     protected:
         using base_type = base_node<TContext>;
         using context_type = typename base_type::context_type;
-        using return_type = std::tuple<>;
+        using return_type = result::none_t;
         using base_type::base_type;
 
     public:
@@ -158,7 +172,7 @@ namespace ll
         template <typename TNode, typename... TNodes>
         void start(TNode& n, TNodes&... ns)
         {
-            n.execute(std::make_tuple(), ns...);
+            n.execute(result::none, ns...);
         }
     };
 
@@ -194,8 +208,6 @@ namespace ll
                       protected child_of<TParent>,
                       public continuable<node_then<TParent, TF>>
     {
-
-
         template <typename>
         friend class root;
 
@@ -214,8 +226,7 @@ namespace ll
     protected:
         // TODO: pls cleanup
         using input_type = typename child_of<TParent>::input_type;
-        using return_type = std::tuple<decltype(apply_ignore_nothing(
-            std::declval<TF>(), std::declval<input_type>()))>;
+        using return_type = result::t<result::of_apply<TF, input_type>>;
 
         // TODO: might be useful?
         // using input_type = void_to_nothing_t<typename TParent::return_type>;
@@ -445,7 +456,7 @@ template <typename T>
 void execute_after_move(T x)
 {
     x.start();
-    ll::sleep_ms(200);
+    sleep_ms(200);
 }
 
 struct nocopy
@@ -625,5 +636,5 @@ int main()
     */
 
     execute_after_move(std::move(computation));
-    ll::sleep_ms(200);
+    sleep_ms(200);
 }
