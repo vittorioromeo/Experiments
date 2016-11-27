@@ -121,19 +121,6 @@ namespace ll
         }
     };
 
-    class context
-    {
-    public:
-        pool& _p;
-
-        context(pool& p) : _p{p}
-        {
-        }
-
-        template <typename TF>
-        auto build(TF&& f);
-    };
-
     template <typename TContext>
     class base_node
     {
@@ -323,8 +310,6 @@ namespace ll
                           public continuable<node_wait_all<TParent, TFs...>>
 
     {
-
-
         template <typename, typename>
         friend class root;
 
@@ -488,10 +473,25 @@ struct nocopy
     nocopy& operator=(nocopy&&) = default;
 };
 
+
+class my_context
+{
+public:
+    pool& _p;
+
+    context(pool& p) : _p{p}
+    {
+    }
+
+    template <typename TF>
+    auto build(TF&& f);
+};
+
+
 int main()
 {
     ll::pool p;
-    ll::context ctx{p};
+    my_context ctx{p};
 
     auto computation =               // .
         ctx.build([] { return 10; }) // .
