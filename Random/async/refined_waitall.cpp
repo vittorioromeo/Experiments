@@ -193,7 +193,9 @@ namespace ll
 
         auto execute() &
         {
-            (this->ctx()._p.post([&] { static_cast<TFs&> (*this)(); }), ...);
+            auto exec = [this](auto& c){ this->ctx()._p.post(c); };
+            (exec(static_cast<TFs&>(*this)), ...);
+            // (this->ctx()._p.post([&] { static_cast<TFs&> (*this)(); }), ...);
         }
 
         template <typename TNode, typename... TNodes>
