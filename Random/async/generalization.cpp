@@ -34,20 +34,6 @@ namespace ll
     using vrm::core::for_args_data;
     using vrm::core::int_v;
 
-#if 0
-// TODO: debug gcc asan error with real pool
-    using pool = ecst::thread_pool;
-#else
-    struct pool
-    {
-        template <typename TF>
-        void post(TF&& f)
-        {
-            f();
-        }
-    };
-#endif
-
     inline void sleep_ms(int ms)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(ms));
@@ -131,10 +117,13 @@ namespace ll
     protected:
         using context_type = TContext;
 
+    public:
+        // TODO: should be protected, friend `build_root` ?
         base_node(TContext& ctx) noexcept : _ctx{ctx}
         {
         }
 
+    protected:
         auto& ctx() & noexcept
         {
             return this->_ctx;
@@ -152,9 +141,8 @@ namespace ll
         }
     };
 
-    // TODO: TReturn is unused
-    template <typename TContext, typename TReturn>
-    class root : protected base_node<TContext>
+    template <typename TContext>
+    class root : public base_node<TContext>
     {
     private:
         friend TContext;
@@ -170,8 +158,7 @@ namespace ll
         template <typename TNode, typename... TNodes>
         void start(TNode& n, TNodes&... ns)
         {
-            // TODO: empty tuple enough?
-            n.execute(std::make_tuple(nothing), ns...);
+            n.execute(std::make_tuple(), ns...);
         }
     };
 
@@ -209,7 +196,7 @@ namespace ll
     {
 
 
-        template <typename, typename>
+        template <typename>
         friend class root;
 
         template <typename, typename>
@@ -310,7 +297,7 @@ namespace ll
                           public continuable<node_wait_all<TParent, TFs...>>
 
     {
-        template <typename, typename>
+        template <typename>
         friend class root;
 
         template <typename, typename>
@@ -422,12 +409,11 @@ namespace ll
         }
     };
 
-    template <typename TF>
-    auto context::build(TF&& f)
+    template <typename TContext, typename TF>
+    auto build_root(TContext& ctx, TF&& f)
     {
-        using return_type = decltype(f());
-        using root_type = root<context, return_type>;
-        return node_then<root_type, TF>(root_type{*this}, FWD(f));
+        using root_type = root<TContext>;
+        return node_then<root_type, TF>(root_type{ctx}, FWD(f));
     }
 
     namespace continuation
@@ -474,23 +460,39 @@ struct nocopy
 };
 
 
+#if 1
+// TODO: debug gcc asan error with real pool
+using pool = ecst::thread_pool;
+#else
+struct pool
+{
+    template <typename TF>
+    void post(TF&& f)
+    {
+        f();
+    }
+};
+#endif
+
 class my_context
 {
 public:
     pool& _p;
 
-    context(pool& p) : _p{p}
+    my_context(pool& p) : _p{p}
     {
     }
 
     template <typename TF>
-    auto build(TF&& f);
+    auto build(TF&& f)
+    {
+        return ll::build_root(*this, FWD(f));
+    }
 };
-
 
 int main()
 {
-    ll::pool p;
+    pool p;
     my_context ctx{p};
 
     auto computation =               // .
@@ -602,9 +604,11 @@ int main()
     /* TODO:
         ctx.build<int>([] { return 10; })
             .then<int>([](int x) { return std::to_string(x); })
-            .then_timeout<std::string>(200ms, [](std::string x) { return "num: "
+            .then_timeout<std::string>(200ms, [](std::string x) { return
+       "num: "
        + x; })
-            .then<void>([](std::optional<std::string> x) { std::printf("%s\n",
+            .then<void>([](std::optional<std::string> x) {
+       std::printf("%s\n",
        x.c_str()); })
             .start();
     */
