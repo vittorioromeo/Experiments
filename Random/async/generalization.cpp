@@ -336,7 +336,6 @@ namespace ll
         // TODO: deal with lvalue references. Tuple is non-default-ctor for refs
         return_type _results;
 
-
         template <typename T>
         auto execute(T&& x) &
         {
@@ -420,21 +419,34 @@ namespace ll
         }
     };
 
-    template <typename TContext, typename TF>
-    auto build_root(TContext& ctx, TF&& f)
+    template <typename TContext, typename... TConts>
+    auto build_root(TContext& ctx, TConts&&... conts)
     {
         using root_type = root<TContext>;
-        return node_then<root_type, TF>(root_type{ctx}, FWD(f));
+        if constexpr(sizeof...(conts) == 0)
+        {
+            static_assert("can't build a chain of empty continuables");
+        }
+        else if constexpr(sizeof...(conts) == 1)
+        {
+            return node_then<root_type, TConts...>(root_type{ctx}, FWD(conts)...);
+        }
+        else
+        {
+            return node_wait_all<root_type, TConts...>(root_type{ctx}, FWD(conts)...);
+        }
     }
 
-    template <typename ...TConts>
-    auto context::compose(TConts&&... conts)
+
+    // "compose" assumes that all inputs are existing continuables
+    template <typename TContext, typename ...TConts>
+    auto compose(TContext&& ctx, TConts&&... conts)
     {
         if constexpr(sizeof...(conts) == 0) {
             static_assert("can't compose a chain of empty continuables");
         } else {
-            auto make_start = [](auto&& c){ return [&]{ c.start(); }; };
-            return this->build([]{}).then(make_start(conts)... );
+            auto wrap_start = [](auto&& c){ return [&]{ c.start(); }; };
+            return ctx.build(wrap_start(conts)...);
         }
     }
 
@@ -466,10 +478,10 @@ namespace ll
     class context_facade
     {
     public:
-        template <typename TF>
-        auto build(TF&& f)
+        template <typename... TConts>
+        auto build(TConts&&... conts)
         {
-            return ll::build_root(static_cast<TContext&>(*this), FWD(f));
+            return ll::build_root(static_cast<TContext&>(*this), FWD(conts)...);
         }
     };
 }
@@ -481,12 +493,11 @@ void execute_after_move(T x)
     sleep_ms(200);
 }
 
-template<typename ...TChains>
-void wait_until_complete(ll::context& ctx, TChains&&... chains)
+template<typename TContext, typename ...TChains>
+void wait_until_complete(TContext& ctx, TChains&&... chains)
 {
     ecst::latch l{1};
-    auto final_chain = ctx.compose(FWD(chains)...).then([&l]{ l.count_down(); } );
-    final_chain.start();
+    compose(ctx, FWD(chains)...).then([&]{ l.decrement_and_notify_all(); } ).start();
 
     l.wait();
 }
@@ -656,5 +667,5 @@ int main()
 
     //execute_after_move(std::move(computation));
     wait_until_complete(ctx, std::move(computation));
-    ll::sleep_ms(200);
+    // ll::sleep_ms(200);
 }
