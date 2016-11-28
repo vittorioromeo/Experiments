@@ -2,6 +2,7 @@
 
 #include <ecst/utils.hpp>
 #include <tuple>
+#include <experimental/tuple>
 #include <type_traits>
 #include <utility>
 
@@ -202,6 +203,12 @@ template <typename... Ts>
 auto fwd_copy_capture_as_tuple(Ts&&... xs)
 {
     return std::make_tuple(fwd_copy_capture(xs)...);
+}
+
+template <typename TF, typename TFwdCapture>
+decltype(auto) apply_fwd_capture(TF&& f, TFwdCapture&& fc)
+{
+    return std::experimental::apply([&f](auto&&... xs) mutable -> decltype(auto) { return f(FWD(xs).get()...); }, FWD(fc));
 }
 
 STATIC_ASSERT_SAME(fwd_capture(1), perfect_capture<int>);
