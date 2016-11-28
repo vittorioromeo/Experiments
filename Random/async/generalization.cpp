@@ -79,16 +79,31 @@ namespace ll
     template <typename TDerived>
     class continuable
     {
-        #if defined(LL_DEBUG)
+#if defined(LL_DEBUG)
         bool _moved{false};
-        void set_moved() noexcept { _moved = true; }
-        void assert_not_moved() const noexcept { assert(!_moved); }
-        void assert_moved() const noexcept { assert(_moved); }
-        #else
-        void set_moved() noexcept { }
-        void assert_not_moved() const noexcept { }
-        void assert_moved() const noexcept { }
-        #endif
+        void set_moved() noexcept
+        {
+            _moved = true;
+        }
+        void assert_not_moved() const noexcept
+        {
+            assert(!_moved);
+        }
+        void assert_moved() const noexcept
+        {
+            assert(_moved);
+        }
+#else
+        void set_moved() noexcept
+        {
+        }
+        void assert_not_moved() const noexcept
+        {
+        }
+        void assert_moved() const noexcept
+        {
+        }
+#endif
 
         // Clang bug prevents this:
         /*
@@ -278,7 +293,7 @@ namespace ll
 
                 // TODO: is this post required/beneficial?
                 // this->post([ res = std::move(res), &n, &ns... ]() mutable {
-                    n.execute(std::move(res), ns...);
+                n.execute(std::move(res), ns...);
                 // });
             });
         }
@@ -377,8 +392,7 @@ namespace ll
         {
             auto exec =
                 // `fwd_capture` the argument, forcing a copy instead of a move.
-                [ this, x = FWD_COPY_CAPTURE(x), &n, &ns... ](
-                    auto idx, auto& f)
+                [ this, x = FWD_COPY_CAPTURE(x), &n, &ns... ](auto idx, auto& f)
             {
                 // `x` is now a `perfect_capture` wrapper, so it can be moved.
                 // The original `x` has already been copied.
@@ -437,28 +451,33 @@ namespace ll
     template <typename TContext, typename... TConts>
     auto build_root(TContext& ctx, TConts&&... conts)
     {
-        static_assert(sizeof...(conts) > 0, "can't build a chain of empty continuables");
+        static_assert(
+            sizeof...(conts) > 0, "can't build a chain of empty continuables");
 
         using root_type = root<TContext>;
 
-        if constexpr(sizeof...(conts) == 1)
-        {
-            return node_then<root_type, TConts...>(root_type{ctx}, FWD(conts)...);
-        }
+        if
+            constexpr(sizeof...(conts) == 1)
+            {
+                return node_then<root_type, TConts...>(
+                    root_type{ctx}, FWD(conts)...);
+            }
         else
         {
-            return node_wait_all<root_type, TConts...>(root_type{ctx}, FWD(conts)...);
+            return node_wait_all<root_type, TConts...>(
+                root_type{ctx}, FWD(conts)...);
         }
     }
 
 
     // "compose" assumes that all inputs are existing continuables
-    template <typename TContext, typename ...TConts>
+    template <typename TContext, typename... TConts>
     auto compose(TContext&& ctx, TConts&&... conts)
     {
-        static_assert(sizeof...(conts) > 0, "can't compose a chain of empty continuables");
+        static_assert(sizeof...(conts) > 0,
+            "can't compose a chain of empty continuables");
 
-        auto wrap_start = [](auto& c){ return [&c]{ c.start(); }; };
+        auto wrap_start = [](auto& c) { return [&c] { c.start(); }; };
         return ctx.build(wrap_start(conts)...);
     }
 
@@ -467,7 +486,8 @@ namespace ll
         template <typename TContinuable, typename... TConts>
         auto then(TContinuable&& c, TConts&&... conts)
         {
-            static_assert(sizeof...(conts) > 0, "can't build a chain of empty continuables");
+            static_assert(sizeof...(conts) > 0,
+                "can't build a chain of empty continuables");
 
             using c_type = typename TContinuable::this_type;
 
@@ -503,15 +523,18 @@ void execute_after_move(T x)
     sleep_ms(200);
 }
 
-template<typename TContext, typename ...TChains>
+template <typename TContext, typename... TChains>
 void wait_until_complete(TContext& ctx, TChains&&... chains)
 {
     ecst::latch l{1};
-    l.execute_and_wait_until_zero([&ctx, &l, chains = FWD_CAPTURE_AS_TUPLE(chains)]() mutable {
-        apply_fwd_capture([&ctx](auto&&... xs){ return compose(ctx, FWD(xs)...); }, chains)
-            .then([&l]{ l.decrement_and_notify_all(); } )
-            .start();
-    });
+    l.execute_and_wait_until_zero(
+        [&ctx, &l, chains = FWD_CAPTURE_AS_TUPLE(chains) ]() mutable {
+            apply_fwd_capture(
+                [&ctx](auto&&... xs) { return compose(ctx, FWD(xs)...); },
+                chains)
+                .then([&l] { l.decrement_and_notify_all(); })
+                .start();
+        });
 }
 
 struct nocopy
@@ -549,7 +572,11 @@ struct pool
     void post(TF&& f)
     {
         // Required because `std::thread` always copies its callable argument.
-        auto jptr = std::make_shared<ecst::fixed_function<void()>>([f = std::move(f)]() mutable { f(); });
+        auto jptr =
+            std::make_shared<ecst::fixed_function<void()>>([f = std::move(
+                                                                f)]() mutable {
+                f();
+            });
         std::thread{[jptr]() mutable { (*jptr)(); }}.detach();
     }
 };
@@ -599,17 +626,19 @@ int main()
 
     for(volatile int i = 0; i < 20; ++i)
     {
-        // TODO: `i` gets corrupted with gcc mingw (prints same number multiple times)
-        // (only with ecst pool?)
-        ctx.build([i]() -> int { return i; })
-            .then([](int x) { std::printf("%d\n", x); })
-            .start();
+        // `post` is required here, otherwise the chain dies.
+        // TODO; `build_post(...)`? Something to keep alive chains generated
+        // like this.
+        ctx.post([i, &ctx] {
+            ctx.build([i]() -> int { return i; })
+                .then([](int x) { std::printf("%d\n", x); })
+                .start();
 
-        // TODO: uncomment this and it works. Race cond?
-        // sleep_ms(2);
+            // with moveonly
+            ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
 
-        // with moveonly
-        ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
+            sleep_ms(5);
+        });
     }
 
     sleep_ms(200);
