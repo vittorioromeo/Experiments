@@ -509,7 +509,7 @@ struct nocopy
 };
 
 
-#if 0
+#if 1
 // TODO: debug gcc asan error with real pool
 using pool = ecst::thread_pool;
 #endif
@@ -525,7 +525,7 @@ struct pool
 };
 #endif
 
-#if 1
+#if 0
 struct pool
 {
     template <typename TF>
@@ -576,7 +576,7 @@ int main()
 int main()
 {
     // TODO: gcc segfault on mingw when set to true.
-    constexpr bool run_when_all_tests{true};
+    constexpr bool run_when_all_tests{false};
 
     pool p;
     my_context ctx{p};
