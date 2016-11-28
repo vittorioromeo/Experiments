@@ -241,6 +241,7 @@ namespace ll
         auto execute(T&& x) &
         {
             // `fwd_capture` is used to preserve "lvalue references".
+            // TODO: is this post required/beneficial?
             this->post([ this, x = fwd_capture(FWD(x)) ]() mutable {
                 apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
             });
@@ -258,9 +259,10 @@ namespace ll
                 // ...and wrap it into a tuple. Preserve "lvalue references".
                 result::t<decltype(res_value)> res(FWD(res_value));
 
-                this->post([ res = std::move(res), &n, &ns... ]() mutable {
+                // TODO: is this post required/beneficial?
+                // this->post([ res = std::move(res), &n, &ns... ]() mutable {
                     n.execute(std::move(res), ns...);
-                });
+                // });
             });
         }
 
@@ -312,12 +314,6 @@ namespace ll
 
         template <typename, typename...>
         friend class node_wait_all;
-
-        // using input_type = void_to_nothing_t<typename TParent::return_type>;
-        // using return_type =
-        //    std::tuple<void_to_nothing_t<decltype(apply_ignore_nothing(
-        //        std::declval<TFs>(), std::declval<input_type>()))...>>;
-
 
         using this_type = node_wait_all<TParent, TFs...>;
         using continuable_type = continuable<node_wait_all<TParent, TFs...>>;
@@ -384,6 +380,8 @@ namespace ll
                         // Should either propagate an "lvalue reference" to
                         // the original `x` or move the copy of `x` that was
                         // made in `exec`.
+
+                        // TODO: race cond?
                         std::get<decltype(idx){}>(_results) =
                             forward_like<T>(res);
                     }
@@ -422,12 +420,11 @@ namespace ll
     template <typename TContext, typename... TConts>
     auto build_root(TContext& ctx, TConts&&... conts)
     {
+        static_assert(sizeof...(conts) > 0, "can't build a chain of empty continuables");
+
         using root_type = root<TContext>;
-        if constexpr(sizeof...(conts) == 0)
-        {
-            static_assert("can't build a chain of empty continuables");
-        }
-        else if constexpr(sizeof...(conts) == 1)
+
+        if constexpr(sizeof...(conts) == 1)
         {
             return node_then<root_type, TConts...>(root_type{ctx}, FWD(conts)...);
         }
@@ -442,12 +439,10 @@ namespace ll
     template <typename TContext, typename ...TConts>
     auto compose(TContext&& ctx, TConts&&... conts)
     {
-        if constexpr(sizeof...(conts) == 0) {
-            static_assert("can't compose a chain of empty continuables");
-        } else {
-            auto wrap_start = [](auto&& c){ return [&]{ c.start(); }; };
-            return ctx.build(wrap_start(conts)...);
-        }
+        static_assert(sizeof...(conts) > 0, "can't compose a chain of empty continuables");
+
+        auto wrap_start = [](auto& c){ return [&c]{ c.start(); }; };
+        return ctx.build(wrap_start(conts)...);
     }
 
     namespace continuation
@@ -455,13 +450,11 @@ namespace ll
         template <typename TContinuable, typename... TConts>
         auto then(TContinuable&& c, TConts&&... conts)
         {
+            static_assert(sizeof...(conts) > 0, "can't build a chain of empty continuables");
+
             using c_type = typename TContinuable::this_type;
 
-            IF_CONSTEXPR(sizeof...(conts) == 0)
-            {
-                static_assert("u wot m8");
-            }
-            else IF_CONSTEXPR(sizeof...(conts) == 1)
+            IF_CONSTEXPR(sizeof...(conts) == 1)
             {
                 return node_then<c_type, TConts...>{
                     FWD(c).as_derived(), FWD(conts)...};
@@ -497,9 +490,11 @@ template<typename TContext, typename ...TChains>
 void wait_until_complete(TContext& ctx, TChains&&... chains)
 {
     ecst::latch l{1};
-    compose(ctx, FWD(chains)...).then([&]{ l.decrement_and_notify_all(); } ).start();
-
-    l.wait();
+    l.execute_and_wait_until_zero([&ctx, &l, chains = fwd_capture_as_tuple(FWD(chains)...)]() mutable {
+        apply_fwd_capture([&ctx](auto&&... xs){ return compose(ctx, FWD(xs)...); }, chains)
+            .then([&l]{ l.decrement_and_notify_all(); } )
+            .start();
+    });
 }
 
 struct nocopy
@@ -514,16 +509,31 @@ struct nocopy
 };
 
 
-#if 1
+#if 0
 // TODO: debug gcc asan error with real pool
 using pool = ecst::thread_pool;
-#else
+#endif
+
+#if 0
 struct pool
 {
     template <typename TF>
     void post(TF&& f)
     {
         f();
+    }
+};
+#endif
+
+#if 1
+struct pool
+{
+    template <typename TF>
+    void post(TF&& f)
+    {
+        // Required because `std::thread` always copies its callable argument.
+        auto jptr = std::make_shared<ecst::fixed_function<void()>>([f = std::move(f)]() mutable { f(); });
+        std::thread{[jptr]() mutable { (*jptr)(); }}.detach();
     }
 };
 #endif
@@ -545,16 +555,11 @@ public:
     }
 };
 
+#if 0
 int main()
 {
     pool p;
     my_context ctx{p};
-
-    auto computation =               // .
-        ctx.build([] { return 10; }) // .
-            .then([](int x) { return std::to_string(x); })
-            .then([](std::string x) { return "num: " + x; })
-            .then([](std::string x) { std::printf("%s\n", x.c_str()); });
 
     ctx.build([] { return 10; })
         .then([](int x) { return std::to_string(x); })
@@ -565,6 +570,34 @@ int main()
     // with moveonly
     ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
 
+    sleep_ms(200);
+}
+#else
+int main()
+{
+    constexpr bool run_when_all_tests{false};
+
+    pool p;
+    my_context ctx{p};
+
+    auto computation =               // .
+        ctx.build([] { return 10; }) // .
+            .then([](int x) { return std::to_string(x); })
+            .then([](std::string x) { return "num: " + x; })
+            .then([](std::string x) { std::printf("%s\n", x.c_str()); });
+
+    for(volatile int i = 0; i < 20; ++i)
+    {
+        ctx.build([i] { return i; })
+            .then([](int x) { return std::to_string(x); })
+            .then([](std::string x) { return "inum: " + x; })
+            .then([](std::string x) { std::printf("%s\n", x.c_str()); })
+            .start();
+
+        // with moveonly
+        ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
+    }
+
     // with lvalue
     int aaa = 10;
     ctx.build([&aaa]() -> int& { return aaa; })
@@ -574,19 +607,27 @@ int main()
         .start();
 
     // when_all
+    if constexpr(run_when_all_tests)
+    {
     ctx.build([] { return 5; })
         .then([](int y) { std::printf(">>%d\n", y); },
             [](int y) { std::printf(">>%d\n", y); })
         .start();
+    }
 
     // when_all with lvalue
+    if constexpr(run_when_all_tests)
+    {
     int aaa2 = 10;
     ctx.build([&aaa2]() -> int& { return aaa2; })
         .then([](int& y) { std::printf(">>%d\n", y); },
             [](int& y) { std::printf(">>%d\n", y); })
         .start();
+    }
 
     // when_all with atomic lvalue
+    if constexpr(run_when_all_tests)
+    {
     std::atomic<int> aint{0};
     ctx.build([&aint]() -> std::atomic<int>& { return aint; })
         .then([](auto& y) { y += 5; }, [](auto& y) { y += 5; })
@@ -595,8 +636,11 @@ int main()
             assert(aint == 10);
         })
         .start();
+    }
 
     // when_all returns
+    if constexpr(run_when_all_tests)
+    {
     ctx.build([] { return 5; })
         .then([](int y) { return y + 1; }, [](int y) { return y + 2; })
         .then([](int z0, int z1) {
@@ -604,8 +648,10 @@ int main()
             assert(z1 == 7);
         })
         .start();
+    }
 
     // when_all returns lvalues
+    if constexpr(run_when_all_tests)
     {
         int lv0 = 0;
         int lv1 = 0;
@@ -630,42 +676,9 @@ int main()
             .start();
     }
 
-    /* TODO:
-        ctx.build<int>([] { return 10; })
-            .when_any<int, float>
-            (
-                [](int x) { return x + 1; },
-                [](int x) { return x + 1.f; }
-            )
-            .then<void>([](std::variant<int, float> x) { std::printf("%s\n",
-       x.c_str()); })
-            .start();
-    */
-
-    /* TODO:
-        ctx.build<int>([] { return 10; })
-            .then<int>([](int x) { return std::to_string(x); })
-            .then_timeout<std::string>(200ms, [](std::string x) { return
-       "num: "
-       + x; })
-            .then<void>([](std::optional<std::string> x) {
-       std::printf("%s\n",
-       x.c_str()); })
-            .start();
-    */
-
-    // TODO: deduce return type when possible!
-    // (generalize stuff from variant articles)
-    // (generic lambdas are probably not deducible)
-    /*
-        if arity is deducible
-            if arity is 0
-                DEDUCE void
-            else if arity is 1
-                DEDUCE with function traits
-    */
-
-    //execute_after_move(std::move(computation));
-    wait_until_complete(ctx, std::move(computation));
-    // ll::sleep_ms(200);
+    // execute_after_move(std::move(computation));
+    // wait_until_complete(ctx, std::move(computation));
+    // computation.start();
+    sleep_ms(200);
 }
+#endif
