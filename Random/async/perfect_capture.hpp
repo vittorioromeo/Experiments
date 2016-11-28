@@ -6,6 +6,10 @@
 #include <type_traits>
 #include <utility>
 
+#ifndef NDEBUG
+#define LL_DEBUG 1
+#endif
+
 #define STATIC_ASSERT_SAME_TYPE(T0, T1) static_assert(std::is_same<T0, T1>{})
 #define STATIC_ASSERT_SAME(a, T) STATIC_ASSERT_SAME_TYPE(decltype(a), T)
 
@@ -67,6 +71,15 @@ struct perfect_capture
 private:
     T _x;
 
+    #if defined(LL_DEBUG)
+    bool _moved{false};
+    void set_moved() noexcept { _moved = true; }
+    void assert_not_moved() const noexcept { assert(!_moved); }
+    #else
+    void set_moved() noexcept { }
+    void assert_not_moved() const noexcept { }
+    #endif
+
 public:
     constexpr perfect_capture(const T& x) noexcept(
         std::is_nothrow_copy_constructible<T>{})
@@ -82,55 +95,65 @@ public:
 
     constexpr perfect_capture(perfect_capture&& rhs) noexcept(
         std::is_nothrow_move_constructible<T>{})
-        : _x{std::move(rhs._x)}
+        : _x{std::move(rhs).get()}
     {
     }
 
     constexpr perfect_capture& operator=(perfect_capture&& rhs) noexcept(
         std::is_nothrow_move_assignable<T>{})
     {
-        _x = std::move(rhs._x);
+        _x = std::move(rhs).get();
         return *this;
     }
 
     constexpr perfect_capture(const perfect_capture& rhs) noexcept(
         std::is_nothrow_copy_constructible<T>{})
-        : _x{rhs._x}
+        : _x{rhs.get()}
     {
     }
 
     constexpr perfect_capture& operator=(const perfect_capture& rhs) noexcept(
         std::is_nothrow_copy_assignable<T>{})
     {
-        _x = rhs._x;
+        _x = rhs.get();
         return *this;
     }
 
     constexpr auto& get() & noexcept
     {
+        assert_not_moved();
         return _x;
     }
     constexpr const auto& get() const & noexcept
     {
+        assert_not_moved();
         return _x;
     }
 
     constexpr operator T&() & noexcept
     {
+        assert_not_moved();
         return _x;
     }
     constexpr operator const T&() const & noexcept
     {
+        assert_not_moved();
         return _x;
     }
 
     constexpr auto get() && noexcept(std::is_nothrow_move_constructible<T>{})
     {
+        assert_not_moved();
+        set_moved();
+
         return std::move(_x);
     }
     constexpr operator T &&() &&
         noexcept(std::is_nothrow_move_constructible<T>{})
     {
+        assert_not_moved();
+        set_moved();
+
         return std::move(_x);
     }
 };
@@ -194,22 +217,26 @@ namespace impl
     {
         return perfect_capture<T>(copy_if_rvalue(FWD(x)));
     }
+}
 
+#define FWD_CAPTURE(...) impl::fwd_capture(FWD(__VA_ARGS__))
+#define FWD_COPY_CAPTURE(...) impl::fwd_copy_capture(FWD(__VA_ARGS__))
+
+namespace impl
+{
     template <typename... Ts>
     auto fwd_capture_as_tuple(Ts&&... xs)
     {
-        return std::make_tuple(fwd_capture(FWD(xs))...);
+        return std::make_tuple(FWD_CAPTURE(xs)...);
     }
 
     template <typename... Ts>
     auto fwd_copy_capture_as_tuple(Ts&&... xs)
     {
-        return std::make_tuple(fwd_copy_capture(FWD(xs))...);
+        return std::make_tuple(FWD_COPY_CAPTURE(xs)...);
     }
 }
 
-#define FWD_CAPTURE(...) impl::fwd_capture(FWD(__VA_ARGS__))
-#define FWD_COPY_CAPTURE(...) impl::fwd_copy_capture(FWD(__VA_ARGS__))
 #define FWD_CAPTURE_AS_TUPLE(...) impl::fwd_capture_as_tuple(FWD(__VA_ARGS__)...)
 #define FWD_COPY_CAPTURE_AS_TUPLE(...) impl::fwd_copy_capture_as_tuple(FWD(__VA_ARGS__)...)
 
