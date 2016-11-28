@@ -40,8 +40,8 @@ namespace ll
     using void_to_nothing_t = typename void_to_nothing<T>::type;
 
     template <typename TF>
-    decltype(auto) call_ignoring_nothing(TF&& f)
-        noexcept(std::is_nothrow_callable<TF()>{});
+    decltype(auto) call_ignoring_nothing(TF&& f);
+    //    noexcept(std::is_nothrow_callable<TF()>{});
 
     template <typename TF, typename... Ts>
     decltype(auto) call_ignoring_nothing(TF&& f, nothing_t, Ts&&... xs);
@@ -67,7 +67,7 @@ namespace ll
 
     template <typename TF>
     decltype(auto) call_ignoring_nothing(TF&& f)
-        noexcept(std::is_nothrow_callable<TF()>{})
+    //    noexcept(std::is_nothrow_callable<TF()>{})
     {
         // Base case.
         return FWD(f)();

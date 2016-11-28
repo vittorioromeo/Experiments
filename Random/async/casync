@@ -1,6 +1,6 @@
 #!/bin/bash
 
-clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 \
+clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 -g  \
         -DNOT_ATOM=1 \
         -I/home/vittorioromeo/OHWorkspace/ecst/include \
         -pedantic \
@@ -44,7 +44,7 @@ clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 \
         -fsanitize=undefined \
         $1 -o /tmp/x.x && /tmp/x.x "${@:2}" && \
 \
-clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 \
+clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 -g \
         -DNOT_ATOM=1 \
         -I/home/vittorioromeo/OHWorkspace/ecst/include \
         -pedantic \

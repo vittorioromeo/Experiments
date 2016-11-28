@@ -31,7 +31,6 @@ g++7 -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 \
         -Wextra \
         -Wno-unused-local-typedefs \
         -Wwrite-strings \
-        -Wshadow \
         -Wundef \
         -Wno-missing-field-initializers \
         -Wpointer-arith \

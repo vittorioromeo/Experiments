@@ -549,7 +549,7 @@ struct nocopy
 };
 
 
-#if 0
+#if 1
 // TODO: debug gcc asan error with real pool
 using pool = ecst::thread_pool;
 #endif
@@ -565,7 +565,7 @@ struct pool
 };
 #endif
 
-#if 1
+#if 0
 struct pool
 {
     template <typename TF>
@@ -624,7 +624,7 @@ int main()
     pool p;
     my_context ctx{p};
 
-    for(volatile int i = 0; i < 20; ++i)
+    for(int i = 0; i < 5; ++i)
     {
         // `post` is required here, otherwise the chain dies.
         // TODO; `build_post(...)`? Something to keep alive chains generated
@@ -637,7 +637,7 @@ int main()
             // with moveonly
             ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
 
-            sleep_ms(5);
+            sleep_ms(15);
         });
     }
 
@@ -662,15 +662,18 @@ int main()
 
     for(volatile int i = 0; i < 20; ++i)
     {
-        // TODO: `i` gets corrupted with gcc mingw (prints same number multiple times)
-        ctx.build([i]() -> int { return i; })
-            .then([](int x) { return std::to_string(x); })
-            .then([](std::string x) { return "inum: " + x; })
-            .then([](std::string x) { std::printf("%s\n", x.c_str()); })
-            .start();
+        ctx.post([i, &ctx] {
+            ctx.build([i]() -> int { return i; })
+                .then([](int x) { return std::to_string(x); })
+                .then([](std::string x) { return "inum: " + x; })
+                .then([](std::string x) { std::printf("%s\n", x.c_str()); })
+                .start();
 
-        // with moveonly
-        ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
+            // with moveonly
+            ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
+
+            sleep_ms(15);
+        });
     }
 
     // with lvalue
@@ -682,78 +685,83 @@ int main()
         .start();
 
     // when_all
-    if constexpr(run_when_all_tests)
-    {
-    ctx.build([] { return 5; })
-        .then([](int y) { std::printf(">>%d\n", y); },
-            [](int y) { std::printf(">>%d\n", y); })
-        .start();
-    }
+    if
+        constexpr(run_when_all_tests)
+        {
+            ctx.build([] { return 5; })
+                .then([](int y) { std::printf(">>%d\n", y); },
+                    [](int y) { std::printf(">>%d\n", y); })
+                .start();
+        }
 
     // when_all with lvalue
-    if constexpr(run_when_all_tests)
-    {
-    int aaa2 = 10;
-    ctx.build([&aaa2]() -> int& { return aaa2; })
-        .then([](int& y) { std::printf(">>%d\n", y); },
-            [](int& y) { std::printf(">>%d\n", y); })
-        .start();
-    }
+    if
+        constexpr(run_when_all_tests)
+        {
+            int aaa2 = 10;
+            ctx.build([&aaa2]() -> int& { return aaa2; })
+                .then([](int& y) { std::printf(">>%d\n", y); },
+                    [](int& y) { std::printf(">>%d\n", y); })
+                .start();
+        }
 
     // when_all with atomic lvalue
-    if constexpr(run_when_all_tests)
-    {
-    std::atomic<int> aint{0};
-    ctx.build([&aint]() -> std::atomic<int>& { return aint; })
-        .then([](auto& y) { y += 5; }, [](auto& y) { y += 5; })
-        .then([&aint] {
-            std::printf("AINT: %d\n", aint.load());
-            assert(aint == 10);
-        })
-        .start();
-    }
+    if
+        constexpr(run_when_all_tests)
+        {
+            std::atomic<int> aint{0};
+            ctx.build([&aint]() -> std::atomic<int>& { return aint; })
+                .then([](auto& y) { y += 5; }, [](auto& y) { y += 5; })
+                .then([&aint] {
+                    std::printf("AINT: %d\n", aint.load());
+                    assert(aint == 10);
+                })
+                .start();
+        }
 
     // when_all returns
-    if constexpr(run_when_all_tests)
-    {
-    ctx.build([] { return 5; })
-        .then([](int y) { return y + 1; }, [](int y) { return y + 2; })
-        .then([](int z0, int z1) {
-            assert(z0 == 6);
-            assert(z1 == 7);
-        })
-        .start();
-    }
+    if
+        constexpr(run_when_all_tests)
+        {
+            ctx.build([] { return 5; })
+                .then([](int y) { return y + 1; }, [](int y) { return y + 2; })
+                .then([](int z0, int z1) {
+                    assert(z0 == 6);
+                    assert(z1 == 7);
+                })
+                .start();
+        }
 
     // when_all returns lvalues
-    if constexpr(run_when_all_tests)
-    {
-        int lv0 = 0;
-        int lv1 = 0;
-        ctx.build([&lv0, &lv1]() -> std::tuple<int&, int&> {
-               return {lv0, lv1};
-           })
-            .then(
-                [](auto y) -> int { // TODO: can't return reference, fix
-                    std::get<0>(y) += 1;
-                    return std::get<0>(y);
-                },
-                [](auto y) -> int { // TODO: can't return reference, fix
-                    std::get<1>(y) += 2;
-                    return std::get<1>(y);
+    if
+        constexpr(run_when_all_tests)
+        {
+            int lv0 = 0;
+            int lv1 = 0;
+            ctx.build([&lv0, &lv1]() -> std::tuple<int&, int&> {
+                   return {lv0, lv1};
+               })
+                .then(
+                    [](auto y) -> int { // TODO: can't return reference, fix
+                        std::get<0>(y) += 1;
+                        return std::get<0>(y);
+                    },
+                    [](auto y) -> int { // TODO: can't return reference, fix
+                        std::get<1>(y) += 2;
+                        return std::get<1>(y);
+                    })
+                .then([&lv0, &lv1](int z0, int z1) {
+                    assert(z0 == 1);
+                    assert(z1 == 2);
+                    assert(lv0 == 1);
+                    assert(lv1 == 2);
                 })
-            .then([&lv0, &lv1](int z0, int z1) {
-                assert(z0 == 1);
-                assert(z1 == 2);
-                assert(lv0 == 1);
-                assert(lv1 == 2);
-            })
-            .start();
-    }
+                .start();
+        }
 
     // execute_after_move(std::move(computation));
     // wait_until_complete(ctx, std::move(computation));
     computation.start();
-    sleep_ms(200);
+    sleep_ms(400);
 }
 #endif
