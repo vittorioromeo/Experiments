@@ -1,12 +1,12 @@
 #pragma once
 
-#include <tuple>
-#include <experimental/tuple>
-#include <ecst/utils.hpp>
-#include <utility>
-#include <type_traits>
-#include <vrm/core/type_traits/forward_like.hpp>
 #include "perfect_capture.hpp"
+#include <ecst/utils.hpp>
+#include <experimental/tuple>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vrm/core/type_traits/forward_like.hpp>
 
 namespace ll
 {
@@ -17,7 +17,10 @@ namespace ll
     constexpr nothing_t nothing{};
 
     template <typename T>
-    constexpr auto is_nothing(T&&) noexcept { return std::is_same<std::decay_t<T>, nothing_t>{}; }
+    constexpr auto is_nothing(T&&) noexcept
+    {
+        return std::is_same<std::decay_t<T>, nothing_t>{};
+    }
 
     template <typename T>
     struct void_to_nothing
@@ -45,9 +48,8 @@ namespace ll
     {
         // Bind `x` to the function call and recurse.
         return call_ignoring_nothing(
-            [ f = fwd_capture(FWD(f)), x = fwd_capture(FWD(x)) ](auto&&... ys) mutable
-                ->decltype(auto)
-            {
+            [ f = fwd_capture(FWD(f)), x = fwd_capture(FWD(x)) ](
+                auto&&... ys) mutable->decltype(auto) {
                 return f.get()(vrm::core::forward_like<T>(x.get()), FWD(ys)...);
             },
             FWD(xs)...);
@@ -72,11 +74,12 @@ namespace ll
     {
 #define BOUND_F() call_ignoring_nothing(f, FWD(xs)...)
 
-        if constexpr(std::is_same<decltype(BOUND_F()), void>{})
-        {
-            BOUND_F();
-            return nothing;
-        }
+        if
+            constexpr(std::is_same<decltype(BOUND_F()), void>{})
+            {
+                BOUND_F();
+                return nothing;
+            }
         else
         {
             return BOUND_F();
@@ -88,19 +91,22 @@ namespace ll
     template <typename TF>
     auto bind_return_void_to_nothing(TF&& f)
     {
-        return [f = fwd_capture(f)](auto&&... xs) mutable -> decltype(auto)
+        return [f = fwd_capture(f)](auto&&... xs) mutable->decltype(auto)
         {
-            return with_void_to_nothing(vrm::core::forward_like<TF>(f.get()), FWD(xs)...);
+            return with_void_to_nothing(
+                vrm::core::forward_like<TF>(f.get()), FWD(xs)...);
         };
     }
 
     template <typename TF, typename TTuple>
     decltype(auto) apply_ignore_nothing(TF&& f, TTuple&& t)
     {
-        return std::experimental::apply([f = fwd_capture(FWD(f))](auto&&... xs) mutable -> decltype(auto)
-        {
-            return with_void_to_nothing(vrm::core::forward_like<TF>(f.get()), FWD(xs)...);
-        }, FWD(t));
+        return std::experimental::apply(
+            [f = fwd_capture(FWD(f))](auto&&... xs) mutable->decltype(auto) {
+                return with_void_to_nothing(
+                    vrm::core::forward_like<TF>(f.get()), FWD(xs)...);
+            },
+            FWD(t));
     }
 
     template <typename TF, typename TTuple>
@@ -113,8 +119,8 @@ namespace ll
     template <typename TF, typename TTuple>
     decltype(auto) for_tuple_ignore_nothing(TF&& f, TTuple&& t)
     {
-        return for_tuple([&f](auto&&... xs) {
-            return with_void_to_nothing(f, FWD(xs)...);
-        }, FWD(t));
+        return for_tuple(
+            [&f](auto&&... xs) { return with_void_to_nothing(f, FWD(xs)...); },
+            FWD(t));
     }
 }

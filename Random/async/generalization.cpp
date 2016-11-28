@@ -51,7 +51,7 @@ namespace ll
         template <typename... Ts>
         using t = std::tuple<void_to_nothing_t<Ts>...>;
 
-        using none_t = result_t<>;
+        using none_t = t<>;
 
         constexpr none_t none{};
 
@@ -118,6 +118,11 @@ namespace ll
         {
             return continuation::then(std::move(*this), FWD(conts)...);
         }
+
+        // TODO:
+        /*
+            auto then_with_context(...);
+        */
     };
 
     template <typename TContext>
@@ -150,8 +155,7 @@ namespace ll
         template <typename TF>
         void post(TF&& f)
         {
-            // TODO: context should just provide `post`
-            this->ctx()._p.post(FWD(f));
+            this->ctx().post(FWD(f));
         }
     };
 
@@ -224,16 +228,8 @@ namespace ll
         friend context_type;
 
     protected:
-        // TODO: pls cleanup
         using input_type = typename child_of<TParent>::input_type;
         using return_type = result::t<result::of_apply<TF, input_type>>;
-
-        // TODO: might be useful?
-        // using input_type = void_to_nothing_t<typename TParent::return_type>;
-        // using return_type =
-        //    std::tuple<void_to_nothing_t<decltype(apply_ignore_nothing(
-        //        std::declval<TF>(), std::declval<input_type>()))>>;
-
 
     private:
         auto& as_f() noexcept
@@ -260,7 +256,7 @@ namespace ll
                     apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
 
                 // ...and wrap it into a tuple. Preserve "lvalue references".
-                std::tuple<decltype(res_value)> res(FWD(res_value));
+                result::t<decltype(res_value)> res(FWD(res_value));
 
                 this->post([ res = std::move(res), &n, &ns... ]() mutable {
                     n.execute(std::move(res), ns...);
@@ -329,14 +325,8 @@ namespace ll
         friend context_type;
 
     protected:
-        // TODO: pls cleanup
-        // TODO: not sure why remove_const is needed, was getting `const
-        // nothing_t`
         using input_type = typename child_of<TParent>::input_type;
-        using return_type =
-            std::tuple<std::remove_const_t<decltype(apply_ignore_nothing(
-                std::declval<TFs>(), std::declval<input_type>()))>...>;
-
+        using return_type = result::t<result::of_apply<TFs, input_type>...>;
 
     private:
         movable_atomic<int> _ctr{sizeof...(TFs)};
@@ -373,7 +363,6 @@ namespace ll
         template <typename T, typename TNode, typename... TNodes>
         auto execute(T&& x, TNode& n, TNodes&... ns) &
         {
-            // TODO: figure out lifetime of `x`!
             auto exec =
                 // `fwd_capture` the argument, forcing a copy instead of a move.
                 [ this, x = fwd_copy_capture(FWD(x)), &n, &ns... ](
@@ -382,12 +371,23 @@ namespace ll
                 // `x` is now a `perfect_capture` wrapper, so it can be moved.
                 // The original `x` has already been copied.
                 this->post([ this, x = std::move(x), &n, &ns..., &f ] {
-
                     // Should either propagate an "lvalue reference" to the
                     // original `x` or move the copy of `x` that was made in
                     // `exec`.
-                    std::get<decltype(idx){}>(_results) =
+                    decltype(auto) res =
                         apply_ignore_nothing(f, forward_like<T>(x.get()));
+
+                    using decay_res_type = std::decay_t<decltype(res)>;
+
+                    // Don't set results for `void`-returning functions.
+                    IF_CONSTEXPR(!std::is_same<decay_res_type, nothing_t>{})
+                    {
+                        // Should either propagate an "lvalue reference" to
+                        // the original `x` or move the copy of `x` that was
+                        // made in `exec`.
+                        std::get<decltype(idx){}>(_results) =
+                            forward_like<T>(res);
+                    }
 
                     // If this is the last `TFs...` function to end, trigger the
                     // next continuation.
@@ -450,6 +450,17 @@ namespace ll
             }
         }
     }
+
+    template <typename TContext>
+    class context_facade
+    {
+    public:
+        template <typename TF>
+        auto build(TF&& f)
+        {
+            return ll::build_root(static_cast<TContext&>(*this), FWD(f));
+        }
+    };
 }
 
 template <typename T>
@@ -485,19 +496,20 @@ struct pool
 };
 #endif
 
-class my_context
+class my_context : public ll::context_facade<my_context>
 {
-public:
+private:
     pool& _p;
 
+public:
     my_context(pool& p) : _p{p}
     {
     }
 
     template <typename TF>
-    auto build(TF&& f)
+    void post(TF&& f)
     {
-        return ll::build_root(*this, FWD(f));
+        _p.post(std::move(f));
     }
 };
 
@@ -585,20 +597,6 @@ int main()
             })
             .start();
     }
-
-    /* TODO:
-        ctx.build<int>([] { return 10; })
-            .when_all<int, float>
-            (
-                // TODO: int? or const int&?
-                // *(should the arg be copied across every task?)*
-                [](int x) { return x + 1; },
-                [](int x) { return x + 1.f; }
-            )
-            .then<void>([](std::tuple<int, float> x) { std::printf("%s\n",
-       x.c_str()); })
-            .start();
-    */
 
     /* TODO:
         ctx.build<int>([] { return 10; })
