@@ -678,7 +678,7 @@ int main()
 
     // execute_after_move(std::move(computation));
     // wait_until_complete(ctx, std::move(computation));
-    // computation.start();
+    computation.start();
     sleep_ms(200);
 }
 #endif

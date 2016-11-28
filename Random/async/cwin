@@ -19,8 +19,8 @@ g++ -std=c++1z -O0 -g \
         -Wcast-align \
         -Wno-terminate \
         -fdiagnostics-color=always \
-        $1 -o /tmp/x.x && /tmp/x.x "${@:2}"
-
+        $1 -o /tmp/x.x && /tmp/x.x "${@:2}" \
+&& \
 g++ -std=c++1z -Ofast -g \
         -DMINGW=1 \
         -I"D:/vrm_pp/include" \
