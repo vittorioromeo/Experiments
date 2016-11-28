@@ -526,7 +526,7 @@ struct nocopy
 };
 
 
-#if 1
+#if 0
 // TODO: debug gcc asan error with real pool
 using pool = ecst::thread_pool;
 #endif
@@ -542,7 +542,7 @@ struct pool
 };
 #endif
 
-#if 0
+#if 1
 struct pool
 {
     template <typename TF>
@@ -600,9 +600,13 @@ int main()
     for(volatile int i = 0; i < 20; ++i)
     {
         // TODO: `i` gets corrupted with gcc mingw (prints same number multiple times)
+        // (only with ecst pool?)
         ctx.build([i]() -> int { return i; })
             .then([](int x) { std::printf("%d\n", x); })
             .start();
+
+        // TODO: uncomment this and it works. Race cond?
+        // sleep_ms(2);
 
         // with moveonly
         ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
