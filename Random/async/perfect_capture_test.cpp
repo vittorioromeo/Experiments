@@ -26,7 +26,7 @@ int main()
 {
     auto testfwder = [](auto&&... xs)
     {
-        return [args = fwd_capture_as_tuple(FWD(xs)...)]{
+        return [args = FWD_CAPTURE_AS_TUPLE(xs)]{
 
         };
     };
@@ -47,7 +47,7 @@ int main()
     }
 
     {
-        auto test2 = [](auto&& x){ return [x = fwd_capture(x)]{}; };
+        auto test2 = [](auto&& x){ return [x = FWD_CAPTURE(x)]{}; };
         test2(nocopy{});
         nocopy j;
         test2(j); // compiles (stores a reference wrapper)
@@ -72,7 +72,7 @@ int main()
         // Reference is preserved
 
         auto l = [i = 0]() mutable { ++i; return i; };
-        auto test = [](auto&& x){ return [x = fwd_capture(FWD(x))]() mutable { return x.get()(); }; };
+        auto test = [](auto&& x){ return [x = FWD_CAPTURE(x)]() mutable { return x.get()(); }; };
 
         auto bl = test(l);
         assert(bl() == 1);
@@ -89,7 +89,7 @@ int main()
         // A copy is made
 
         auto l = [i = 0]() mutable { ++i; return i; };
-        auto test = [](auto&& x){ return [x = fwd_capture(FWD(x))]() mutable { return x.get()(); }; };
+        auto test = [](auto&& x){ return [x = FWD_CAPTURE(x)]() mutable { return x.get()(); }; };
 
         auto bl = test(copy(l));
         assert(bl() == 1);
@@ -104,7 +104,7 @@ int main()
         // Constness
         int a = 0;
         const int& aref = a;
-        auto test = [aa = fwd_capture(aref)]() mutable { /*++(aa.get());*/ };
+        auto test = [aa = impl::fwd_capture(aref)]() mutable { /*++(aa.get());*/ };
         test();
         assert(a == 0);
     }

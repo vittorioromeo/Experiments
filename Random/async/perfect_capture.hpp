@@ -181,29 +181,37 @@ public:
     }
 };
 
-template <typename T>
-auto fwd_capture(T&& x)
+namespace impl
 {
-    return perfect_capture<T>(FWD(x));
+    template <typename T>
+    auto fwd_capture(T&& x)
+    {
+        return perfect_capture<T>(FWD(x));
+    }
+
+    template <typename T>
+    auto fwd_copy_capture(T&& x)
+    {
+        return perfect_capture<T>(copy_if_rvalue(FWD(x)));
+    }
+
+    template <typename... Ts>
+    auto fwd_capture_as_tuple(Ts&&... xs)
+    {
+        return std::make_tuple(fwd_capture(FWD(xs))...);
+    }
+
+    template <typename... Ts>
+    auto fwd_copy_capture_as_tuple(Ts&&... xs)
+    {
+        return std::make_tuple(fwd_copy_capture(FWD(xs))...);
+    }
 }
 
-template <typename T>
-auto fwd_copy_capture(T&& x)
-{
-    return perfect_capture<T>(copy_if_rvalue(FWD(x)));
-}
-
-template <typename... Ts>
-auto fwd_capture_as_tuple(Ts&&... xs)
-{
-    return std::make_tuple(fwd_capture(xs)...);
-}
-
-template <typename... Ts>
-auto fwd_copy_capture_as_tuple(Ts&&... xs)
-{
-    return std::make_tuple(fwd_copy_capture(xs)...);
-}
+#define FWD_CAPTURE(...) impl::fwd_capture(FWD(__VA_ARGS__))
+#define FWD_COPY_CAPTURE(...) impl::fwd_copy_capture(FWD(__VA_ARGS__))
+#define FWD_CAPTURE_AS_TUPLE(...) impl::fwd_capture_as_tuple(FWD(__VA_ARGS__)...)
+#define FWD_COPY_CAPTURE_AS_TUPLE(...) impl::fwd_copy_capture_as_tuple(FWD(__VA_ARGS__)...)
 
 template <typename TF, typename TFwdCapture>
 decltype(auto) apply_fwd_capture(TF&& f, TFwdCapture&& fc)
@@ -211,32 +219,30 @@ decltype(auto) apply_fwd_capture(TF&& f, TFwdCapture&& fc)
     return std::experimental::apply([&f](auto&&... xs) mutable -> decltype(auto) { return f(FWD(xs).get()...); }, FWD(fc));
 }
 
-STATIC_ASSERT_SAME(fwd_capture(1), perfect_capture<int>);
-STATIC_ASSERT_SAME(fwd_capture(std::declval<int>()), perfect_capture<int>);
-STATIC_ASSERT_SAME(fwd_capture(std::declval<int&>()), perfect_capture<int&>);
-STATIC_ASSERT_SAME(fwd_capture(std::declval<int&&>()), perfect_capture<int>);
+STATIC_ASSERT_SAME(impl::fwd_capture(1), perfect_capture<int>);
+STATIC_ASSERT_SAME(impl::fwd_capture(std::declval<int>()), perfect_capture<int>);
+STATIC_ASSERT_SAME(impl::fwd_capture(std::declval<int&>()), perfect_capture<int&>);
+STATIC_ASSERT_SAME(impl::fwd_capture(std::declval<int&&>()), perfect_capture<int>);
 
-#if defined(STATIC_TESTS)
 namespace
 {
-    void test0()[[maybe_unused]]
+    void test0 [[maybe_unused]] ()
     {
         int x;
-        auto p = fwd_capture(x);
+        auto p = impl::fwd_capture(x);
         STATIC_ASSERT_SAME(p, perfect_capture<int&>);
     }
 
-    void test1()[[maybe_unused]]
+    void test1 [[maybe_unused]] ()
     {
         int x;
-        auto p = fwd_capture(std::move(x));
+        auto p = impl::fwd_capture(std::move(x));
         STATIC_ASSERT_SAME(p, perfect_capture<int>);
     }
 
-    void test2()[[maybe_unused]]
+    void test2 [[maybe_unused]] ()
     {
-        auto p = fwd_capture(1);
+        auto p = impl::fwd_capture(1);
         STATIC_ASSERT_SAME(p, perfect_capture<int>);
     }
 }
-#endif

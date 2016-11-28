@@ -242,7 +242,7 @@ namespace ll
         {
             // `fwd_capture` is used to preserve "lvalue references".
             // TODO: is this post required/beneficial?
-            this->post([ this, x = fwd_capture(FWD(x)) ]() mutable {
+            this->post([ this, x = FWD_CAPTURE(x) ]() mutable {
                 apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
             });
         }
@@ -251,7 +251,7 @@ namespace ll
         auto execute(T&& x, TNode& n, TNodes&... ns) &
         {
             // `fwd_capture` is used to preserve "lvalue references".
-            this->post([ this, x = fwd_capture(FWD(x)), &n, &ns... ]() mutable {
+            this->post([ this, x = FWD_CAPTURE(x), &n, &ns... ]() mutable {
                 // Take the result value of this function...
                 decltype(auto) res_value =
                     apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
@@ -337,7 +337,7 @@ namespace ll
         {
             auto exec =
                 // `fwd_capture` the argument, forcing a copy instead of a move.
-                [ this, x = fwd_copy_capture(FWD(x)) ](auto, auto& f) mutable
+                [ this, x = FWD_COPY_CAPTURE(x) ](auto, auto& f) mutable
             {
                 // `x` is now a `perfect_capture` wrapper, so it can be moved.
                 // The original `x` has already been copied.
@@ -360,7 +360,7 @@ namespace ll
         {
             auto exec =
                 // `fwd_capture` the argument, forcing a copy instead of a move.
-                [ this, x = fwd_copy_capture(FWD(x)), &n, &ns... ](
+                [ this, x = FWD_COPY_CAPTURE(x), &n, &ns... ](
                     auto idx, auto& f)
             {
                 // `x` is now a `perfect_capture` wrapper, so it can be moved.
@@ -490,7 +490,7 @@ template<typename TContext, typename ...TChains>
 void wait_until_complete(TContext& ctx, TChains&&... chains)
 {
     ecst::latch l{1};
-    l.execute_and_wait_until_zero([&ctx, &l, chains = fwd_capture_as_tuple(FWD(chains)...)]() mutable {
+    l.execute_and_wait_until_zero([&ctx, &l, chains = FWD_CAPTURE_AS_TUPLE(chains)]() mutable {
         apply_fwd_capture([&ctx](auto&&... xs){ return compose(ctx, FWD(xs)...); }, chains)
             .then([&l]{ l.decrement_and_notify_all(); } )
             .start();
@@ -575,7 +575,8 @@ int main()
 #else
 int main()
 {
-    constexpr bool run_when_all_tests{false};
+    // TODO: gcc segfault on mingw when set to true.
+    constexpr bool run_when_all_tests{true};
 
     pool p;
     my_context ctx{p};
