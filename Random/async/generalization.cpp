@@ -79,32 +79,6 @@ namespace ll
     template <typename TDerived>
     class continuable
     {
-#if defined(LL_DEBUG)
-        bool _moved{false};
-        void set_moved() noexcept
-        {
-            _moved = true;
-        }
-        void assert_not_moved() const noexcept
-        {
-            assert(!_moved);
-        }
-        void assert_moved() const noexcept
-        {
-            assert(_moved);
-        }
-#else
-        void set_moved() noexcept
-        {
-        }
-        void assert_not_moved() const noexcept
-        {
-        }
-        void assert_moved() const noexcept
-        {
-        }
-#endif
-
         // Clang bug prevents this:
         /*
         template <typename TContinuable, typename... TConts>
@@ -117,19 +91,16 @@ namespace ll
 
         auto& as_derived() & noexcept
         {
-            assert_not_moved();
             return static_cast<TDerived&>(*this);
         }
 
         const auto& as_derived() const & noexcept
         {
-            assert_not_moved();
             return static_cast<TDerived&>(*this);
         }
 
         auto as_derived() && noexcept
         {
-            assert_moved();
             return std::move(static_cast<TDerived&>(*this));
         }
 
@@ -137,17 +108,12 @@ namespace ll
         template <typename... TConts>
         auto then(TConts&&... conts) &
         {
-            assert_not_moved();
-
             return continuation::then(*this, FWD(conts)...);
         }
 
         template <typename... TConts>
         auto then(TConts&&... conts) &&
         {
-            assert_not_moved();
-            set_moved();
-
             return continuation::then(std::move(*this), FWD(conts)...);
         }
 
@@ -577,7 +543,7 @@ struct pool
                                                                 f)]() mutable {
                 f();
             });
-        std::thread{[jptr]() mutable { (*jptr)(); }}.detach();
+        std::thread{std::move(f)}.detach();
     }
 };
 #endif
@@ -624,7 +590,7 @@ int main()
     pool p;
     my_context ctx{p};
 
-    for(int i = 0; i < 5; ++i)
+    for(int i = 0; i < 25; ++i)
     {
         // `post` is required here, otherwise the chain dies.
         // TODO; `build_post(...)`? Something to keep alive chains generated
@@ -635,7 +601,8 @@ int main()
                 .start();
 
             // with moveonly
-            ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
+            //    ctx.build([] { return nocopy{}; }).then([](nocopy)
+            //    {}).start();
 
             sleep_ms(15);
         });

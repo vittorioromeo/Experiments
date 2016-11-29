@@ -71,25 +71,6 @@ struct perfect_capture
 private:
     T _x;
 
-#if defined(LL_DEBUG)
-    bool _moved{false};
-    void set_moved() noexcept
-    {
-        _moved = true;
-    }
-    void assert_not_moved() const noexcept
-    {
-        assert(!_moved);
-    }
-#else
-    void set_moved() noexcept
-    {
-    }
-    void assert_not_moved() const noexcept
-    {
-    }
-#endif
-
 public:
     constexpr perfect_capture(const T& x) noexcept(
         std::is_nothrow_copy_constructible<T>{})
@@ -131,39 +112,29 @@ public:
 
     constexpr auto& get() & noexcept
     {
-        assert_not_moved();
         return _x;
     }
     constexpr const auto& get() const & noexcept
     {
-        assert_not_moved();
         return _x;
     }
 
     constexpr operator T&() & noexcept
     {
-        assert_not_moved();
         return _x;
     }
     constexpr operator const T&() const & noexcept
     {
-        assert_not_moved();
         return _x;
     }
 
     constexpr auto get() && noexcept(std::is_nothrow_move_constructible<T>{})
     {
-        assert_not_moved();
-        set_moved();
-
         return std::move(_x);
     }
     constexpr operator T &&() &&
         noexcept(std::is_nothrow_move_constructible<T>{})
     {
-        assert_not_moved();
-        set_moved();
-
         return std::move(_x);
     }
 };
