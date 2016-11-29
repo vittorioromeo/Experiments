@@ -79,13 +79,6 @@ namespace ll
     template <typename TDerived>
     class continuable
     {
-        // Clang bug prevents this:
-        /*
-        template <typename TContinuable, typename... TConts>
-        friend auto continuation::then(TContinuable&& c, TConts&&... conts);
-
-    protected:
-        */
     public:
         using this_type = TDerived;
 
@@ -116,11 +109,6 @@ namespace ll
         {
             return continuation::then(std::move(*this), FWD(conts)...);
         }
-
-        // TODO:
-        /*
-            auto then_with_context(...);
-        */
     };
 
     template <typename TContext>
@@ -239,7 +227,6 @@ namespace ll
         auto execute(T&& x) &
         {
             // `fwd_capture` is used to preserve "lvalue references".
-            // TODO: is this post required/beneficial?
             this->post([ this, x = FWD_CAPTURE(x) ]() mutable {
                 apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
             });
@@ -257,10 +244,9 @@ namespace ll
                 // ...and wrap it into a tuple. Preserve "lvalue references".
                 result::t<decltype(res_value)> res(FWD(res_value));
 
-                // TODO: is this post required/beneficial?
-                // this->post([ res = std::move(res), &n, &ns... ]() mutable {
-                n.execute(std::move(res), ns...);
-                // });
+                this->post([ res = std::move(res), &n, &ns... ]() mutable {
+                    n.execute(std::move(res), ns...);
+                });
             });
         }
 
@@ -284,11 +270,7 @@ namespace ll
     template <typename TContext, typename... TConts>
     auto build_root(TContext& ctx, TConts&&... conts)
     {
-        static_assert(
-            sizeof...(conts) > 0, "can't build a chain of empty continuables");
-
         using root_type = root<TContext>;
-
         return node_then<root_type, TConts...>(root_type{ctx}, FWD(conts)...);
     }
 
@@ -297,11 +279,7 @@ namespace ll
         template <typename TContinuable, typename... TConts>
         auto then(TContinuable&& c, TConts&&... conts)
         {
-            static_assert(sizeof...(conts) > 0,
-                "can't build a chain of empty continuables");
-
             using c_type = typename TContinuable::this_type;
-
             return node_then<c_type, TConts...>{
                 FWD(c).as_derived(), FWD(conts)...};
         }
