@@ -4,8 +4,8 @@
 #include <cassert>
 #include <chrono>
 #include <cstdio>
-#include <thread>
 #include <mutex>
+#include <thread>
 
 #if defined(MINGW)
 #include <mingw.condition_variable.h>
@@ -27,21 +27,7 @@ inline void sleep_ms(int ms)
 
 namespace ll
 {
-    using vrm::core::forward_like;
-    using vrm::core::copy_if_rvalue;
-    using vrm::core::for_args;
-    using vrm::core::for_args_data;
-    using vrm::core::int_v;
-
-    namespace result
-    {
-        template <typename... Ts>
-        using t = std::tuple<Ts...>;
-
-        using none_t = t<>;
-
-        constexpr none_t none{};
-    }
+    std::mutex m;
 
     template <typename, typename>
     class node_then;
@@ -129,14 +115,13 @@ namespace ll
     protected:
         using base_type = base_node<TContext>;
         using context_type = typename base_type::context_type;
-        using return_type = result::none_t;
         using base_type::base_type;
 
     public:
         template <typename TNode, typename... TNodes>
         void start(TNode& n, TNodes&... ns)
         {
-            n.execute( ns...);
+            n.execute(ns...);
         }
     };
 
@@ -144,8 +129,6 @@ namespace ll
     class child_of : protected TParent
     {
     protected:
-        using input_type = typename TParent::return_type;
-
         template <typename TParentFwd>
         child_of(TParentFwd&& p) : TParent{FWD(p)}
         {
@@ -184,33 +167,24 @@ namespace ll
 
         friend context_type;
 
-    protected:
-        using input_type = typename child_of<TParent>::input_type;
-        using return_type = void;
-
     private:
         auto& as_f() & noexcept
         {
             return static_cast<TF&>(*this);
         }
 
-
         auto execute() &
         {
-            this->post([this]() mutable {
-                as_f()();
-            });
+            this->post([this]() mutable { as_f()(); });
         }
 
         template <typename TNode, typename... TNodes>
         auto execute(TNode& n, TNodes&... ns) &
         {
-            this->post([ this, &n, &ns... ]() mutable {
+            this->post([this, &n, &ns...]() mutable {
                 as_f()();
 
-                this->post([ &n, &ns... ]() mutable {
-                    n.execute(ns...);
-                });
+                this->post([&n, &ns...]() mutable { n.execute(ns...); });
             });
         }
 
@@ -267,7 +241,9 @@ struct my_context : public ll::context_facade<my_context>
     template <typename TF>
     void post(TF&& f)
     {
-        _p.post(std::move(f));
+        // f(); 
+        std::thread{std::move(f)}.detach();
+        // _p.post(std::move(f));
     }
 };
 
@@ -277,9 +253,8 @@ int main()
 
     for(int i = 0; i < 15; ++i)
     {
-        ctx.post([&ctx,i]
-        {
-            auto x = ctx.build([y=1]{ }).then([] {});
+        ctx.post([&ctx, i] {
+            auto x = ctx.build([y = 1]{}).then([i] { std::cout << i << "\n"; });
             x.start();
             sleep_ms(5);
         });
