@@ -1,6 +1,6 @@
 #!/bin/bash
 
-g++7 -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 \
+g++7 -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -Ofast \
     -g \
     -DNOT_ATOM=1 \
     -I/home/vittorioromeo/OHWorkspace/ecst/include \

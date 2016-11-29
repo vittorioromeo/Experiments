@@ -515,7 +515,7 @@ struct nocopy
 };
 
 
-#if 1
+#if 0
 // TODO: debug gcc asan error with real pool
 using pool = ecst::thread_pool;
 #endif
@@ -531,7 +531,7 @@ struct pool
 };
 #endif
 
-#if 0
+#if 1
 struct pool
 {
     template <typename TF>
@@ -594,23 +594,24 @@ int main()
 
     for(int i = 0; i < 25; ++i)
     {
-        // `post` is required here, otherwise the chain dies.
-        // TODO; `build_post(...)`? Something to keep alive chains generated
-        // like this.
-        ctx.post([i, &ctx] {
-            ctx.build([i]() -> int { return i; })
-                .then([](int x) { std::printf("%d\n", x); })
-                .start();
+        p.post([&ctx, i] {
+            std::atomic<bool> k{false};
 
-            // with moveonly
-            //    ctx.build([] { return nocopy{}; }).then([](nocopy)
-            //    {}).start();
+            auto x = ctx.build([i]{ return i; }).then([i, &k](int z) {
+                std::cout << i << z << "\n";
+                k = true;
+            });
 
-            sleep_ms(15);
+            x.start();
+
+            while(!k)
+            {
+                sleep_ms(5);
+            }
         });
     }
 
-    sleep_ms(200);
+    sleep_ms(300);
 }
 #endif
 

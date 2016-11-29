@@ -1,7 +1,7 @@
 #!/bin/bash
 clear; clear;
 
-FLAGS='-std=c++1z -g3 -W -Wall -Wextra -Wpedantic -I/home/vittorioromeo/OHWorkspace/ecst/include -I/home/vittorioromeo/OHWorkspace/vrm_core/include  -I/home/vittorioromeo/OHWorkspace/vrm_core/include -I/home/vittorioromeo/OHWorkspace/vrm_pp/include -lpthread'
+FLAGS='-std=c++1z -g -W -Wall -Wextra -Wpedantic -I/home/vittorioromeo/OHWorkspace/ecst/include -I/home/vittorioromeo/OHWorkspace/vrm_core/include  -I/home/vittorioromeo/OHWorkspace/vrm_core/include -I/home/vittorioromeo/OHWorkspace/vrm_pp/include -lpthread'
 
 fn()
 {
