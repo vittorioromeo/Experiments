@@ -241,8 +241,8 @@ struct my_context : public ll::context_facade<my_context>
     template <typename TF>
     void post(TF&& f)
     {
-        // f(); 
-        std::thread{std::move(f)}.detach();
+        f();
+        // std::thread{std::move(f)}.detach();
         // _p.post(std::move(f));
     }
 };
@@ -255,7 +255,8 @@ int main()
     {
         ctx.post([&ctx, i] {
             auto x = ctx.build([y = 1]{}).then([i] { std::cout << i << "\n"; });
-            x.start();
+            auto z = std::move(x);
+            z.start();
             sleep_ms(5);
         });
     }
