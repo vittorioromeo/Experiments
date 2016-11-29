@@ -4,8 +4,8 @@
 #include <cassert>
 #include <chrono>
 #include <cstdio>
-#include <mutex>
 #include <thread>
+#include <mutex>
 
 #if defined(MINGW)
 #include <mingw.condition_variable.h>
@@ -13,8 +13,6 @@
 #include <mingw.thread.h>
 #endif
 
-#include "nothing.hpp"
-#include "perfect_capture.hpp"
 #include <ecst/thread_pool.hpp>
 #include <ecst/utils.hpp>
 #include <experimental/tuple>
@@ -22,20 +20,9 @@
 #include <thread>
 #include <tuple>
 
-#define IF_CONSTEXPR \
-    if               \
-    constexpr
-
 inline void sleep_ms(int ms)
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-}
-
-template <typename T>
-inline void print_sleep_ms(int ms, const T& x)
-{
-    std::puts(x);
-    sleep_ms(ms);
 }
 
 namespace ll
@@ -49,33 +36,22 @@ namespace ll
     namespace result
     {
         template <typename... Ts>
-        using t = std::tuple<void_to_nothing_t<Ts>...>;
+        using t = std::tuple<Ts...>;
 
         using none_t = t<>;
 
         constexpr none_t none{};
-
-        template <typename... Ts>
-        using of_apply = decltype(apply_ignore_nothing(std::declval<Ts>()...));
     }
 
     template <typename, typename>
     class node_then;
 
-    template <typename, typename...>
-    class node_wait_all;
-
-    // Continuations between nodes are implemented as free functions in order to
-    // avoid code repetition.
-    // Node types will provide ref-qualified member functions that call the free
-    // functions.
     namespace continuation
     {
         template <typename TContinuable, typename... TConts>
         auto then(TContinuable&& c, TConts&&... conts);
     }
 
-    // CRTP base class for all nodes that provide continuation member functions.
     template <typename TDerived>
     class continuable
     {
@@ -122,7 +98,6 @@ namespace ll
         using context_type = TContext;
 
     public:
-        // TODO: should be protected, friend `build_root` ?
         base_node(TContext& ctx) noexcept : _ctx{ctx}
         {
         }
@@ -158,11 +133,10 @@ namespace ll
         using base_type::base_type;
 
     public:
-        // TODO: should be `protected`?
         template <typename TNode, typename... TNodes>
         void start(TNode& n, TNodes&... ns)
         {
-            n.execute(result::none, ns...);
+            n.execute( ns...);
         }
     };
 
@@ -204,9 +178,6 @@ namespace ll
         template <typename, typename>
         friend class node_then;
 
-        template <typename, typename...>
-        friend class node_wait_all;
-
         using this_type = node_then<TParent, TF>;
         using context_type = typename TParent::context_type;
         using continuable_type = continuable<node_then<TParent, TF>>;
@@ -215,7 +186,7 @@ namespace ll
 
     protected:
         using input_type = typename child_of<TParent>::input_type;
-        using return_type = result::t<result::of_apply<TF, input_type>>;
+        using return_type = void;
 
     private:
         auto& as_f() & noexcept
@@ -223,29 +194,22 @@ namespace ll
             return static_cast<TF&>(*this);
         }
 
-        template <typename T>
-        auto execute(T&& x) &
+
+        auto execute() &
         {
-            // `fwd_capture` is used to preserve "lvalue references".
-            this->post([ this, x = FWD_CAPTURE(x) ]() mutable {
-                apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
+            this->post([this]() mutable {
+                as_f()();
             });
         }
 
-        template <typename T, typename TNode, typename... TNodes>
-        auto execute(T&& x, TNode& n, TNodes&... ns) &
+        template <typename TNode, typename... TNodes>
+        auto execute(TNode& n, TNodes&... ns) &
         {
-            // `fwd_capture` is used to preserve "lvalue references".
-            this->post([ this, x = FWD_CAPTURE(x), &n, &ns... ]() mutable {
-                // Take the result value of this function...
-                decltype(auto) res_value =
-                    apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
+            this->post([ this, &n, &ns... ]() mutable {
+                as_f()();
 
-                // ...and wrap it into a tuple. Preserve "lvalue references".
-                result::t<decltype(res_value)> res(FWD(res_value));
-
-                this->post([ res = std::move(res), &n, &ns... ]() mutable {
-                    n.execute(std::move(res), ns...);
+                this->post([ &n, &ns... ]() mutable {
+                    n.execute(ns...);
                 });
             });
         }
@@ -257,7 +221,6 @@ namespace ll
         {
         }
 
-        // Disambiguate with parent nodes' `then` member functions.
         using continuable_type::then;
 
         template <typename... TNodes>
@@ -297,17 +260,9 @@ namespace ll
     };
 }
 
-using pool = ecst::thread_pool;
-
-class my_context : public ll::context_facade<my_context>
+struct my_context : public ll::context_facade<my_context>
 {
-private:
-    pool& _p;
-
-public:
-    my_context(pool& p) : _p{p}
-    {
-    }
+    ecst::thread_pool _p;
 
     template <typename TF>
     void post(TF&& f)
@@ -316,19 +271,16 @@ public:
     }
 };
 
-
 int main()
 {
-    pool p;
-    my_context ctx{p};
+    my_context ctx;
 
-    for(int i = 0; i < 10; ++i)
+    for(int i = 0; i < 15; ++i)
     {
-        ctx.post([i, &ctx] {
-            ctx.build([i]() -> int { return i; })
-                .then([](int x) { std::printf("%d\n", x); })
-                .start();
-
+        ctx.post([&ctx,i]
+        {
+            auto x = ctx.build([y=1]{ }).then([] {});
+            x.start();
             sleep_ms(5);
         });
     }
