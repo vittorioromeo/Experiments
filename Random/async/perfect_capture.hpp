@@ -97,7 +97,7 @@ public:
         return *this;
     }
 
-    constexpr perfect_capture(const perfect_capture& rhs) noexcept(
+    /*constexpr perfect_capture(const perfect_capture& rhs) noexcept(
         std::is_nothrow_copy_constructible<T>{})
         : _x{rhs.get()}
     {
@@ -108,7 +108,7 @@ public:
     {
         _x = rhs.get();
         return *this;
-    }
+    }*/
 
     constexpr auto& get() & noexcept
     {

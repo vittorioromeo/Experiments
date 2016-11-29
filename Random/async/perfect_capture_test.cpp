@@ -43,6 +43,7 @@ int main()
         auto test = [](auto&& x){ return [x = FWD(x)]{}; };
         test(nocopy{});
         nocopy j;
+        (void) j;
         // test(j); // does not compile as intended
     }
 

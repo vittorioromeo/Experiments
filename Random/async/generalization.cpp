@@ -538,11 +538,13 @@ struct pool
     void post(TF&& f)
     {
         // Required because `std::thread` always copies its callable argument.
-        auto jptr =
+        /*auto jptr =
             std::make_shared<ecst::fixed_function<void()>>([f = std::move(
                                                                 f)]() mutable {
                 f();
             });
+        std::thread{[jptr]{ (*jptr)(); }}.detach();
+        */
         std::thread{std::move(f)}.detach();
     }
 };
