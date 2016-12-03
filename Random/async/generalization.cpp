@@ -172,7 +172,7 @@ namespace ll
     public:
         // TODO: should be `protected`?
         template <typename TNode, typename... TNodes>
-        void start(TNode& n, TNodes&... ns)
+        void start(TNode& n, TNodes&... ns) &
         {
             n.execute(result::none, ns...);
         }
@@ -275,7 +275,7 @@ namespace ll
         using continuable_type::then;
 
         template <typename... TNodes>
-        auto start(TNodes&... ns)
+        auto start(TNodes&... ns) &
         {
             this->parent().start(*this, ns...);
         }
@@ -408,7 +408,7 @@ namespace ll
         using continuable_type::then;
 
         template <typename... TNodes>
-        auto start(TNodes&... ns)
+        auto start(TNodes&... ns) &
         {
             this->parent().start(*this, ns...);
         }
@@ -573,20 +573,22 @@ int main()
     pool p;
     my_context ctx{p};
 
-    ctx.build([] { return 10; })
-        .then([](int x) { return std::to_string(x); })
-        .then([](std::string x) { return "num: " + x; })
-        .then([](std::string x) { std::printf("%s\n", x.c_str()); })
-        .start();
+    auto c = ctx.build([] { return 10; })
+                 .then([](int x) { return std::to_string(x); })
+                 .then([](std::string x) { return "num: " + x; })
+                 .then([](std::string x) { std::printf("%s\n", x.c_str()); });
+
+    c.start();
 
     // with moveonly
-    ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
+    auto c2 = ctx.build([] { return nocopy{}; }).then([](nocopy) {});
+    c2.start();
 
     sleep_ms(200);
 }
 #endif
 
-#if 1
+#if 0
 int main()
 {
     pool p;
@@ -597,7 +599,7 @@ int main()
         p.post([&ctx, i] {
             std::atomic<bool> k{false};
 
-            auto x = ctx.build([i]{ return i; }).then([i, &k](int z) {
+            auto x = ctx.build([i] { return i; }).then([i, &k](int z) {
                 std::cout << i << z << "\n";
                 k = true;
             });
@@ -615,7 +617,7 @@ int main()
 }
 #endif
 
-#if 0
+#if 1
 int main()
 {
     // TODO: gcc segfault on mingw when set to true.
@@ -633,35 +635,41 @@ int main()
     for(volatile int i = 0; i < 20; ++i)
     {
         ctx.post([i, &ctx] {
-            ctx.build([i]() -> int { return i; })
-                .then([](int x) { return std::to_string(x); })
-                .then([](std::string x) { return "inum: " + x; })
-                .then([](std::string x) { std::printf("%s\n", x.c_str()); })
-                .start();
+            auto c = ctx.build([i]() -> int { return i; })
+                         .then([](int x) { return std::to_string(x); })
+                         .then([](std::string x) { return "inum: " + x; })
+                         .then([](std::string x) {
+                             std::printf("%s\n", x.c_str());
+                         });
+            c.start();
 
             // with moveonly
-            ctx.build([] { return nocopy{}; }).then([](nocopy) {}).start();
+            auto c2 = ctx.build([] { return nocopy{}; }).then([](nocopy) {});
+            c2.start();
 
-            sleep_ms(15);
+            sleep_ms(25);
         });
     }
 
-    // with lvalue
-    int aaa = 10;
-    ctx.build([&aaa]() -> int& { return aaa; })
-        .then([](int& x) { return std::to_string(x); })
-        .then([](std::string x) { return "num: " + x; })
-        .then([](std::string x) { std::printf("%s\n", x.c_str()); })
-        .start();
+    {
+        // with lvalue
+        int aaa = 10;
+        auto c =
+            ctx.build([&aaa]() -> int& { return aaa; })
+                .then([](int& x) { return std::to_string(x); })
+                .then([](std::string x) { return "num: " + x; })
+                .then([](std::string x) { std::printf("%s\n", x.c_str()); });
+        c.start();
+    }
 
     // when_all
     if
         constexpr(run_when_all_tests)
         {
-            ctx.build([] { return 5; })
-                .then([](int y) { std::printf(">>%d\n", y); },
-                    [](int y) { std::printf(">>%d\n", y); })
-                .start();
+            auto c = ctx.build([] { return 5; })
+                         .then([](int y) { std::printf(">>%d\n", y); },
+                             [](int y) { std::printf(">>%d\n", y); });
+            c.start();
         }
 
     // when_all with lvalue
@@ -669,10 +677,10 @@ int main()
         constexpr(run_when_all_tests)
         {
             int aaa2 = 10;
-            ctx.build([&aaa2]() -> int& { return aaa2; })
-                .then([](int& y) { std::printf(">>%d\n", y); },
-                    [](int& y) { std::printf(">>%d\n", y); })
-                .start();
+            auto c = ctx.build([&aaa2]() -> int& { return aaa2; })
+                         .then([](int& y) { std::printf(">>%d\n", y); },
+                             [](int& y) { std::printf(">>%d\n", y); });
+            c.start();
         }
 
     // when_all with atomic lvalue
@@ -680,26 +688,27 @@ int main()
         constexpr(run_when_all_tests)
         {
             std::atomic<int> aint{0};
-            ctx.build([&aint]() -> std::atomic<int>& { return aint; })
-                .then([](auto& y) { y += 5; }, [](auto& y) { y += 5; })
-                .then([&aint] {
-                    std::printf("AINT: %d\n", aint.load());
-                    assert(aint == 10);
-                })
-                .start();
+            auto c = ctx.build([&aint]() -> std::atomic<int>& { return aint; })
+                         .then([](auto& y) { y += 5; }, [](auto& y) { y += 5; })
+                         .then([&aint] {
+                             std::printf("AINT: %d\n", aint.load());
+                             assert(aint == 10);
+                         });
+            c.start();
         }
 
     // when_all returns
     if
         constexpr(run_when_all_tests)
         {
-            ctx.build([] { return 5; })
-                .then([](int y) { return y + 1; }, [](int y) { return y + 2; })
-                .then([](int z0, int z1) {
-                    assert(z0 == 6);
-                    assert(z1 == 7);
-                })
-                .start();
+            auto c = ctx.build([] { return 5; })
+                         .then([](int y) { return y + 1; },
+                             [](int y) { return y + 2; })
+                         .then([](int z0, int z1) {
+                             assert(z0 == 6);
+                             assert(z1 == 7);
+                         });
+            c.start();
         }
 
     // when_all returns lvalues
@@ -708,25 +717,26 @@ int main()
         {
             int lv0 = 0;
             int lv1 = 0;
-            ctx.build([&lv0, &lv1]() -> std::tuple<int&, int&> {
-                   return {lv0, lv1};
-               })
-                .then(
-                    [](auto y) -> int { // TODO: can't return reference, fix
-                        std::get<0>(y) += 1;
-                        return std::get<0>(y);
-                    },
-                    [](auto y) -> int { // TODO: can't return reference, fix
-                        std::get<1>(y) += 2;
-                        return std::get<1>(y);
-                    })
-                .then([&lv0, &lv1](int z0, int z1) {
-                    assert(z0 == 1);
-                    assert(z1 == 2);
-                    assert(lv0 == 1);
-                    assert(lv1 == 2);
-                })
-                .start();
+            auto c =
+                ctx.build([&lv0, &lv1]() -> std::tuple<int&, int&> {
+                       return {lv0, lv1};
+                   })
+                    .then(
+                        [](auto y) -> int { // TODO: can't return reference, fix
+                            std::get<0>(y) += 1;
+                            return std::get<0>(y);
+                        },
+                        [](auto y) -> int { // TODO: can't return reference, fix
+                            std::get<1>(y) += 2;
+                            return std::get<1>(y);
+                        })
+                    .then([&lv0, &lv1](int z0, int z1) {
+                        assert(z0 == 1);
+                        assert(z1 == 2);
+                        assert(lv0 == 1);
+                        assert(lv1 == 2);
+                    });
+            c.start();
         }
 
     // execute_after_move(std::move(computation));

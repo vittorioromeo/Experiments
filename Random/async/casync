@@ -2,6 +2,7 @@
 
 clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 -g  \
         -DNOT_ATOM=1 \
+        -I/home/vittorioromeo/OHWorkspace/vrm_pp/include \
         -I/home/vittorioromeo/OHWorkspace/ecst/include \
         -pedantic \
         -W \
@@ -46,6 +47,7 @@ clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 -g  \
 \
 clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 -g \
         -DNOT_ATOM=1 \
+        -I/home/vittorioromeo/OHWorkspace/vrm_pp/include \
         -I/home/vittorioromeo/OHWorkspace/ecst/include \
         -pedantic \
         -W \
