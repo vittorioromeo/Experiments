@@ -1,51 +1,18 @@
 
 
-#include <atomic>
-#include <cassert>
-#include <chrono>
-#include <cstdio>
-#include <mutex>
-#include <thread>
-
-#if defined(MINGW)
-#include <mingw.condition_variable.h>
-#include <mingw.mutex.h>
-#include <mingw.thread.h>
-#endif
-
+#include "threading.hpp"
+#include "utility.hpp"
 #include "nothing.hpp"
 #include "perfect_capture.hpp"
-#include <ecst/thread_pool.hpp>
-#include <ecst/utils.hpp>
+
+#include <tuple>
 #include <experimental/tuple>
 #include <functional>
-#include <thread>
-#include <tuple>
+#include <ecst/thread_pool.hpp>
+#include <ecst/utils.hpp>
 
-#define IF_CONSTEXPR \
-    if               \
-    constexpr
-
-inline void sleep_ms(int ms)
+namespace orizzonte
 {
-    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-}
-
-template <typename T>
-inline void print_sleep_ms(int ms, const T& x)
-{
-    std::puts(x);
-    sleep_ms(ms);
-}
-
-namespace ll
-{
-    using vrm::core::forward_like;
-    using vrm::core::copy_if_rvalue;
-    using vrm::core::for_args;
-    using vrm::core::for_args_data;
-    using vrm::core::int_v;
-
     namespace result
     {
         template <typename... Ts>
@@ -73,6 +40,9 @@ namespace ll
     {
         template <typename TContinuable, typename... TConts>
         auto then(TContinuable&& c, TConts&&... conts);
+
+        template <typename TContext, typename TChain>
+        void wait(TContext& ctx, TChain&& chain);
     }
 
     // CRTP base class for all nodes that provide continuation member functions.
@@ -108,13 +78,25 @@ namespace ll
         template <typename... TConts>
         auto then(TConts&&... conts) &
         {
+            // TODO: as derived?
             return continuation::then(*this, FWD(conts)...);
         }
 
         template <typename... TConts>
         auto then(TConts&&... conts) &&
         {
+            // TODO: as derived?
             return continuation::then(std::move(*this), FWD(conts)...);
+        }
+
+        auto wait() &
+        {
+            continuation::wait(as_derived().ctx(), as_derived());
+        }
+
+        auto wait() &&
+        {
+            continuation::wait(as_derived().ctx(), std::move(as_derived()));
         }
 
         // TODO:
@@ -224,6 +206,7 @@ namespace ll
         using continuable_type = continuable<node_then<TParent, TF>>;
 
         friend context_type;
+        friend continuable_type;
 
     protected:
         using input_type = typename child_of<TParent>::input_type;
@@ -273,6 +256,7 @@ namespace ll
 
         // Disambiguate with parent nodes' `then` member functions.
         using continuable_type::then;
+        using continuable_type::wait;
 
         template <typename... TNodes>
         auto start(TNodes&... ns) &
@@ -302,7 +286,6 @@ namespace ll
     class node_wait_all : private TFs...,
                           protected child_of<TParent>,
                           public continuable<node_wait_all<TParent, TFs...>>
-
     {
         template <typename>
         friend class root;
@@ -314,9 +297,12 @@ namespace ll
         friend class node_wait_all;
 
         using this_type = node_wait_all<TParent, TFs...>;
-        using continuable_type = continuable<node_wait_all<TParent, TFs...>>;
         using context_type = typename TParent::context_type;
+        using continuable_type = continuable<node_wait_all<TParent, TFs...>>;
+
         friend context_type;
+        friend continuable_type;
+
 
     protected:
         using input_type = typename child_of<TParent>::input_type;
@@ -406,6 +392,7 @@ namespace ll
 
         // Disambiguate with parent nodes' `then` member functions.
         using continuable_type::then;
+        using continuable_type::wait;
 
         template <typename... TNodes>
         auto start(TNodes&... ns) &
@@ -444,7 +431,7 @@ namespace ll
             "can't compose a chain of empty continuables");
 
         auto wrap_start = [](auto& c) { return [&c] { c.start(); }; };
-        return ctx.build(wrap_start(conts)...);
+        return ctx.build(wrap_start(FWD(conts))...);
     }
 
     namespace continuation
@@ -455,7 +442,7 @@ namespace ll
             static_assert(sizeof...(conts) > 0,
                 "can't build a chain of empty continuables");
 
-            using c_type = typename TContinuable::this_type;
+            using c_type = typename std::decay_t<TContinuable>::this_type;
 
             IF_CONSTEXPR(sizeof...(conts) == 1)
             {
@@ -467,6 +454,16 @@ namespace ll
                 return node_wait_all<c_type, TConts...>{
                     FWD(c).as_derived(), FWD(conts)...};
             }
+        }
+
+        template <typename TContext, typename TChain>
+        void wait(TContext& ctx, TChain&& chain)
+        {
+            ecst::latch l{1};
+
+            auto c = FWD(chain).then([&l] { l.decrement_and_notify_all(); });
+            l.execute_and_wait_until_zero(
+                [&ctx, &c, &l]() mutable { c.start(); });
         }
     }
 
@@ -486,21 +483,37 @@ template <typename T>
 void execute_after_move(T x)
 {
     x.start();
-    sleep_ms(200);
+    ll::sleep_ms(200);
 }
 
+/*
 template <typename TContext, typename... TChains>
 void wait_until_complete(TContext& ctx, TChains&&... chains)
 {
     ecst::latch l{1};
+
+    auto c = std::experimental::apply(
+        [&ctx](auto&&... xs) { return compose(ctx, FWD(xs)...); },
+        chains).then([&l] { l.decrement_and_notify_all(); });
+
     l.execute_and_wait_until_zero(
-        [&ctx, &l, chains = FWD_CAPTURE_AS_TUPLE(chains) ]() mutable {
-            apply_fwd_capture(
-                [&ctx](auto&&... xs) { return compose(ctx, FWD(xs)...); },
-                chains)
-                .then([&l] { l.decrement_and_notify_all(); })
-                .start();
+        [&ctx, &c, &l, chains = FWD_CAPTURE_AS_TUPLE(chains) ]() mutable {
+
+            c.start();
         });
+}
+*/
+
+namespace orizzonte
+{
+    template <typename TContext, typename TChain>
+    void wait_until_complete(TContext& ctx, TChain&& chain)
+    {
+        ecst::latch l{1};
+
+        auto c = FWD(chain).then([&l] { l.decrement_and_notify_all(); });
+        l.execute_and_wait_until_zero([&ctx, &c, &l]() mutable { c.start(); });
+    }
 }
 
 struct nocopy
@@ -626,28 +639,27 @@ int main()
     pool p;
     my_context ctx{p};
 
-    auto computation =               // .
-        ctx.build([] { return 10; }) // .
-            .then([](int x) { return std::to_string(x); })
-            .then([](std::string x) { return "num: " + x; })
-            .then([](std::string x) { std::printf("%s\n", x.c_str()); });
+    // auto computation =               // .
+    //     ctx.build([] { return 10; }) // .
+    //         .then([](int x) { return std::to_string(x); })
+    //         .then([](std::string x) { return "num: " + x; })
+    //         .then([](std::string x) { std::printf("%s\n", x.c_str()); });
 
     for(volatile int i = 0; i < 20; ++i)
     {
         ctx.post([i, &ctx] {
-            auto c = ctx.build([i]() -> int { return i; })
-                         .then([](int x) { return std::to_string(x); })
-                         .then([](std::string x) { return "inum: " + x; })
-                         .then([](std::string x) {
-                             std::printf("%s\n", x.c_str());
-                         });
-            c.start();
+            ctx.build([i]() -> int { return i; })
+                .then([](int x) { return std::to_string(x); })
+                .then([](std::string x) { return "inum: " + x; })
+                .then([](std::string x) { std::printf("%s\n", x.c_str()); })
+                .wait();
 
             // with moveonly
-            auto c2 = ctx.build([] { return nocopy{}; }).then([](nocopy) {});
-            c2.start();
+            // auto c2 = ctx.build([] { return nocopy{}; }).then([](nocopy) {});
+            // c2.start();
 
-            sleep_ms(25);
+            // ll::wait_until_complete(ctx, c);
+            // sleep_ms(100);
         });
     }
 
@@ -659,89 +671,84 @@ int main()
                 .then([](int& x) { return std::to_string(x); })
                 .then([](std::string x) { return "num: " + x; })
                 .then([](std::string x) { std::printf("%s\n", x.c_str()); });
-        c.start();
+        c.wait();
     }
 
     // when_all
-    if
-        constexpr(run_when_all_tests)
-        {
-            auto c = ctx.build([] { return 5; })
-                         .then([](int y) { std::printf(">>%d\n", y); },
-                             [](int y) { std::printf(">>%d\n", y); });
-            c.start();
-        }
+    // IF_CONSTEXPR(run_when_all_tests)
+    {
+        auto c = ctx.build([] { return 5; })
+                     .then([](int y) { std::printf(">>%d\n", y); },
+                         [](int y) { std::printf(">>%d\n", y); });
+        c.start();
+    }
 
     // when_all with lvalue
-    if
-        constexpr(run_when_all_tests)
-        {
-            int aaa2 = 10;
-            auto c = ctx.build([&aaa2]() -> int& { return aaa2; })
-                         .then([](int& y) { std::printf(">>%d\n", y); },
-                             [](int& y) { std::printf(">>%d\n", y); });
-            c.start();
-        }
+    // IF_CONSTEXPR(run_when_all_tests)
+    {
+        int aaa2 = 10;
+        auto c = ctx.build([&aaa2]() -> int& { return aaa2; })
+                     .then([](int& y) { std::printf(">>%d\n", y); },
+                         [](int& y) { std::printf(">>%d\n", y); });
+        c.start();
+    }
 
     // when_all with atomic lvalue
-    if
-        constexpr(run_when_all_tests)
-        {
-            std::atomic<int> aint{0};
-            auto c = ctx.build([&aint]() -> std::atomic<int>& { return aint; })
-                         .then([](auto& y) { y += 5; }, [](auto& y) { y += 5; })
-                         .then([&aint] {
-                             std::printf("AINT: %d\n", aint.load());
-                             assert(aint == 10);
-                         });
-            c.start();
-        }
+    IF_CONSTEXPR(run_when_all_tests)
+    {
+        std::atomic<int> aint{0};
+        auto c = ctx.build([&aint]() -> std::atomic<int>& { return aint; })
+                     .then([](auto& y) { y += 5; }, [](auto& y) { y += 5; })
+                     .then([&aint] {
+                         std::printf("AINT: %d\n", aint.load());
+                         assert(aint == 10);
+                     });
+        c.start();
+    }
 
     // when_all returns
-    if
-        constexpr(run_when_all_tests)
-        {
-            auto c = ctx.build([] { return 5; })
-                         .then([](int y) { return y + 1; },
-                             [](int y) { return y + 2; })
-                         .then([](int z0, int z1) {
-                             assert(z0 == 6);
-                             assert(z1 == 7);
-                         });
-            c.start();
-        }
+    IF_CONSTEXPR(run_when_all_tests)
+    {
+        auto c =
+            ctx.build([] { return 5; })
+                .then([](int y) { return y + 1; }, [](int y) { return y + 2; })
+                .then([](int z0, int z1) {
+                    assert(z0 == 6);
+                    assert(z1 == 7);
+                });
+        c.start();
+    }
 
     // when_all returns lvalues
-    if
-        constexpr(run_when_all_tests)
-        {
-            int lv0 = 0;
-            int lv1 = 0;
-            auto c =
-                ctx.build([&lv0, &lv1]() -> std::tuple<int&, int&> {
-                       return {lv0, lv1};
-                   })
-                    .then(
-                        [](auto y) -> int { // TODO: can't return reference, fix
-                            std::get<0>(y) += 1;
-                            return std::get<0>(y);
-                        },
-                        [](auto y) -> int { // TODO: can't return reference, fix
-                            std::get<1>(y) += 2;
-                            return std::get<1>(y);
-                        })
-                    .then([&lv0, &lv1](int z0, int z1) {
-                        assert(z0 == 1);
-                        assert(z1 == 2);
-                        assert(lv0 == 1);
-                        assert(lv1 == 2);
-                    });
-            c.start();
-        }
+    IF_CONSTEXPR(run_when_all_tests)
+    {
+        int lv0 = 0;
+        int lv1 = 0;
+        auto c =
+            ctx.build([&lv0, &lv1]() -> std::tuple<int&, int&> {
+                   return {lv0, lv1};
+               })
+                .then(
+                    [](auto y) -> int { // TODO: can't return reference, fix
+                        std::get<0>(y) += 1;
+                        return std::get<0>(y);
+                    },
+                    [](auto y) -> int { // TODO: can't return reference, fix
+                        std::get<1>(y) += 2;
+                        return std::get<1>(y);
+                    })
+                .then([&lv0, &lv1](int z0, int z1) {
+                    assert(z0 == 1);
+                    assert(z1 == 2);
+                    assert(lv0 == 1);
+                    assert(lv1 == 2);
+                });
+        c.start();
+    }
 
     // execute_after_move(std::move(computation));
     // wait_until_complete(ctx, std::move(computation));
-    computation.start();
-    sleep_ms(400);
+    // computation.start();
+    ll::sleep_ms(400);
 }
 #endif

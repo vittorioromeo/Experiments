@@ -25,7 +25,7 @@ inline void sleep_ms(int ms)
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
 
-namespace ll
+namespace orizzonte
 {
     std::mutex m;
 
@@ -242,8 +242,8 @@ struct my_context : public ll::context_facade<my_context>
     void post(TF&& f)
     {
         // f();
-        std::thread{std::move(f)}.detach();
-        // _p.post(std::move(f));
+        // std::thread{std::move(f)}.detach();
+        _p.post(std::move(f));
     }
 };
 

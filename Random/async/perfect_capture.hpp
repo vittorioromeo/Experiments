@@ -97,14 +97,14 @@ public:
         return *this;
     }
 
-    constexpr perfect_capture(const perfect_capture& rhs) noexcept(
-        std::is_nothrow_copy_constructible<T>{})
+    constexpr perfect_capture(const perfect_capture& rhs) 
+    // noexcept(std::is_nothrow_copy_constructible<T>{})
         : _x{rhs.get()}
     {
     }
 
-    constexpr perfect_capture& operator=(const perfect_capture& rhs) noexcept(
-        std::is_nothrow_copy_assignable<T>{})
+    constexpr perfect_capture& operator=(const perfect_capture& rhs) 
+    // noexcept(std::is_nothrow_copy_assignable<T>{})
     {
         _x = rhs.get();
         return *this;

@@ -27,7 +27,7 @@ struct nomove
 int main()
 {
     using namespace std;
-    using namespace ll;
+    using namespace orizzonte;
 
     auto expects_int = [](int x){ return x; };
     assert( call_ignoring_nothing(expects_int, 0) == 0 );
