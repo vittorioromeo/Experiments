@@ -1,15 +1,15 @@
 
 
-#include "threading.hpp"
-#include "utility.hpp"
 #include "nothing.hpp"
 #include "perfect_capture.hpp"
+#include "threading.hpp"
+#include "utility.hpp"
 
-#include <tuple>
-#include <experimental/tuple>
-#include <functional>
 #include <ecst/thread_pool.hpp>
 #include <ecst/utils.hpp>
+#include <experimental/tuple>
+#include <functional>
+#include <tuple>
 
 namespace orizzonte
 {
@@ -160,6 +160,16 @@ namespace orizzonte
         }
     };
 
+    template <typename, template <typename...> class>
+    struct is_specialization_of : std::false_type
+    {
+    };
+
+    template <template <typename...> class TTemplate, typename... Ts>
+    struct is_specialization_of<TTemplate<Ts...>, TTemplate> : std::true_type
+    {
+    };
+
     template <typename TParent>
     class child_of : protected TParent
     {
@@ -184,6 +194,26 @@ namespace orizzonte
         auto parent() && noexcept
         {
             return std::move(static_cast<TParent&>(*this));
+        }
+
+        static constexpr auto parent_is_root() noexcept
+        {
+            return is_specialization_of<TParent, root>{};
+        }
+
+        template <typename TF>
+        void post_if_first(TF&& f)
+        {
+            IF_CONSTEXPR(parent_is_root())
+            {
+                std::puts("POST!");
+                this->post(FWD(f));
+            }
+            else
+            {
+                std::puts("dont post :(");
+                FWD(f)();
+            }
         }
     };
 
@@ -223,7 +253,7 @@ namespace orizzonte
         {
             // `fwd_capture` is used to preserve "lvalue references".
             // TODO: is this post required/beneficial?
-            this->post([ this, x = FWD_CAPTURE(x) ]() mutable {
+            this->post_if_first([ this, x = FWD_CAPTURE(x) ]() mutable {
                 apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
             });
         }
@@ -232,7 +262,7 @@ namespace orizzonte
         auto execute(T&& x, TNode& n, TNodes&... ns) &
         {
             // `fwd_capture` is used to preserve "lvalue references".
-            this->post([ this, x = FWD_CAPTURE(x), &n, &ns... ]() mutable {
+            this->post_if_first([ this, x = FWD_CAPTURE(x), &n, &ns... ]() mutable {
                 // Take the result value of this function...
                 decltype(auto) res_value =
                     apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
@@ -409,12 +439,11 @@ namespace orizzonte
 
         using root_type = root<TContext>;
 
-        if
-            constexpr(sizeof...(conts) == 1)
-            {
-                return node_then<root_type, TConts...>(
-                    root_type{ctx}, FWD(conts)...);
-            }
+        IF_CONSTEXPR(sizeof...(conts) == 1)
+        {
+            return node_then<root_type, TConts...>(
+                root_type{ctx}, FWD(conts)...);
+        }
         else
         {
             return node_wait_all<root_type, TConts...>(
@@ -580,6 +609,22 @@ public:
     }
 };
 
+#if 1
+int main()
+{
+    pool p;
+    my_context ctx{p};
+
+    auto c = ctx.build([] { return 10; })
+                 .then([](int x) { return std::to_string(x); })
+                 .then([](std::string x) { return "num: " + x; })
+                 .then([](std::string x) { std::printf("%s\n", x.c_str()); });
+
+    c.start();
+    ll::sleep_ms(200);
+}
+#endif
+
 #if 0
 int main()
 {
@@ -630,7 +675,7 @@ int main()
 }
 #endif
 
-#if 1
+#if 0
 int main()
 {
     // TODO: gcc segfault on mingw when set to true.
