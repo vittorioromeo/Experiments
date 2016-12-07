@@ -2,10 +2,10 @@
 
 #include "nothing.hpp"
 #include "perfect_capture.hpp"
-#include "threading.hpp"
+//#include "threading.hpp"
 #include "utility.hpp"
 
-#include <ecst/thread_pool.hpp>
+//#include <ecst/thread_pool.hpp>
 #include <ecst/utils.hpp>
 #include <experimental/tuple>
 #include <functional>
@@ -262,19 +262,22 @@ namespace orizzonte
         auto execute(T&& x, TNode& n, TNodes&... ns) &
         {
             // `fwd_capture` is used to preserve "lvalue references".
-            this->post_if_first([ this, x = FWD_CAPTURE(x), &n, &ns... ]() mutable {
-                // Take the result value of this function...
-                decltype(auto) res_value =
-                    apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
+            this->post_if_first(
+                [ this, x = FWD_CAPTURE(x), &n, &ns... ]() mutable {
+                    // Take the result value of this function...
+                    decltype(auto) res_value =
+                        apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
 
-                // ...and wrap it into a tuple. Preserve "lvalue references".
-                result::t<decltype(res_value)> res(FWD(res_value));
+                    // ...and wrap it into a tuple. Preserve "lvalue
+                    // references".
+                    result::t<decltype(res_value)> res(FWD(res_value));
 
-                // TODO: is this post required/beneficial?
-                // this->post([ res = std::move(res), &n, &ns... ]() mutable {
-                n.execute(std::move(res), ns...);
-                // });
-            });
+                    // TODO: is this post required/beneficial?
+                    // this->post([ res = std::move(res), &n, &ns... ]() mutable
+                    // {
+                    n.execute(std::move(res), ns...);
+                    // });
+                });
         }
 
     public:
@@ -490,7 +493,8 @@ namespace orizzonte
         {
             ecst::latch l{1};
 
-            auto c = FWD(chain).then([&l] { l.decrement_and_notify_all(); });
+            auto c = FWD(chain).then(
+                [&l](auto&&...) { l.decrement_and_notify_all(); });
             l.execute_and_wait_until_zero(
                 [&ctx, &c, &l]() mutable { c.start(); });
         }
@@ -562,7 +566,7 @@ struct nocopy
 using pool = ecst::thread_pool;
 #endif
 
-#if 0
+#if 1
 struct pool
 {
     template <typename TF>
@@ -573,7 +577,7 @@ struct pool
 };
 #endif
 
-#if 1
+#if 0
 struct pool
 {
     template <typename TF>
@@ -609,19 +613,32 @@ public:
     }
 };
 
+#if 0
+int main()
+{
+    pool p;
+    my_context ctx{p};
+
+    ctx.build([] { return 10; })
+        .then([](int x) { return std::to_string(x); })
+        .then([](std::string x) { return "num: " + x; })
+        .then([](std::string x) { std::printf("%s\n", x.c_str()); })
+        .wait();
+}
+#endif
+
+
 #if 1
 int main()
 {
     pool p;
     my_context ctx{p};
 
-    auto c = ctx.build([] { return 10; })
-                 .then([](int x) { return std::to_string(x); })
-                 .then([](std::string x) { return "num: " + x; })
-                 .then([](std::string x) { std::printf("%s\n", x.c_str()); });
-
-    c.start();
-    ll::sleep_ms(200);
+    ctx.build([] { return 10; })
+        .then([](int x) { return x + 1; })
+        .then([](int x) { return x + 2; }, [](int x) { return x + 3; })
+        .then([](int a, int b) { return a + b; })
+        .wait();
 }
 #endif
 
@@ -679,7 +696,7 @@ int main()
 int main()
 {
     // TODO: gcc segfault on mingw when set to true.
-    constexpr bool run_when_all_tests{false};
+    constexpr bool run_when_all_tests{true};
 
     pool p;
     my_context ctx{p};
@@ -725,7 +742,7 @@ int main()
         auto c = ctx.build([] { return 5; })
                      .then([](int y) { std::printf(">>%d\n", y); },
                          [](int y) { std::printf(">>%d\n", y); });
-        c.start();
+        c.wait();
     }
 
     // when_all with lvalue
@@ -735,7 +752,7 @@ int main()
         auto c = ctx.build([&aaa2]() -> int& { return aaa2; })
                      .then([](int& y) { std::printf(">>%d\n", y); },
                          [](int& y) { std::printf(">>%d\n", y); });
-        c.start();
+        c.wait();
     }
 
     // when_all with atomic lvalue
@@ -748,7 +765,7 @@ int main()
                          std::printf("AINT: %d\n", aint.load());
                          assert(aint == 10);
                      });
-        c.start();
+        c.wait();
     }
 
     // when_all returns
@@ -761,7 +778,7 @@ int main()
                     assert(z0 == 6);
                     assert(z1 == 7);
                 });
-        c.start();
+        c.wait();
     }
 
     // when_all returns lvalues
@@ -788,7 +805,7 @@ int main()
                     assert(lv0 == 1);
                     assert(lv1 == 2);
                 });
-        c.start();
+        c.wait();
     }
 
     // execute_after_move(std::move(computation));
