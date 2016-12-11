@@ -766,12 +766,13 @@ int main()
     pool pl;
     my_context ctx{pl};
 
-// TODO: fix!!!
-    auto a = ctx.build([i = 0, x = nocopy{}]() mutable {
+    // TODO: fix!!!
+    auto a = ctx.build([ i = 0, x = nocopy{} ]() mutable {
         ++i;
         return i;
     });
 
+    // TODO: automatically unpack tuple if there's a single arg
     auto b = ctx.build([&a] { return a.wait(); }).then([](std::tuple<int> t) {
         assert(std::get<0>(t) == 1);
     });
