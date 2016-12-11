@@ -1,0 +1,8 @@
+#!/bin/bash
+
+g++7 -std=c++1z -S -Ofast -DNDEBUG=1 \
+        -I/home/vittorioromeo/OHWorkspace/vrm_core/include \
+        -I/home/vittorioromeo/OHWorkspace/vrm_pp/include \
+        -I/home/vittorioromeo/OHWorkspace/ecst/include \
+        -pthread \
+        $1 -o $2 && ./stripasm $2  

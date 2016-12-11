@@ -14,6 +14,24 @@ namespace orizzonte
 
     struct nothing_t
     {
+        constexpr nothing_t() noexcept
+        {
+        }
+        constexpr nothing_t(const nothing_t&) noexcept
+        {
+        }
+        constexpr nothing_t(nothing_t&&) noexcept
+        {
+        }
+
+        constexpr auto operator=(const nothing_t&) const noexcept
+        {
+            return nothing_t{};
+        }
+        constexpr auto operator=(nothing_t&&) const noexcept
+        {
+            return nothing_t{};
+        }
     };
 
     constexpr nothing_t nothing{};
@@ -50,11 +68,11 @@ namespace orizzonte
     decltype(auto) call_ignoring_nothing(TF&& f, T&& x, Ts&&... xs)
     {
         // Bind `x` to the function call and recurse.
-        return call_ignoring_nothing(
-            [ f = FWD_CAPTURE(f), x = FWD_CAPTURE(x) ](
-                auto&&... ys) mutable->decltype(auto) {
-                return forward_like<TF>(f.get())(forward_like<T>(x.get()), FWD(ys)...);
-            },
+        return call_ignoring_nothing([ f = FWD_CAPTURE(f), x = FWD_CAPTURE(x) ](
+                                         auto&&... ys) mutable->decltype(auto) {
+            return forward_like<TF>(f.get())(
+                forward_like<T>(x.get()), FWD(ys)...);
+        },
             FWD(xs)...);
     }
 
@@ -78,11 +96,12 @@ namespace orizzonte
     {
 #define BOUND_F() call_ignoring_nothing(f, FWD(xs)...)
 
-        if constexpr(std::is_same<decltype(BOUND_F()), void>{})
-        {
-            BOUND_F();
-            return nothing;
-        }
+        if
+            constexpr(std::is_same<decltype(BOUND_F()), void>{})
+            {
+                BOUND_F();
+                return nothing;
+            }
         else
         {
             return BOUND_F();
@@ -96,8 +115,7 @@ namespace orizzonte
     {
         return [f = FWD_CAPTURE(f)](auto&&... xs) mutable->decltype(auto)
         {
-            return with_void_to_nothing(
-                forward_like<TF>(f.get()), FWD(xs)...);
+            return with_void_to_nothing(forward_like<TF>(f.get()), FWD(xs)...);
         };
     }
 

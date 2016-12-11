@@ -2,7 +2,6 @@
 
 g++7 -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -Ofast \
     -g \
-    -DNOT_ATOM=1 \
     -I/home/vittorioromeo/OHWorkspace/vrm_pp/include \
     -I/home/vittorioromeo/OHWorkspace/ecst/include \
     -pedantic \
@@ -11,7 +10,6 @@ g++7 -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -Ofast \
     -Wextra \
     -Wno-unused-local-typedefs \
     -Wwrite-strings \
-    -Wshadow \
     -Wundef \
     -Wno-missing-field-initializers \
     -Wpointer-arith \
@@ -20,5 +18,5 @@ g++7 -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -Ofast \
     -Wnon-virtual-dtor \
     -Woverloaded-virtual \
     -fdiagnostics-color=always \
-    -fsanitize=address \
+    -fsanitize=thread \
     $1 -o /tmp/x.x && /tmp/x.x "${@:2}"

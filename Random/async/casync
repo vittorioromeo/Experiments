@@ -42,7 +42,7 @@ clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 -g  \
         -lboost_system -lboost_thread \
         -pthread \
         -fdiagnostics-color=always \
-        -fsanitize=undefined \
+        -fsanitize=address \
         $1 -o /tmp/x.x && /tmp/x.x "${@:2}" && \
 \
 clang++ -std=c++1z -I/home/vittorioromeo/OHWorkspace/vrm_core/include -O0 -g \

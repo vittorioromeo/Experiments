@@ -1,11 +1,9 @@
-
-
 #include "nothing.hpp"
 #include "perfect_capture.hpp"
 //#include "threading.hpp"
 #include "utility.hpp"
 
-//#include <ecst/thread_pool.hpp>
+#include <ecst/thread_pool.hpp>
 #include <ecst/utils.hpp>
 #include <experimental/tuple>
 #include <functional>
@@ -13,6 +11,29 @@
 
 namespace orizzonte
 {
+    namespace policy
+    {
+        namespace post
+        {
+            namespace impl
+            {
+                // clang-format off
+                struct base_t { };
+                struct automatic_t  : base_t, boost::hana::int_<0> { };
+                struct always_t     : base_t, boost::hana::int_<1> { };
+                struct never_t      : base_t, boost::hana::int_<2> { };
+                // clang-format on
+
+                template <typename T>
+                constexpr auto is = std::is_base_of<base_t, std::decay_t<T>>{};
+            }
+
+            constexpr impl::always_t always{};
+            constexpr impl::never_t never{};
+            constexpr impl::automatic_t automatic{};
+        }
+    }
+
     namespace result
     {
         template <typename... Ts>
@@ -20,16 +41,14 @@ namespace orizzonte
 
         using none_t = t<>;
 
-        constexpr none_t none{};
-
         template <typename... Ts>
         using of_apply = decltype(apply_ignore_nothing(std::declval<Ts>()...));
     }
 
-    template <typename, typename>
+    template <typename, typename, typename>
     class node_then;
 
-    template <typename, typename...>
+    template <typename, typename, typename...>
     class node_wait_all;
 
     // Continuations between nodes are implemented as free functions in order to
@@ -38,27 +57,16 @@ namespace orizzonte
     // functions.
     namespace continuation
     {
-        template <typename TContinuable, typename... TConts>
-        auto then(TContinuable&& c, TConts&&... conts);
+        template <typename TContinuable, typename T, typename... Ts>
+        auto then(TContinuable&& c, T&& x, Ts&&... xs);
 
         template <typename TContext, typename TChain>
-        void wait(TContext& ctx, TChain&& chain);
+        auto wait(TContext& ctx, TChain&& chain);
     }
 
-    // CRTP base class for all nodes that provide continuation member functions.
     template <typename TDerived>
-    class continuable
+    struct ctrp
     {
-        // Clang bug prevents this:
-        /*
-        template <typename TContinuable, typename... TConts>
-        friend auto continuation::then(TContinuable&& c, TConts&&... conts);
-
-    protected:
-        */
-    public:
-        using this_type = TDerived;
-
         auto& as_derived() & noexcept
         {
             return static_cast<TDerived&>(*this);
@@ -71,32 +79,49 @@ namespace orizzonte
 
         auto as_derived() && noexcept
         {
-            return std::move(static_cast<TDerived&>(*this));
+            return static_cast<TDerived&&>(*this);
         }
+    };
+
+    // CRTP base class for all nodes that provide continuation member functions.
+    template <typename TDerived>
+    class continuable : public ctrp<TDerived>
+    {
+        // Clang bug prevents this:
+        /*
+        template <typename TContinuable, typename... TConts>
+        friend auto continuation::then(TContinuable&& c, TConts&&... conts);
+
+    protected:
+        */
+    public:
+        using this_type = TDerived;
 
     public:
-        template <typename... TConts>
-        auto then(TConts&&... conts) &
+        template <typename... Ts>
+        auto then(Ts&&... xs) &
         {
             // TODO: as derived?
-            return continuation::then(*this, FWD(conts)...);
+            return continuation::then(*this, FWD(xs)...);
         }
 
-        template <typename... TConts>
-        auto then(TConts&&... conts) &&
+        template <typename... Ts>
+        auto then(Ts&&... xs) &&
         {
             // TODO: as derived?
-            return continuation::then(std::move(*this), FWD(conts)...);
+            return continuation::then(std::move(*this), FWD(xs)...);
         }
 
-        auto wait() &
+        decltype(auto) wait() &
         {
-            continuation::wait(as_derived().ctx(), as_derived());
+            return continuation::wait(
+                this->as_derived().ctx(), this->as_derived());
         }
 
-        auto wait() &&
+        decltype(auto) wait() &&
         {
-            continuation::wait(as_derived().ctx(), std::move(as_derived()));
+            auto& ctx = this->as_derived().ctx();
+            return continuation::wait(ctx, std::move(this->as_derived()));
         }
 
         // TODO:
@@ -139,11 +164,37 @@ namespace orizzonte
         }
     };
 
+    class debug_node_info
+    {
+    private:
+#ifndef NDEBUG
+        bool _executed{false};
+#endif
+
+    public:
+        void set_executed() noexcept
+        {
+#ifndef NDEBUG
+            _executed = true;
+#endif
+        }
+
+        void assert_not_executed() noexcept
+        {
+#ifndef NDEBUG
+            assert(!_executed);
+#endif
+        }
+    };
+
     template <typename TContext>
-    class root : public base_node<TContext>
+    class root : public base_node<TContext>, public ctrp<root<TContext>>
     {
     private:
         friend TContext;
+
+    public:
+        using this_type = root<TContext>;
 
     protected:
         using base_type = base_node<TContext>;
@@ -156,20 +207,11 @@ namespace orizzonte
         template <typename TNode, typename... TNodes>
         void start(TNode& n, TNodes&... ns) &
         {
-            n.execute(result::none, ns...);
+            n.execute(result::none_t{}, ns...);
         }
     };
 
-    template <typename, template <typename...> class>
-    struct is_specialization_of : std::false_type
-    {
-    };
-
-    template <template <typename...> class TTemplate, typename... Ts>
-    struct is_specialization_of<TTemplate<Ts...>, TTemplate> : std::true_type
-    {
-    };
-
+    // TODO: should this perfect-capture parent?
     template <typename TParent>
     class child_of : protected TParent
     {
@@ -198,47 +240,75 @@ namespace orizzonte
 
         static constexpr auto parent_is_root() noexcept
         {
-            return is_specialization_of<TParent, root>{};
+            return vrm::core::is_specialization_of<TParent, root>{};
         }
 
-        template <typename TF>
-        void post_if_first(TF&& f)
+        template <typename TPolicyPost, typename TF>
+        void post_if_first(TPolicyPost pp, TF&& f)
         {
-            IF_CONSTEXPR(parent_is_root())
+            static_assert(policy::post::impl::is<TPolicyPost>);
+
+            IF_CONSTEXPR(pp == policy::post::automatic)
             {
-                std::puts("POST!");
+                IF_CONSTEXPR(parent_is_root())
+                {
+                    this->post(FWD(f));
+                }
+                else
+                {
+                    FWD(f)();
+                }
+            }
+            else IF_CONSTEXPR(pp == policy::post::always)
+            {
                 this->post(FWD(f));
+            }
+            else IF_CONSTEXPR(pp == policy::post::never)
+            {
+                FWD(f)();
+            }
+        }
+
+        template <typename TPolicyPost, typename TF>
+        void post_unless_never(TPolicyPost pp, TF&& f)
+        {
+            static_assert(policy::post::impl::is<TPolicyPost>);
+
+            IF_CONSTEXPR(pp == policy::post::never)
+            {
+                FWD(f)();
             }
             else
             {
-                std::puts("dont post :(");
-                FWD(f)();
+                this->post(FWD(f));
             }
         }
     };
 
-    template <typename TParent, typename TF>
+    template <typename TPolicyPost, typename TParent, typename TF>
     class node_then : private TF,
                       protected child_of<TParent>,
-                      public continuable<node_then<TParent, TF>>
+                      public continuable<node_then<TPolicyPost, TParent, TF>>
     {
+    public:
         template <typename>
         friend class root;
 
-        template <typename, typename>
+        template <typename, typename, typename>
         friend class node_then;
 
-        template <typename, typename...>
+        template <typename, typename, typename...>
         friend class node_wait_all;
 
-        using this_type = node_then<TParent, TF>;
+        using this_type = node_then<TPolicyPost, TParent, TF>;
         using context_type = typename TParent::context_type;
-        using continuable_type = continuable<node_then<TParent, TF>>;
+        using continuable_type = continuable<this_type>;
+        using policy_post_type = TPolicyPost;
 
         friend context_type;
         friend continuable_type;
 
-    protected:
+    public:
         using input_type = typename child_of<TParent>::input_type;
         using return_type = result::t<result::of_apply<TF, input_type>>;
 
@@ -253,16 +323,17 @@ namespace orizzonte
         {
             // `fwd_capture` is used to preserve "lvalue references".
             // TODO: is this post required/beneficial?
-            this->post_if_first([ this, x = FWD_CAPTURE(x) ]() mutable {
-                apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
-            });
+            this->post_if_first(
+                policy_post_type{}, [ this, x = FWD_CAPTURE(x) ]() mutable {
+                    apply_ignore_nothing(as_f(), forward_like<T>(x.get()));
+                });
         }
 
         template <typename T, typename TNode, typename... TNodes>
         auto execute(T&& x, TNode& n, TNodes&... ns) &
         {
             // `fwd_capture` is used to preserve "lvalue references".
-            this->post_if_first(
+            this->post_if_first(policy_post_type{},
                 [ this, x = FWD_CAPTURE(x), &n, &ns... ]() mutable {
                     // Take the result value of this function...
                     decltype(auto) res_value =
@@ -271,12 +342,7 @@ namespace orizzonte
                     // ...and wrap it into a tuple. Preserve "lvalue
                     // references".
                     result::t<decltype(res_value)> res(FWD(res_value));
-
-                    // TODO: is this post required/beneficial?
-                    // this->post([ res = std::move(res), &n, &ns... ]() mutable
-                    // {
                     n.execute(std::move(res), ns...);
-                    // });
                 });
         }
 
@@ -290,6 +356,7 @@ namespace orizzonte
         // Disambiguate with parent nodes' `then` member functions.
         using continuable_type::then;
         using continuable_type::wait;
+        using continuable_type::as_derived;
 
         template <typename... TNodes>
         auto start(TNodes&... ns) &
@@ -315,29 +382,31 @@ namespace orizzonte
         }
     };
 
-    template <typename TParent, typename... TFs>
-    class node_wait_all : private TFs...,
-                          protected child_of<TParent>,
-                          public continuable<node_wait_all<TParent, TFs...>>
+    template <typename TPolicyPost, typename TParent, typename... TFs>
+    class node_wait_all
+        : private TFs...,
+          protected child_of<TParent>,
+          public continuable<node_wait_all<TPolicyPost, TParent, TFs...>>
     {
+    public:
         template <typename>
         friend class root;
 
-        template <typename, typename>
+        template <typename, typename, typename>
         friend class node_then;
 
-        template <typename, typename...>
+        template <typename, typename, typename...>
         friend class node_wait_all;
 
-        using this_type = node_wait_all<TParent, TFs...>;
+        using this_type = node_wait_all<TPolicyPost, TParent, TFs...>;
         using context_type = typename TParent::context_type;
-        using continuable_type = continuable<node_wait_all<TParent, TFs...>>;
+        using continuable_type = continuable<this_type>;
+        using policy_post_type = TPolicyPost;
 
         friend context_type;
         friend continuable_type;
 
-
-    protected:
+    public:
         using input_type = typename child_of<TParent>::input_type;
         using return_type = result::t<result::of_apply<TFs, input_type>...>;
 
@@ -358,13 +427,14 @@ namespace orizzonte
             {
                 // `x` is now a `perfect_capture` wrapper, so it can be moved.
                 // The original `x` has already been copied.
-                this->post([ this, x = std::move(x), &f ]() mutable {
+                this->post_unless_never(policy_post_type{},
+                    [ this, x = std::move(x), &f ]() mutable {
 
-                    // Should either propagate an "lvalue reference" to the
-                    // original `x` or move the copy of `x` that was made in
-                    // `exec`.
-                    apply_ignore_nothing(f, forward_like<T>(x.get()));
-                });
+                        // Should either propagate an "lvalue reference" to the
+                        // original `x` or move the copy of `x` that was made in
+                        // `exec`.
+                        apply_ignore_nothing(f, forward_like<T>(x.get()));
+                    });
             };
 
             for_args_data([&exec](auto _,
@@ -381,34 +451,33 @@ namespace orizzonte
             {
                 // `x` is now a `perfect_capture` wrapper, so it can be moved.
                 // The original `x` has already been copied.
-                this->post([ this, x = std::move(x), &n, &ns..., &f ] {
-                    // Should either propagate an "lvalue reference" to the
-                    // original `x` or move the copy of `x` that was made in
-                    // `exec`.
-                    decltype(auto) res =
-                        apply_ignore_nothing(f, forward_like<T>(x.get()));
+                this->post_unless_never(policy_post_type{},
+                    [ this, x = std::move(x), &n, &ns..., &f ] {
+                        // Should either propagate an "lvalue reference" to the
+                        // original `x` or move the copy of `x` that was made in
+                        // `exec`.
+                        decltype(auto) res =
+                            apply_ignore_nothing(f, forward_like<T>(x.get()));
 
-                    using decay_res_type = std::decay_t<decltype(res)>;
+                        // Don't set results for `void`-returning functions.
+                        IF_CONSTEXPR(!is_nothing(res))
+                        {
+                            // Should either propagate an "lvalue reference" to
+                            // the original `x` or move the copy of `x` that was
+                            // made in `exec`.
 
-                    // Don't set results for `void`-returning functions.
-                    IF_CONSTEXPR(!std::is_same<decay_res_type, nothing_t>{})
-                    {
-                        // Should either propagate an "lvalue reference" to
-                        // the original `x` or move the copy of `x` that was
-                        // made in `exec`.
+                            // TODO: race cond?
+                            std::get<decltype(idx){}>(_results) =
+                                forward_like<T>(res);
+                        }
 
-                        // TODO: race cond?
-                        std::get<decltype(idx){}>(_results) =
-                            forward_like<T>(res);
-                    }
-
-                    // If this is the last `TFs...` function to end, trigger the
-                    // next continuation.
-                    if(--_ctr == 0)
-                    {
-                        n.execute(std::move(_results), ns...);
-                    }
-                });
+                        // If this is the last `TFs...` function to end, trigger
+                        // the next continuation.
+                        if(--_ctr == 0)
+                        {
+                            n.execute(std::move(_results), ns...);
+                        }
+                    });
             };
 
             for_args_data([&exec](auto _,
@@ -426,6 +495,7 @@ namespace orizzonte
         // Disambiguate with parent nodes' `then` member functions.
         using continuable_type::then;
         using continuable_type::wait;
+        using continuable_type::as_derived;
 
         template <typename... TNodes>
         auto start(TNodes&... ns) &
@@ -433,26 +503,6 @@ namespace orizzonte
             this->parent().start(*this, ns...);
         }
     };
-
-    template <typename TContext, typename... TConts>
-    auto build_root(TContext& ctx, TConts&&... conts)
-    {
-        static_assert(
-            sizeof...(conts) > 0, "can't build a chain of empty continuables");
-
-        using root_type = root<TContext>;
-
-        IF_CONSTEXPR(sizeof...(conts) == 1)
-        {
-            return node_then<root_type, TConts...>(
-                root_type{ctx}, FWD(conts)...);
-        }
-        else
-        {
-            return node_wait_all<root_type, TConts...>(
-                root_type{ctx}, FWD(conts)...);
-        }
-    }
 
 
     // "compose" assumes that all inputs are existing continuables
@@ -466,48 +516,97 @@ namespace orizzonte
         return ctx.build(wrap_start(FWD(conts))...);
     }
 
+    template <std::size_t>
+    struct node_type_dispatch
+    {
+        template <typename... Ts>
+        using type = node_wait_all<Ts...>;
+    };
+
+    template <>
+    struct node_type_dispatch<1>
+    {
+        template <typename... Ts>
+        using type = node_then<Ts...>;
+    };
+
+    template <std::size_t TN, typename... Ts>
+    using node_type_dispatch_t =
+        typename node_type_dispatch<TN>::template type<Ts...>;
+
+
     namespace continuation
     {
-        template <typename TContinuable, typename... TConts>
-        auto then(TContinuable&& c, TConts&&... conts)
+        template <typename TContinuable, typename T, typename... Ts>
+        auto then(TContinuable&& c, T&& x, Ts&&... xs)
         {
-            static_assert(sizeof...(conts) > 0,
-                "can't build a chain of empty continuables");
-
             using c_type = typename std::decay_t<TContinuable>::this_type;
 
-            IF_CONSTEXPR(sizeof...(conts) == 1)
+            IF_CONSTEXPR(policy::post::impl::is<T>)
             {
-                return node_then<c_type, TConts...>{
-                    FWD(c).as_derived(), FWD(conts)...};
+                using policy_type = std::decay_t<T>;
+                using node_type = node_type_dispatch_t<sizeof...(xs),
+                    policy_type, c_type, Ts...>;
+
+                IF_CONSTEXPR(sizeof...(xs) == 0)
+                {
+                    struct cant_build_chain_of_zero_continuables;
+                    cant_build_chain_of_zero_continuables{};
+                }
+                else
+                {
+                    return node_type{FWD(c).as_derived(), FWD(xs)...};
+                }
             }
             else
             {
-                return node_wait_all<c_type, TConts...>{
-                    FWD(c).as_derived(), FWD(conts)...};
+                using policy_type = policy::post::impl::automatic_t;
+                using node_type = node_type_dispatch_t<1 + sizeof...(xs),
+                    policy_type, c_type, T, Ts...>;
+
+                return node_type{FWD(c).as_derived(), FWD(x), FWD(xs)...};
             }
         }
 
         template <typename TContext, typename TChain>
-        void wait(TContext& ctx, TChain&& chain)
+        auto wait(TContext& ctx, TChain&& chain)
         {
             ecst::latch l{1};
 
-            auto c = FWD(chain).then(
-                [&l](auto&&...) { l.decrement_and_notify_all(); });
+            using c_type = std::decay_t<TChain>;
+            using return_type = typename c_type::return_type;
+
+            return_type res;
+
+            auto c = then(FWD(chain), [&l, &res](auto&&... xs) {
+                res = return_type(FWD(xs)...);
+                l.decrement_and_notify_all();
+            });
+
             l.execute_and_wait_until_zero(
-                [&ctx, &c, &l]() mutable { c.start(); });
+                [&ctx, &c, &l, &res]() mutable { c.start(); });
+
+            return res;
         }
     }
+
+
+    template <typename TContext, typename... Ts>
+    auto build_root(TContext& ctx, Ts&&... xs)
+    {
+        using root_type = root<TContext>;
+        return continuation::then(root_type{ctx}, FWD(xs)...);
+    }
+
 
     template <typename TContext>
     class context_facade
     {
     public:
-        template <typename... TConts>
-        auto build(TConts&&... conts)
+        template <typename... Ts>
+        auto build(Ts&&... xs)
         {
-            return ll::build_root(static_cast<TContext&>(*this), FWD(conts)...);
+            return ll::build_root(static_cast<TContext&>(*this), FWD(xs)...);
         }
     };
 }
@@ -566,7 +665,7 @@ struct nocopy
 using pool = ecst::thread_pool;
 #endif
 
-#if 1
+#if 0
 struct pool
 {
     template <typename TF>
@@ -577,7 +676,7 @@ struct pool
 };
 #endif
 
-#if 0
+#if 1
 struct pool
 {
     template <typename TF>
@@ -627,8 +726,101 @@ int main()
 }
 #endif
 
+#if 0
+int main()
+{
+    pool p;
+    my_context ctx{p};
+
+    for(int i = 0; i < 25; ++i)
+    {
+        ctx.post([&ctx, i] {
+            std::cout << "start " << i << std::endl;
+            std::atomic<bool> k{false};
+
+            auto x = ctx.build(orizzonte::policy::post::never, [y = 1]{})
+                         .then([i, &k] {
+                             std::cout << i << "\n";
+                             k = true;
+                         });
+
+            x.start();
+
+            while(!k)
+            {
+                ll::sleep_ms(5);
+            }
+            std::cout << "end   " << i << std::endl;
+        });
+
+        // ll::sleep_ms(2);
+    }
+
+    ll::sleep_ms(500);
+}
+#endif
 
 #if 1
+int main()
+{
+    pool pl;
+    my_context ctx{pl};
+
+// TODO: fix!!!
+    auto a = ctx.build([i = 0, x = nocopy{}]() mutable {
+        ++i;
+        return i;
+    });
+
+    auto b = ctx.build([&a] { return a.wait(); }).then([](std::tuple<int> t) {
+        assert(std::get<0>(t) == 1);
+    });
+
+    b.wait();
+}
+#endif
+
+#if 0
+int main()
+{
+    pool pl;
+    my_context ctx{pl};
+
+    std::vector<int> v{5, 1, 67, 31, 7, 3, 1, 8, 56, 9, 2, 36, 1, 7, 48, 9, 3,
+        47, 2, 1, 8, 65, 9, 4, 2, 347, 1, 2, 7, 458, 3};
+
+    auto qs_step = boost::hana::fix([&ctx](
+        auto self, auto b, auto e, auto f_then) {
+
+        using std::swap;
+        auto size = std::distance(b, e);
+        if(size <= 1) return;
+
+        auto p = std::prev(e);
+        swap(*std::next(b, size / 2), *p);
+        auto q = std::partition(b, p, [p](decltype(*p) x) { return x < *p; });
+        swap(*q, *p);
+
+        auto c = ctx.build([self, b, q, f_then] { self(b, q, f_then); },
+            [self, q, e, f_then] { self(std::next(q), e, f_then); });
+
+        auto test = std::make_shared<std::decay_t<decltype(c)>>(std::move(c));
+
+        auto z = ctx.build([test]() mutable { test->wait(); });
+        z.start();
+    });
+
+    qs_step(v.begin(), v.end(), [&v] {
+
+    });
+
+    ll::sleep_ms(250);
+    for(const auto& x : v) std::cout << x << " ";
+    ll::sleep_ms(250);
+}
+#endif
+
+#if 0
 int main()
 {
     pool p;
