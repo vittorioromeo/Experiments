@@ -101,15 +101,14 @@ namespace orizzonte
         template <typename... Ts>
         auto then(Ts&&... xs) &
         {
-            // TODO: as derived?
-            return continuation::then(*this, FWD(xs)...);
+            return continuation::then(this->as_derived(), FWD(xs)...);
         }
 
         template <typename... Ts>
         auto then(Ts&&... xs) &&
         {
-            // TODO: as derived?
-            return continuation::then(std::move(*this), FWD(xs)...);
+            return continuation::then(
+                std::move(this->as_derived()), FWD(xs)...);
         }
 
         decltype(auto) wait() &
@@ -164,29 +163,6 @@ namespace orizzonte
         }
     };
 
-    class debug_node_info
-    {
-    private:
-#ifndef NDEBUG
-        bool _executed{false};
-#endif
-
-    public:
-        void set_executed() noexcept
-        {
-#ifndef NDEBUG
-            _executed = true;
-#endif
-        }
-
-        void assert_not_executed() noexcept
-        {
-#ifndef NDEBUG
-            assert(!_executed);
-#endif
-        }
-    };
-
     template <typename TContext>
     class root : public base_node<TContext>, public ctrp<root<TContext>>
     {
@@ -212,6 +188,7 @@ namespace orizzonte
     };
 
     // TODO: should this perfect-capture parent?
+    // probably not
     template <typename TParent>
     class child_of : protected TParent
     {
@@ -341,7 +318,8 @@ namespace orizzonte
 
                     // ...and wrap it into a tuple. Preserve "lvalue
                     // references".
-                    result::t<decltype(res_value)> res(FWD(res_value));
+                    // (I think it's safe to move here.)
+                    result::t<decltype(res_value)> res(std::move(res_value));
                     n.execute(std::move(res), ns...);
                 });
         }
@@ -382,6 +360,61 @@ namespace orizzonte
         }
     };
 
+    template <std::size_t TAlign, typename T>
+    class aligned_wrapper
+    {
+    private:
+        alignas(TAlign) T _x;
+
+    public:
+        aligned_wrapper() = default;
+
+        template <typename TFwd>
+        aligned_wrapper(TFwd&& x) : _x(FWD(x))
+        {
+        }
+
+        auto& get() & noexcept
+        {
+            return _x;
+        }
+
+        const auto& get() const & noexcept
+        {
+            return _x;
+        }
+
+        auto get() &&
+        {
+            return std::move(_x);
+        }
+
+        operator T&() &
+        {
+            return _x;
+        }
+
+        operator const T&() const &
+        {
+            return _x;
+        }
+
+        operator T &&() &&
+        {
+            return std::move(_x);
+        }
+    };
+
+    template <std::size_t TAlign, typename... Ts>
+    class aligned_tuple : public std::tuple<aligned_wrapper<TAlign, Ts>...>
+    {
+    private:
+        using base_type = std::tuple<aligned_wrapper<TAlign, Ts>...>;
+
+    public:
+        using base_type::base_type;
+    };
+
     template <typename TPolicyPost, typename TParent, typename... TFs>
     class node_wait_all
         : private TFs...,
@@ -408,6 +441,13 @@ namespace orizzonte
 
     public:
         using input_type = typename child_of<TParent>::input_type;
+
+        // TODO: make this work
+        /*
+        using return_type = result::t<
+            aligned_wrapper<result::of_apply<TFs, input_type>, 64>...>;
+        */
+
         using return_type = result::t<result::of_apply<TFs, input_type>...>;
 
     private:
@@ -456,6 +496,14 @@ namespace orizzonte
                         // Should either propagate an "lvalue reference" to the
                         // original `x` or move the copy of `x` that was made in
                         // `exec`.
+
+                        /* TODO: conditionally unpack aligned tuple
+                        decltype(auto) res = apply_ignore_nothing(
+                            [&f](auto&&... vs) -> decltype(
+                                auto) { return f(vs.get()...); },
+                            forward_like<T>(x.get()));
+                        */
+
                         decltype(auto) res =
                             apply_ignore_nothing(f, forward_like<T>(x.get()));
 
@@ -466,9 +514,14 @@ namespace orizzonte
                             // the original `x` or move the copy of `x` that was
                             // made in `exec`.
 
-                            // TODO: race cond?
                             std::get<decltype(idx){}>(_results) =
                                 forward_like<T>(res);
+
+                            // TODO: race cond?
+                            /*
+                            auto& datum = std::get<decltype(idx){}>(_results);
+                            datum = forward_like<T>(res);
+                            */
                         }
 
                         // If this is the last `TFs...` function to end, trigger
@@ -564,7 +617,9 @@ namespace orizzonte
                 using node_type = node_type_dispatch_t<1 + sizeof...(xs),
                     policy_type, c_type, T, Ts...>;
 
-                return node_type{FWD(c).as_derived(), FWD(x), FWD(xs)...};
+                return node_type{
+                    forward_like<TContinuable>(FWD(c).as_derived()), FWD(x),
+                    FWD(xs)...};
             }
         }
 
@@ -578,7 +633,8 @@ namespace orizzonte
 
             return_type res;
 
-            auto c = then(FWD(chain), [&l, &res](auto&&... xs) {
+            // Consumes `chain`.
+            auto c = then(std::move(chain), [&l, &res](auto&&... xs) {
                 res = return_type(FWD(xs)...);
                 l.decrement_and_notify_all();
             });
@@ -760,7 +816,7 @@ int main()
 }
 #endif
 
-#if 1
+#if 0
 int main()
 {
     pool pl;
@@ -821,7 +877,7 @@ int main()
 }
 #endif
 
-#if 0
+#if 1
 int main()
 {
     pool p;
