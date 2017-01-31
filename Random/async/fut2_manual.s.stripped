@@ -1,0 +1,140 @@
+	xorl	%eax, %eax
+	ret
+	testq	%rax, %rax
+	pushq	%r12
+	pushq	%rbp
+	movq	%rsi, %r12
+	pushq	%rbx
+	movq	%rdi, %rbp
+	movq	%rdx, %rbx
+	testl	%eax, %eax
+	subq	$1, (%rbx)
+	movq	%r12, %rdi
+	popq	%rbx
+	movq	%rbp, %rdi
+	popq	%rbp
+	popq	%r12
+	subq	$1, (%rdx)
+	movq	%rsi, %rdi
+	movl	%eax, %edi
+	testq	%rax, %rax
+	pushq	%r12
+	pushq	%rbp
+	movq	%rsi, %r12
+	pushq	%rbx
+	movq	%rdi, %rbp
+	movq	%rdx, %rbx
+	testl	%eax, %eax
+	subq	$1, (%rbx)
+	movq	%r12, %rdi
+	popq	%rbx
+	movq	%rbp, %rdi
+	popq	%rbp
+	popq	%r12
+	subq	$1, (%rdx)
+	movq	%rsi, %rdi
+	movl	%eax, %edi
+	pushq	%rbp
+	pushq	%rbx
+	movq	%rsi, %rbp
+	movq	%rdi, %rbx
+	subq	$8, %rsp
+	pxor	%xmm0, %xmm0
+	movq	%rbp, 88(%rbx)
+	movq	$0, 80(%rbx)
+	movups	%xmm0, 48(%rbx)
+	movups	%xmm0, 64(%rbx)
+	addq	$8, %rsp
+	popq	%rbx
+	popq	%rbp
+	ret
+	testq	%rax, %rax
+	pushq	%rbp
+	leaq	48(%rdi), %rbp
+	pushq	%rbx
+	movq	%rdi, %rbx
+	subq	$8, %rsp
+	movq	%rbp, %rdi
+	testl	%eax, %eax
+	subq	$1, 88(%rbx)
+	movq	%rbx, %rdi
+	addq	$8, %rsp
+	movq	%rbp, %rdi
+	popq	%rbx
+	popq	%rbp
+	subq	$1, 88(%rdi)
+	movl	%eax, %edi
+	testq	%rax, %rax
+	pushq	%rbp
+	leaq	48(%rdi), %rbp
+	pushq	%rbx
+	movq	%rdi, %rbx
+	subq	$8, %rsp
+	movq	%rbp, %rdi
+	testl	%eax, %eax
+	subq	$1, 88(%rbx)
+	movq	%rbx, %rdi
+	addq	$8, %rsp
+	movq	%rbp, %rdi
+	popq	%rbx
+	popq	%rbp
+	subq	$1, 88(%rdi)
+	movl	%eax, %edi
+	movl	state(%rip), %eax
+	addl	$1, %eax
+	movl	%eax, state(%rip)
+	ret
+main:
+	pushq	%rbp
+	pushq	%rbx
+	subq	$120, %rsp
+	leaq	16(%rsp), %rdi
+	movl	state(%rip), %eax
+	pxor	%xmm0, %xmm0
+	movq	$0, 96(%rsp)
+	movq	$1, 104(%rsp)
+	addl	$1, %eax
+	movl	%eax, state(%rip)
+	movl	state(%rip), %eax
+	movaps	%xmm0, 64(%rsp)
+	addl	$1, %eax
+	movaps	%xmm0, 80(%rsp)
+	movl	%eax, state(%rip)
+	movl	state(%rip), %eax
+	addl	$1, %eax
+	movl	%eax, state(%rip)
+	movl	state(%rip), %eax
+	addl	$1, %eax
+	testq	%rbp, %rbp
+	movl	%eax, state(%rip)
+	leaq	64(%rsp), %rbx
+	movq	%rbx, %rdi
+	testl	%eax, %eax
+	leaq	16(%rsp), %rdi
+	subq	$1, 104(%rsp)
+	movq	%rbx, %rdi
+	movq	%rbx, %rdi
+	movq	%rbx, (%rsp)
+	movb	$0, 8(%rsp)
+	testl	%eax, %eax
+	cmpq	$0, 104(%rsp)
+	movb	$1, 8(%rsp)
+	leaq	16(%rsp), %rdi
+	movq	%rsp, %rsi
+	cmpq	$0, 104(%rsp)
+	cmpb	$0, 8(%rsp)
+	leaq	16(%rsp), %rdi
+	addq	$120, %rsp
+	xorl	%eax, %eax
+	popq	%rbx
+	popq	%rbp
+	ret
+	leaq	16(%rsp), %rdi
+	leaq	64(%rsp), %rax
+	movq	%rax, (%rsp)
+	movq	(%rsp), %rdi
+	testq	%rdi, %rdi
+	testq	%rbp, %rbp
+	movl	%eax, %edi
+	movl	%eax, %edi
+state:
