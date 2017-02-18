@@ -6,30 +6,42 @@
 template <typename>
 struct parent;
 
-template <template <typename...> class T, typename... Ts>
-struct parent<T<Ts...>>
+template <template <typename...> class TVariant, typename... Ts>
+struct parent<TVariant<Ts...>>
 {
     template <template <template <typename> class> class TX>
-    using apply = TX<T>;
+    using apply = TX<TVariant>;
 };
 
 template <template <typename> class TVariant>
 struct visit_helper;
 
+template <typename>
+struct visit_helper_finder;
+
+template <template <typename...> class TVariant, typename... Ts>
+struct visit_helper_finder<TVariant<Ts...>>
+{
+    using type = visit_helper<TVariant>;
+};
+
 namespace vr
 {
     template <typename TVisitor>
-    decltype(auto) visit(TVisitor&& visitor)
+    constexpr decltype(auto) visit(TVisitor&& visitor)
     {
         return FWD(visitor)();
     }
 
     template <typename TVisitor, typename TVariant, typename... TVariants>
-    decltype(auto) visit(
+    constexpr decltype(auto) visit(
         TVisitor&& visitor, TVariant&& variant, TVariants&&... variants)
     {
-        using helper = typename parent<std::decay_t<TVariant>>::template apply<
-            visit_helper>;
+        // using helper = typename parent<std::decay_t<TVariant>>::template
+        // apply<visit_helper>;
+
+        using helper =
+            typename visit_helper_finder<std::decay_t<TVariant>>::type;
 
         return helper{}(FWD(visitor), FWD(variant), FWD(variants)...);
     }
@@ -40,16 +52,16 @@ namespace vr
 #include <iostream>
 #include <variant>
 
-#define DEFINE_VISIT_HELPER(type, function)          \
-    template <>                                      \
-    struct visit_helper<type>                        \
-    {                                                \
-        template <typename... Ts>                    \
-        decltype(auto) operator()(Ts&&... xs) const  \
-            noexcept(noexcept(function(FWD(xs)...))) \
-        {                                            \
-            return function(FWD(xs)...);             \
-        }                                            \
+#define DEFINE_VISIT_HELPER(type, function)                   \
+    template <>                                               \
+    struct visit_helper<type>                                 \
+    {                                                         \
+        template <typename... Ts>                             \
+        constexpr decltype(auto) operator()(Ts&&... xs) const \
+            noexcept(noexcept(function(FWD(xs)...)))          \
+        {                                                     \
+            return function(FWD(xs)...);                      \
+        }                                                     \
     }
 
 /*
@@ -84,9 +96,9 @@ struct visit_helper<eggs::variant>
 };
 */
 
-DEFINE_VISIT_HELPER(std::variant, std::visit);
-DEFINE_VISIT_HELPER(boost::variant, boost::apply_visitor);
-DEFINE_VISIT_HELPER(eggs::variant, eggs::variants::apply);
+DEFINE_VISIT_HELPER(::std::variant, ::std::visit);
+DEFINE_VISIT_HELPER(::boost::variant, ::boost::apply_visitor);
+DEFINE_VISIT_HELPER(::eggs::variant, ::eggs::variants::apply);
 
 struct vis
 {
@@ -97,6 +109,26 @@ struct vis
     auto operator()(float)
     {
         std::cout << "float\n";
+    }
+};
+
+struct vis2
+{
+    auto operator()(int, int)
+    {
+        std::cout << "ii\n";
+    }
+    auto operator()(float, int)
+    {
+        std::cout << "fi\n";
+    }
+    auto operator()(int, float)
+    {
+        std::cout << "if\n";
+    }
+    auto operator()(float, float)
+    {
+        std::cout << "ff\n";
     }
 };
 
@@ -123,4 +155,9 @@ int main()
     vr::visit(x, v0);
     vr::visit(x, v1);
     vr::visit(x, v2);
+
+    vis2 x2;
+    vr::visit(x2, v0, v0);
+    vr::visit(x2, v1, v1);
+    vr::visit(x2, v2, v2);
 }
