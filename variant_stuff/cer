@@ -1,0 +1,3 @@
+#!/bin/bash
+
+g++ -std=c++1z $@ ${COMMON_INCLUDES} -I ~/Repos/eggs-variant/include -o/tmp/x.x && /tmp/x.x

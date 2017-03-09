@@ -12,14 +12,14 @@ template <typename>
 struct visit_homogenizer_helper;
 
 template <template <typename...> class TVariant, typename... Ts>
-struct visit_homogenizer_helper<TVariant<Ts...>>
+struct visit_homogenizer_helper<TVariant<Ts...>> final
 {
     using type = visit_homogenizer<TVariant>;
 };
 
 #define DEFINE_VISIT_HOMOGENIZER(type, function)              \
     template <>                                               \
-    struct visit_homogenizer<type>                            \
+    struct visit_homogenizer<type> final                      \
     {                                                         \
         template <typename... Ts>                             \
         constexpr decltype(auto) operator()(Ts&&... xs) const \

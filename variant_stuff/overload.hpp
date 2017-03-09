@@ -18,6 +18,6 @@ namespace vr
     template <typename... Ts>
     auto overload(Ts&&... xs)
     {
-        return overloader<Ts...>{FWD(xs)...};
+        return overloader<std::remove_reference_t<Ts>...>{FWD(xs)...};
     }
 }

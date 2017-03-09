@@ -32,3 +32,13 @@ namespace vr
         };
     }
 }
+
+// TODO:
+// `visit(visitor, variants...)`
+// `visit_in_place(functions...)(variants...)`
+// `recursively_visit(visitor, variants...)`
+// `recursively_visit_in_place(functions...)(variants...)`
+// `linearly_visit(visitor, variants...)`
+// `linearly_visit_in_place(functions...)(variants...)`
+// `recursively_linearly_visit(visitor, variants...)`
+// `recursively_linearly_visit_in_place(functions...)(variants...)`
