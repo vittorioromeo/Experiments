@@ -1,3 +1,8 @@
+// Copyright(c) 2016-2017 Vittorio Romeo
+// License: Academic Free License ("AFL") v. 3.0
+// AFL License page: http://opensource.org/licenses/AFL-3.0
+// http://vittorioromeo.info | vittorio.romeo@outlook.com
+
 #pragma once
 
 #include "./overload.hpp"
@@ -25,8 +30,8 @@ namespace vr
     template <typename... TFs>
     constexpr decltype(auto) visit_in_place(TFs&&... fs)
     {
-        return [visitor = overload(FWD(fs)...)](auto&&... variants) mutable
-            ->decltype(auto)
+        return [visitor = overload(FWD(fs)...)](
+            auto&&... variants) mutable->decltype(auto)
         {
             return visit(visitor, FWD(variants)...);
         };
