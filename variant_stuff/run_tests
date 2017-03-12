@@ -1,0 +1,10 @@
+#!/bin/bash
+
+for x in ./test/*.cpp; do
+    echo -ne "running $x\n"
+    if ./cer $x; then
+        echo -ne "success\n\n"
+    else
+        echo -ne "FAILURE!!! $x <<<<\n\n"
+    fi
+done

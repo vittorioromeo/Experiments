@@ -57,9 +57,11 @@ namespace test
         using v_std = typename helper::template apply<std::variant>;
         using v_boost = typename helper::template apply<boost::variant>;
         using v_eggs = typename helper::template apply<eggs::variant>;
+        using v_typesafe = typename helper::template apply<type_safe::variant>;
 
         f(impl::maker_t<v_std>{});
         f(impl::maker_t<v_boost>{});
         f(impl::maker_t<v_eggs>{});
+        f(impl::maker_t<v_typesafe>{});
     }
 }
