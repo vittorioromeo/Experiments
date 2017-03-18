@@ -27,13 +27,16 @@ namespace vr
         return helper{}(FWD(visitor), FWD(variant), FWD(variants)...);
     }
 
-    template <typename... TFs>
-    constexpr decltype(auto) visit_in_place(TFs&&... fs)
+    template <typename... TVariants>
+    constexpr decltype(auto) visit_in_place(TVariants&&... variants)
     {
-        return [visitor = overload(FWD(fs)...)](
-            auto&&... variants) mutable->decltype(auto)
-        {
-            return visit(visitor, FWD(variants)...);
+        return [&variants...](auto&&... fs) mutable -> decltype(auto) {
+            auto v = overload(FWD(fs)...);
+
+            // Cannot use `FWD(variants)` here because we want to forward with
+            // the value category of the original `visit_in_place` arguments,
+            // not the of captured ones.
+            return visit(v, std::forward<TVariants>(variants)...);
         };
     }
 }
