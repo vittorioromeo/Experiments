@@ -27,6 +27,7 @@ namespace vr
         return helper{}(FWD(visitor), FWD(variant), FWD(variants)...);
     }
 
+    // TODO: consider inverting again for more useful currying
     template <typename... TVariants>
     constexpr decltype(auto) visit_in_place(TVariants&&... variants)
     {
