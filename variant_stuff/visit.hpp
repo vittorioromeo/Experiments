@@ -28,7 +28,7 @@ namespace vr
     }
 
     template <typename... TFs>
-    constexpr decltype(auto) visit_in_place(TFs&&... fs)
+    constexpr auto visit_in_place(TFs&&... fs)
     {
         return [visitor = overload(FWD(fs)...)](
             auto&&... variants) mutable->decltype(auto)

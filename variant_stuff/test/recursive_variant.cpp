@@ -1,4 +1,5 @@
 #include "../recursive_variant.hpp"
+#include "../visit_recursively.hpp"
 #include "./test_utils.hpp"
 #include "./variant_test_utils.hpp"
 #include <memory>
@@ -20,6 +21,8 @@ struct test_case
     {
         {
             variant v{1};
+            vr::visit_recursively(
+                [](const auto&) {}, [](const auto&, const auto&) {})(v);
             // TODO: visit
         }
 

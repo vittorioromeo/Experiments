@@ -31,4 +31,7 @@ TEST_MAIN()
     SA_SAME((vr::replace_all<A, B, bag<A, bag<A>>>), (bag<B, bag<B>>));
     SA_SAME((vr::replace_all<A, B, bag<A, bag<A, bag<A>>>>),
         (bag<B, bag<B, bag<B>>>));
+
+    SA_SAME((vr::replace_all<A, B, bag<A, bag<A, A, bag<A, A>>>>),
+        (bag<B, bag<B, B, bag<B, B>>>));
 }

@@ -37,6 +37,6 @@ namespace vr
     // Evaluates to `true` if `TF` is binary callable with any of `Ts...`.
     template <typename TF, typename... Ts>
     using is_binary_callable_with_any =
-        typename impl::is_binary_callable_with_any_bound<TF,
-            Ts...>::template apply<Ts...>;
+        std::disjunction<typename impl::is_binary_callable_with_any_bound<TF,
+            Ts>::template apply<Ts...>...>;
 }
