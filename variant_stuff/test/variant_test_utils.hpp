@@ -62,6 +62,7 @@ namespace test
         f(impl::maker_t<v_std>{});
         f(impl::maker_t<v_boost>{});
         f(impl::maker_t<v_eggs>{});
-        f(impl::maker_t<v_typesafe>{});
+        // TODO:
+        // f(impl::maker_t<v_typesafe>{});
     }
 }
