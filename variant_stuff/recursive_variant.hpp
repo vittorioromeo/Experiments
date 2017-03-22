@@ -42,6 +42,7 @@ namespace vr::impl
     {
     private:
         struct fwd_variant;
+        
         using variant_type_impl =
             replace_placeholders<fwd_variant, TVariant<Ts...>>;
 
