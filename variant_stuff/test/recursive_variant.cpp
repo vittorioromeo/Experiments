@@ -21,8 +21,12 @@ struct test_case
     {
         {
             variant v{1};
-            vr::visit_recursively(
-                [](const auto&) {}, [](const auto&, const auto&) {})(v);
+            vr::visit_recursively([](const auto&) {})(
+                [](const auto&, const auto&) {})(v);
+
+            // TODO: doesn't work
+            vr::visit_recursively([](int) {}, [](char) {})([](auto, auto) {})(
+                std::variant<int>{1});
             // TODO: visit
         }
 

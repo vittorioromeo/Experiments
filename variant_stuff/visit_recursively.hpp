@@ -18,6 +18,56 @@
 
 namespace vr::impl
 {
+    template <typename TF>
+    auto adapt(TF&& f)
+    {
+        return [f = FWD(f)](auto, auto&& x)->decltype(f(FWD(x)))
+        {
+            return f(FWD(x));
+        };
+    }
+
+    template <typename... TFs>
+    struct rv_unary_functions : TFs...
+    {
+        template <typename... TFFwds>
+        rv_unary_functions(TFFwds&&... fs) : TFs(FWD(fs))...
+        {
+        }
+
+        template <typename... TXs>
+        auto operator()(TXs&&... xs)
+        {
+            auto o = overload(adapt(static_cast<TFs&>(*this))..., FWD(xs)...);
+            return [o = std::move(o)](auto&&... variants) mutable->decltype(
+                auto)
+            {
+                return vr::visit([&o](auto&&... xs) -> decltype(
+                                     auto) { return o(0, FWD(xs)...); },
+                    FWD(variants)...);
+            };
+        }
+    };
+}
+
+namespace vr
+{
+    template <typename... TFs>
+    auto make_recursive_visitor(TFs&&... fs)
+    {
+        return impl::rv_unary_functions<std::decay_t<TFs>...>(FWD(fs)...);
+    }
+
+    template <typename... TFs>
+    auto visit_recursively(TFs&&... fs)
+    {
+        return make_recursive_visitor(FWD(fs)...);
+    }
+}
+
+/*
+namespace vr::impl
+{
     template <typename...>
     struct concat_alternatives;
 
@@ -82,42 +132,42 @@ namespace vr::impl
                         ...);
                 },
                 all_alternatives{});
-            */
 
-        }
-    };
+}
+}
+;
 
-    template <typename... TFs>
-    class recursive_visitor
+template <typename... TFs>
+class recursive_visitor
+{
+private:
+    // TODO: EBO
+    std::tuple<TFs...> _fs;
+
+public:
+    template <typename... TFFwds>
+    constexpr recursive_visitor(TFFwds&&... fs) : _fs(FWD(fs)...)
     {
-    private:
-        // TODO: EBO
-        std::tuple<TFs...> _fs;
-
-    public:
-        template <typename... TFFwds>
-        constexpr recursive_visitor(TFFwds&&... fs) : _fs(FWD(fs)...)
-        {
-        }
-
-        template <typename... TVariants>
-        constexpr decltype(auto) operator()(TVariants&&... variants)
-        {
-            // TODO: reference_overload(...)
-            auto visitor = std::apply(
-                [](auto&... xs) {
-                    return overload(
-                        adaptor<std::decay_t<TVariants>...>::adapt(xs)...);
-                },
-                _fs);
-        }
-    };
-
-    template <typename... TFs>
-    constexpr auto make_recursive_visitor(TFs&&... fs)
-    {
-        return recursive_visitor<std::decay_t<TFs>...>(FWD(fs)...);
     }
+
+    template <typename... TVariants>
+    constexpr decltype(auto) operator()(TVariants&&... variants)
+    {
+        // TODO: reference_overload(...)
+        auto visitor = std::apply(
+            [](auto&... xs) {
+                return overload(
+                    adaptor<std::decay_t<TVariants>...>::adapt(xs)...);
+            },
+            _fs);
+    }
+};
+
+template <typename... TFs>
+constexpr auto make_recursive_visitor(TFs&&... fs)
+{
+    return recursive_visitor<std::decay_t<TFs>...>(FWD(fs)...);
+}
 }
 
 namespace vr
@@ -128,3 +178,4 @@ namespace vr
         return impl::make_recursive_visitor(FWD(fs)...);
     }
 }
+*/

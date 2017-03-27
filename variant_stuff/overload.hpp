@@ -6,6 +6,7 @@
 #pragma once
 
 #include "./utils.hpp"
+#include <functional>
 
 namespace vr
 {
@@ -24,5 +25,11 @@ namespace vr
     auto overload(Ts&&... xs)
     {
         return overloader<std::remove_reference_t<Ts>...>{FWD(xs)...};
+    }
+
+    template <typename... Ts>
+    auto ref_overload(Ts&... xs)
+    {
+        return overloader<std::reference_wrapper<Ts>...>{std::ref(xs)...};
     }
 }
