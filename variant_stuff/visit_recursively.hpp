@@ -18,13 +18,52 @@
 
 namespace vr::impl
 {
+    template <typename T>
+    struct function_traits : public function_traits<decltype(&T::operator())>
+    {
+    };
+
+    template <typename T, typename TReturn, typename... TArgs>
+    struct function_traits<TReturn (T::*)(TArgs...) const>
+    {
+        static constexpr std::size_t arity = sizeof...(TArgs);
+
+        using result_type = TReturn;
+
+        template <std::size_t TI>
+        using arg = std::tuple_element_t<TI, std::tuple<TArgs...>>;
+    };
+
+
+    template <typename T>
+    using is_not_overloaded_impl = decltype(&std::decay_t<T>::operator());
+
+    template <typename T>
+    using is_not_overloaded =
+        std::experimental::is_detected<is_not_overloaded_impl, T>;
+
     template <typename TF>
     auto adapt(TF&& f)
     {
-        return [f = FWD(f)](auto, auto&& x)->decltype(f(FWD(x)))
+        // clang-format off
+        if constexpr(is_not_overloaded<TF>{})
         {
-            return f(FWD(x));
-        };
+            using argt = typename function_traits<
+                std::decay_t<decltype(f)>>::template arg<0>;
+
+            return [f = FWD(f)](auto, argt x)->decltype(f(x))
+            {
+                return f(x);
+            };
+        }
+        else
+        {
+            return [f = FWD(f)](auto, auto&& x)->decltype(f(FWD(x)))
+            {
+                return f(FWD(x));
+            };
+        }
+        // clang-format on
     }
 
     template <typename... TFs>

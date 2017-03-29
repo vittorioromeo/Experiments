@@ -1,5 +1,5 @@
+#include "../visit_recursively_simple.hpp"
 #include "../recursive_variant.hpp"
-#include "../visit_recursively.hpp"
 #include "./test_utils.hpp"
 #include "./variant_test_utils.hpp"
 #include <memory>
@@ -19,25 +19,20 @@ struct test_case
 
     static void run()
     {
+        auto vis = vr::make_recursive_visitor<int>( // .
+            [](auto, int x) { return x; },          // .
+            [&](auto recurse, recr& x) {
+                return x->second + recurse(x->first);
+            });
+
         {
             variant v{1};
-            vr::visit_recursively([](const auto&) {})(
-                                  [](const auto&, const auto&) {})(v);
-
- 
-            vr::visit_recursively([](int) {}, [](char) {})([](auto, auto) {})(
-                std::variant<int>{1});
-            // TODO: visit
+            TEST_ASSERT_OP(vr::visit_recursively_simple(vis, v), ==, 1);
         }
 
         {
-            variant v{std::make_unique<ptyp>(1, 2)};
-            // TODO: visit
-        }
-
-        {
-            variant v{std::make_unique<ptyp>(std::make_unique<ptyp>(1, 2), 3)};
-            // TODO: visit
+            variant v{std::make_unique<ptyp>(variant{2}, 1)};
+            TEST_ASSERT_OP(vr::visit_recursively_simple(vis, v), ==, 1 + 2);
         }
     }
 };

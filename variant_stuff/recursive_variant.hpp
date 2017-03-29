@@ -42,7 +42,7 @@ namespace vr::impl
     {
     private:
         struct fwd_variant;
-        
+
         using variant_type_impl =
             replace_placeholders<fwd_variant, TVariant<Ts...>>;
 
@@ -55,7 +55,7 @@ namespace vr::impl
         };
 
     public:
-        using variant_type = variant_type_impl;
+        using variant_type = fwd_variant;
 
         template <typename T>
         using resolve = replace_placeholders<fwd_variant, T>;
