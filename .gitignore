@@ -185,7 +185,8 @@ SSVOpenHexagon.txt
 *.ogg
 *.wav
 *.o
-*.d
+
+
 *.dll
 *.mp3
 *.bat

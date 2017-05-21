@@ -1,0 +1,347 @@
+	.text
+	.file	"./baseline.d"
+	.section	.text._Dmain,"axG",@progbits,_Dmain,comdat
+	.globl	_Dmain
+	.p2align	4, 0x90
+	.type	_Dmain,@function
+_Dmain:
+	.cfi_startproc
+	pushq	%rax
+.Lcfi0:
+	.cfi_def_cfa_offset 16
+	movq	_D23TypeInfo_S8baseline3Foo6__initZ@GOTPCREL(%rip), %rdi
+	movq	(%rdi), %rax
+	callq	*88(%rax)
+	xorl	%eax, %eax
+	popq	%rcx
+	retq
+.Lfunc_end0:
+	.size	_Dmain, .Lfunc_end0-_Dmain
+	.cfi_endproc
+
+	.section	.text._D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNbNiiZPS8baseline3Foo,"axG",@progbits,_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNbNiiZPS8baseline3Foo,comdat
+	.weak	_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNbNiiZPS8baseline3Foo
+	.p2align	4, 0x90
+	.type	_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNbNiiZPS8baseline3Foo,@function
+_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNbNiiZPS8baseline3Foo:
+	.cfi_startproc
+	pushq	%rbx
+.Lcfi1:
+	.cfi_def_cfa_offset 16
+.Lcfi2:
+	.cfi_offset %rbx, -16
+	movl	%edi, %ebx
+	movl	$4, %edi
+	callq	malloc@PLT
+	movl	%ebx, (%rax)
+	popq	%rbx
+	retq
+.Lfunc_end1:
+	.size	_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNbNiiZPS8baseline3Foo, .Lfunc_end1-_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNbNiiZPS8baseline3Foo
+	.cfi_endproc
+
+	.section	.text._D8baseline16MallocFreePolicy27__T7deallocTS8baseline3FooZ7deallocFNbNiPS8baseline3FooZv,"axG",@progbits,_D8baseline16MallocFreePolicy27__T7deallocTS8baseline3FooZ7deallocFNbNiPS8baseline3FooZv,comdat
+	.weak	_D8baseline16MallocFreePolicy27__T7deallocTS8baseline3FooZ7deallocFNbNiPS8baseline3FooZv
+	.p2align	4, 0x90
+	.type	_D8baseline16MallocFreePolicy27__T7deallocTS8baseline3FooZ7deallocFNbNiPS8baseline3FooZv,@function
+_D8baseline16MallocFreePolicy27__T7deallocTS8baseline3FooZ7deallocFNbNiPS8baseline3FooZv:
+	.cfi_startproc
+	pushq	%rbx
+.Lcfi3:
+	.cfi_def_cfa_offset 16
+.Lcfi4:
+	.cfi_offset %rbx, -16
+	movq	%rdi, %rbx
+	movq	_D23TypeInfo_S8baseline3Foo6__initZ@GOTPCREL(%rip), %rdi
+	movq	(%rdi), %rax
+	callq	*88(%rax)
+	movq	%rbx, %rdi
+	popq	%rbx
+	jmp	free@PLT
+.Lfunc_end2:
+	.size	_D8baseline16MallocFreePolicy27__T7deallocTS8baseline3FooZ7deallocFNbNiPS8baseline3FooZv, .Lfunc_end2-_D8baseline16MallocFreePolicy27__T7deallocTS8baseline3FooZ7deallocFNbNiPS8baseline3FooZv
+	.cfi_endproc
+
+	.section	.text._D3std4conv29__T7emplaceTS8baseline3FooTiZ7emplaceFNaNbNiNfPS8baseline3FooiZPS8baseline3Foo,"axG",@progbits,_D3std4conv29__T7emplaceTS8baseline3FooTiZ7emplaceFNaNbNiNfPS8baseline3FooiZPS8baseline3Foo,comdat
+	.weak	_D3std4conv29__T7emplaceTS8baseline3FooTiZ7emplaceFNaNbNiNfPS8baseline3FooiZPS8baseline3Foo
+	.p2align	4, 0x90
+	.type	_D3std4conv29__T7emplaceTS8baseline3FooTiZ7emplaceFNaNbNiNfPS8baseline3FooiZPS8baseline3Foo,@function
+_D3std4conv29__T7emplaceTS8baseline3FooTiZ7emplaceFNaNbNiNfPS8baseline3FooiZPS8baseline3Foo:
+	.cfi_startproc
+	movl	%edi, (%rsi)
+	movq	%rsi, %rax
+	retq
+.Lfunc_end3:
+	.size	_D3std4conv29__T7emplaceTS8baseline3FooTiZ7emplaceFNaNbNiNfPS8baseline3FooiZPS8baseline3Foo, .Lfunc_end3-_D3std4conv29__T7emplaceTS8baseline3FooTiZ7emplaceFNaNbNiNfPS8baseline3FooiZPS8baseline3Foo
+	.cfi_endproc
+
+	.section	.text._D3std10functional94__T7forwardS79_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNiiZ8_param_0iZ8__T3fwdZ3fwdMFNaNbNdNiNfZi,"axG",@progbits,_D3std10functional94__T7forwardS79_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNiiZ8_param_0iZ8__T3fwdZ3fwdMFNaNbNdNiNfZi,comdat
+	.weak	_D3std10functional94__T7forwardS79_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNiiZ8_param_0iZ8__T3fwdZ3fwdMFNaNbNdNiNfZi
+	.p2align	4, 0x90
+	.type	_D3std10functional94__T7forwardS79_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNiiZ8_param_0iZ8__T3fwdZ3fwdMFNaNbNdNiNfZi,@function
+_D3std10functional94__T7forwardS79_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNiiZ8_param_0iZ8__T3fwdZ3fwdMFNaNbNdNiNfZi:
+	.cfi_startproc
+	movl	(%rdi), %eax
+	retq
+.Lfunc_end4:
+	.size	_D3std10functional94__T7forwardS79_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNiiZ8_param_0iZ8__T3fwdZ3fwdMFNaNbNdNiNfZi, .Lfunc_end4-_D3std10functional94__T7forwardS79_D8baseline16MallocFreePolicy27__T5allocTS8baseline3FooTiZ5allocFNiiZ8_param_0iZ8__T3fwdZ3fwdMFNaNbNdNiNfZi
+	.cfi_endproc
+
+	.section	.text._D3std9algorithm8mutation11__T4moveTiZ4moveFNaNbNiNfKiZi,"axG",@progbits,_D3std9algorithm8mutation11__T4moveTiZ4moveFNaNbNiNfKiZi,comdat
+	.weak	_D3std9algorithm8mutation11__T4moveTiZ4moveFNaNbNiNfKiZi
+	.p2align	4, 0x90
+	.type	_D3std9algorithm8mutation11__T4moveTiZ4moveFNaNbNiNfKiZi,@function
+_D3std9algorithm8mutation11__T4moveTiZ4moveFNaNbNiNfKiZi:
+	.cfi_startproc
+	movl	(%rdi), %eax
+	retq
+.Lfunc_end5:
+	.size	_D3std9algorithm8mutation11__T4moveTiZ4moveFNaNbNiNfKiZi, .Lfunc_end5-_D3std9algorithm8mutation11__T4moveTiZ4moveFNaNbNiNfKiZi
+	.cfi_endproc
+
+	.section	.text._D3std9algorithm8mutation23__T15trustedMoveImplTiZ15trustedMoveImplFNaNbNiNeKiZi,"axG",@progbits,_D3std9algorithm8mutation23__T15trustedMoveImplTiZ15trustedMoveImplFNaNbNiNeKiZi,comdat
+	.weak	_D3std9algorithm8mutation23__T15trustedMoveImplTiZ15trustedMoveImplFNaNbNiNeKiZi
+	.p2align	4, 0x90
+	.type	_D3std9algorithm8mutation23__T15trustedMoveImplTiZ15trustedMoveImplFNaNbNiNeKiZi,@function
+_D3std9algorithm8mutation23__T15trustedMoveImplTiZ15trustedMoveImplFNaNbNiNeKiZi:
+	.cfi_startproc
+	movl	(%rdi), %eax
+	retq
+.Lfunc_end6:
+	.size	_D3std9algorithm8mutation23__T15trustedMoveImplTiZ15trustedMoveImplFNaNbNiNeKiZi, .Lfunc_end6-_D3std9algorithm8mutation23__T15trustedMoveImplTiZ15trustedMoveImplFNaNbNiNeKiZi
+	.cfi_endproc
+
+	.section	.text._D3std9algorithm8mutation15__T8moveImplTiZ8moveImplFNaNbNiKiZi,"axG",@progbits,_D3std9algorithm8mutation15__T8moveImplTiZ8moveImplFNaNbNiKiZi,comdat
+	.weak	_D3std9algorithm8mutation15__T8moveImplTiZ8moveImplFNaNbNiKiZi
+	.p2align	4, 0x90
+	.type	_D3std9algorithm8mutation15__T8moveImplTiZ8moveImplFNaNbNiKiZi,@function
+_D3std9algorithm8mutation15__T8moveImplTiZ8moveImplFNaNbNiKiZi:
+	.cfi_startproc
+	movl	(%rdi), %eax
+	retq
+.Lfunc_end7:
+	.size	_D3std9algorithm8mutation15__T8moveImplTiZ8moveImplFNaNbNiKiZi, .Lfunc_end7-_D3std9algorithm8mutation15__T8moveImplTiZ8moveImplFNaNbNiKiZi
+	.cfi_endproc
+
+	.section	.text._D3std9algorithm8mutation19__T11moveEmplaceTiZ11moveEmplaceFNaNbNiKiKiZv,"axG",@progbits,_D3std9algorithm8mutation19__T11moveEmplaceTiZ11moveEmplaceFNaNbNiKiKiZv,comdat
+	.weak	_D3std9algorithm8mutation19__T11moveEmplaceTiZ11moveEmplaceFNaNbNiKiKiZv
+	.p2align	4, 0x90
+	.type	_D3std9algorithm8mutation19__T11moveEmplaceTiZ11moveEmplaceFNaNbNiKiKiZv,@function
+_D3std9algorithm8mutation19__T11moveEmplaceTiZ11moveEmplaceFNaNbNiKiKiZv:
+	.cfi_startproc
+	movl	(%rsi), %eax
+	movl	%eax, (%rdi)
+	retq
+.Lfunc_end8:
+	.size	_D3std9algorithm8mutation19__T11moveEmplaceTiZ11moveEmplaceFNaNbNiKiKiZv, .Lfunc_end8-_D3std9algorithm8mutation19__T11moveEmplaceTiZ11moveEmplaceFNaNbNiKiKiZv
+	.cfi_endproc
+
+	.section	.text._D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFNaNbNiNfKS8baseline3FooKiZv,"axG",@progbits,_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFNaNbNiNfKS8baseline3FooKiZv,comdat
+	.weak	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFNaNbNiNfKS8baseline3FooKiZv
+	.p2align	4, 0x90
+	.type	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFNaNbNiNfKS8baseline3FooKiZv,@function
+_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFNaNbNiNfKS8baseline3FooKiZv:
+	.cfi_startproc
+	movl	$0, (%rsi)
+	movl	(%rdi), %eax
+	movl	%eax, (%rsi)
+	retq
+.Lfunc_end9:
+	.size	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFNaNbNiNfKS8baseline3FooKiZv, .Lfunc_end9-_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFNaNbNiNfKS8baseline3FooKiZv
+	.cfi_endproc
+
+	.section	.text._D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__ctorMFNaNbNcNiNfKiZS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S,"axG",@progbits,_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__ctorMFNaNbNcNiNfKiZS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S,comdat
+	.weak	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__ctorMFNaNbNcNiNfKiZS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S
+	.p2align	4, 0x90
+	.type	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__ctorMFNaNbNcNiNfKiZS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S,@function
+_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__ctorMFNaNbNcNiNfKiZS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S:
+	.cfi_startproc
+	movl	(%rsi), %eax
+	movl	%eax, (%rdi)
+	movq	%rdi, %rax
+	retq
+.Lfunc_end10:
+	.size	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__ctorMFNaNbNcNiNfKiZS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S, .Lfunc_end10-_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__ctorMFNaNbNcNiNfKiZS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S
+	.cfi_endproc
+
+	.section	.text._D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ9__lambda6MFNaNbNiNeZPS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S,"axG",@progbits,_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ9__lambda6MFNaNbNiNeZPS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S,comdat
+	.weak	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ9__lambda6MFNaNbNiNeZPS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S
+	.p2align	4, 0x90
+	.type	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ9__lambda6MFNaNbNiNeZPS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S,@function
+_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ9__lambda6MFNaNbNiNeZPS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S:
+	.cfi_startproc
+	movq	(%rdi), %rax
+	retq
+.Lfunc_end11:
+	.size	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ9__lambda6MFNaNbNiNeZPS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S, .Lfunc_end11-_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ9__lambda6MFNaNbNiNeZPS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S
+	.cfi_endproc
+
+	.section	.text._D3std4conv118__T18emplaceInitializerTS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZ18emplaceInitializerFNaNbNiNeKS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZv,"axG",@progbits,_D3std4conv118__T18emplaceInitializerTS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZ18emplaceInitializerFNaNbNiNeKS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZv,comdat
+	.weak	_D3std4conv118__T18emplaceInitializerTS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZ18emplaceInitializerFNaNbNiNeKS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZv
+	.p2align	4, 0x90
+	.type	_D3std4conv118__T18emplaceInitializerTS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZ18emplaceInitializerFNaNbNiNeKS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZv,@function
+_D3std4conv118__T18emplaceInitializerTS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZ18emplaceInitializerFNaNbNiNeKS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZv:
+	.cfi_startproc
+	movl	$0, (%rdi)
+	retq
+.Lfunc_end12:
+	.size	_D3std4conv118__T18emplaceInitializerTS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZ18emplaceInitializerFNaNbNiNeKS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZv, .Lfunc_end12-_D3std4conv118__T18emplaceInitializerTS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZ18emplaceInitializerFNaNbNiNeKS3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1SZv
+	.cfi_endproc
+
+	.section	.text._D6object27__T7destroyTS8baseline3FooZ7destroyFNaNbNiNfKS8baseline3FooZv,"axG",@progbits,_D6object27__T7destroyTS8baseline3FooZ7destroyFNaNbNiNfKS8baseline3FooZv,comdat
+	.weak	_D6object27__T7destroyTS8baseline3FooZ7destroyFNaNbNiNfKS8baseline3FooZv
+	.p2align	4, 0x90
+	.type	_D6object27__T7destroyTS8baseline3FooZ7destroyFNaNbNiNfKS8baseline3FooZv,@function
+_D6object27__T7destroyTS8baseline3FooZ7destroyFNaNbNiNfKS8baseline3FooZv:
+	.cfi_startproc
+	pushq	%rbx
+.Lcfi5:
+	.cfi_def_cfa_offset 16
+.Lcfi6:
+	.cfi_offset %rbx, -16
+	movq	%rdi, %rbx
+	movq	_D23TypeInfo_S8baseline3Foo6__initZ@GOTPCREL(%rip), %rdi
+	movq	(%rdi), %rax
+	callq	*88(%rax)
+	testq	%rdx, %rdx
+	je	.LBB13_1
+	movl	(%rdx), %eax
+	jmp	.LBB13_3
+.LBB13_1:
+	xorl	%eax, %eax
+.LBB13_3:
+	movl	%eax, (%rbx)
+	popq	%rbx
+	retq
+.Lfunc_end13:
+	.size	_D6object27__T7destroyTS8baseline3FooZ7destroyFNaNbNiNfKS8baseline3FooZv, .Lfunc_end13-_D6object27__T7destroyTS8baseline3FooZ7destroyFNaNbNiNfKS8baseline3FooZv
+	.cfi_endproc
+
+	.section	.text._D6object37__T16_destructRecurseTS8baseline3FooZ16_destructRecurseFNaNbNiNfKS8baseline3FooZv,"axG",@progbits,_D6object37__T16_destructRecurseTS8baseline3FooZ16_destructRecurseFNaNbNiNfKS8baseline3FooZv,comdat
+	.weak	_D6object37__T16_destructRecurseTS8baseline3FooZ16_destructRecurseFNaNbNiNfKS8baseline3FooZv
+	.p2align	4, 0x90
+	.type	_D6object37__T16_destructRecurseTS8baseline3FooZ16_destructRecurseFNaNbNiNfKS8baseline3FooZv,@function
+_D6object37__T16_destructRecurseTS8baseline3FooZ16_destructRecurseFNaNbNiNfKS8baseline3FooZv:
+	.cfi_startproc
+	retq
+.Lfunc_end14:
+	.size	_D6object37__T16_destructRecurseTS8baseline3FooZ16_destructRecurseFNaNbNiNfKS8baseline3FooZv, .Lfunc_end14-_D6object37__T16_destructRecurseTS8baseline3FooZ16_destructRecurseFNaNbNiNfKS8baseline3FooZv
+	.cfi_endproc
+
+	.section	.text._D6object27__T7destroyTS8baseline3FooZ7destroyFKS8baseline3FooZ9__lambda2MFNaNbNiNeZv,"axG",@progbits,_D6object27__T7destroyTS8baseline3FooZ7destroyFKS8baseline3FooZ9__lambda2MFNaNbNiNeZv,comdat
+	.weak	_D6object27__T7destroyTS8baseline3FooZ7destroyFKS8baseline3FooZ9__lambda2MFNaNbNiNeZv
+	.p2align	4, 0x90
+	.type	_D6object27__T7destroyTS8baseline3FooZ7destroyFKS8baseline3FooZ9__lambda2MFNaNbNiNeZv,@function
+_D6object27__T7destroyTS8baseline3FooZ7destroyFKS8baseline3FooZ9__lambda2MFNaNbNiNeZv:
+	.cfi_startproc
+	pushq	%rbx
+.Lcfi7:
+	.cfi_def_cfa_offset 16
+.Lcfi8:
+	.cfi_offset %rbx, -16
+	movq	(%rdi), %rbx
+	movq	_D23TypeInfo_S8baseline3Foo6__initZ@GOTPCREL(%rip), %rdi
+	movq	(%rdi), %rax
+	callq	*88(%rax)
+	testq	%rdx, %rdx
+	je	.LBB15_1
+	movl	(%rdx), %eax
+	movl	%eax, (%rbx)
+	popq	%rbx
+	retq
+.LBB15_1:
+	movl	$0, (%rbx)
+	popq	%rbx
+	retq
+.Lfunc_end15:
+	.size	_D6object27__T7destroyTS8baseline3FooZ7destroyFKS8baseline3FooZ9__lambda2MFNaNbNiNeZv, .Lfunc_end15-_D6object27__T7destroyTS8baseline3FooZ7destroyFKS8baseline3FooZ9__lambda2MFNaNbNiNeZv
+	.cfi_endproc
+
+	.section	.text.main,"axG",@progbits,main,comdat
+	.globl	main
+	.p2align	4, 0x90
+	.type	main,@function
+main:
+	.cfi_startproc
+	movq	_Dmain@GOTPCREL(%rip), %rdx
+	jmp	_d_run_main@PLT
+.Lfunc_end16:
+	.size	main, .Lfunc_end16-main
+	.cfi_endproc
+
+	.type	_D8baseline16MallocFreePolicy6__initZ,@object
+	.section	.rodata._D8baseline16MallocFreePolicy6__initZ,"aG",@progbits,_D8baseline16MallocFreePolicy6__initZ,comdat
+	.globl	_D8baseline16MallocFreePolicy6__initZ
+_D8baseline16MallocFreePolicy6__initZ:
+	.zero	1
+	.size	_D8baseline16MallocFreePolicy6__initZ, 1
+
+	.type	_D8baseline3Foo6__initZ,@object
+	.section	.rodata._D8baseline3Foo6__initZ,"aG",@progbits,_D8baseline3Foo6__initZ,comdat
+	.globl	_D8baseline3Foo6__initZ
+	.p2align	2
+_D8baseline3Foo6__initZ:
+	.zero	4
+	.size	_D8baseline3Foo6__initZ, 4
+
+	.type	_D23TypeInfo_S8baseline3Foo6__initZ,@object
+	.section	.data._D23TypeInfo_S8baseline3Foo6__initZ,"aGw",@progbits,_D23TypeInfo_S8baseline3Foo6__initZ,comdat
+	.weak	_D23TypeInfo_S8baseline3Foo6__initZ
+	.p2align	4
+_D23TypeInfo_S8baseline3Foo6__initZ:
+	.quad	_D15TypeInfo_Struct6__vtblZ
+	.quad	0
+	.quad	12
+	.quad	.L.str.1
+	.quad	4
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.long	0
+	.zero	4
+	.quad	0
+	.quad	0
+	.long	4
+	.zero	4
+	.quad	_D10TypeInfo_i6__initZ
+	.quad	0
+	.quad	0
+	.size	_D23TypeInfo_S8baseline3Foo6__initZ, 136
+
+	.type	.L.str.1,@object
+	.section	.rodata.str1.1,"aMS",@progbits,1
+.L.str.1:
+	.asciz	"baseline.Foo"
+	.size	.L.str.1, 13
+
+	.type	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__initZ,@object
+	.section	.rodata._D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__initZ,"aG",@progbits,_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__initZ,comdat
+	.weak	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__initZ
+	.p2align	2
+_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__initZ:
+	.zero	4
+	.size	_D3std4conv48__T10emplaceRefTS8baseline3FooTS8baseline3FooTiZ10emplaceRefFKS8baseline3FooKiZ1S6__initZ, 4
+
+	.type	_d_execBssBegAddr,@object
+	.section	.data._d_execBssBegAddr,"aw",@progbits
+	.globl	_d_execBssBegAddr
+	.p2align	3
+_d_execBssBegAddr:
+	.quad	__bss_start
+	.size	_d_execBssBegAddr, 8
+
+	.type	_d_execBssEndAddr,@object
+	.section	.data._d_execBssEndAddr,"aw",@progbits
+	.globl	_d_execBssEndAddr
+	.p2align	3
+_d_execBssEndAddr:
+	.quad	_end
+	.size	_d_execBssEndAddr, 8
+
+	.weak	__bss_start
+	.weak	_end
+
+	.ident	"ldc version 1.2.0"
+	.section	".note.GNU-stack","",@progbits

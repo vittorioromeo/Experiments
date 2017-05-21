@@ -18,27 +18,6 @@ struct MallocFreePolicy
     }
 }
 
-struct UniquePtr(T, AllocPolicy = MallocFreePolicy)
-{
-    T* _ptr;
-
-    pragma(inline, true) this(U : T)(U* ptr) @nogc
-    {
-        _ptr = ptr;
-    }
-
-    this(this) @disable;
-
-    pragma(inline, true) ~this() @nogc
-    {
-        if (_ptr != null)
-        {
-            AllocPolicy.dealloc(_ptr);
-            _ptr = null;
-        }
-    }
-}
-
 struct Foo
 {
     int _data;
@@ -46,5 +25,10 @@ struct Foo
 
 void main()
 {
-    UniquePtr!Foo i = MallocFreePolicy.alloc!(Foo)(100);
+    auto ptr = MallocFreePolicy.alloc!(Foo)(100);
+    if (ptr != null)
+    {
+        MallocFreePolicy.dealloc(ptr);
+        ptr = null;
+    }
 }
