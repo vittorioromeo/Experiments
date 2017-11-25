@@ -286,10 +286,27 @@ void test_const_noexcept()
     T{[]() noexcept {}}; // OK
 }
 
+struct F
+{
+    int operator()() const noexcept
+    {
+        return 0;
+    }
+};
+struct anything
+{
+    template <typename T>
+    anything(T const&)
+    {
+    }
+};
 int main()
 {
     auto l = [i = 0]() mutable { std::cout << i++ << "\n"; };
     foo(l);
     foo(l);
     foo(l);
+
+
+    function_ref<anything() noexcept> fun = F{};
 }
