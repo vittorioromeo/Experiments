@@ -3,15 +3,6 @@
 #include <iostream>
 #include <type_traits>
 
-/*
-template <typename...>
-struct false_t : std::false_type
-{
-};
-
-#define FAIL(why, ...) static_assert(false_t<__VA_ARGS__>, why)
-*/
-
 template <typename Derived, bool IsConst, bool IsNoexcept, typename Return,
     typename... Args>
 class function_ref_impl
@@ -22,13 +13,6 @@ private:
 
     template <typename T>
     using propagate_const = std::conditional_t<IsConst, std::add_const_t<T>, T>;
-
-    // template <typename T>
-    // using propagate_noexcept = std::conditional_t<IsNoexcept,
-    //     boost::callable_traits::add_noexcept_t<T>, T>;
-
-    // template <typename T>
-    // using propagated_callable = propagate_const<propagate_noexcept<T>>;
 
     template <typename... Xs>
     using invocable_check = std::conditional_t<IsNoexcept,
@@ -58,7 +42,7 @@ private:
     template <typename T>
     auto make_erased_fn() noexcept
     {
-        return [](void* ptr, Args... xs) -> Return {
+        return [](void* ptr, Args... xs) noexcept(IsNoexcept) -> Return {
             return std::invoke(
                 *reinterpret_cast<std::add_pointer_t<propagate_const<T>>>(ptr),
                 std::forward<Args>(xs)...);
@@ -66,7 +50,7 @@ private:
     }
 
 protected:
-    Return call(Args... xs) const noexcept
+    Return call(Args... xs) const
     {
         return _erased_fn(_ptr, std::forward<Args>(xs)...);
     }
@@ -140,24 +124,6 @@ function_ref(R (*)(Args...))->function_ref<R(Args...)>;
 
 template <typename R, typename... Args>
 function_ref(R (*)(Args...) noexcept)->function_ref<R(Args...) noexcept>;
-
-template <typename R, typename C, typename... Args>
-function_ref(R (C::*)(Args...))->function_ref<R(C, Args...)>;
-
-template <typename R, typename C, typename... Args>
-function_ref(R (C::*)(Args...) const)->function_ref<R(C, Args...) const>;
-
-template <typename R, typename C, typename... Args>
-function_ref(R (C::*)(Args...) noexcept)->function_ref<R(C, Args...) noexcept>;
-
-template <typename R, typename C, typename... Args>
-function_ref(R (C::*)(Args...) const noexcept)
-    ->function_ref<R(C, Args...) const noexcept>;
-
-// TODO:?
-// template <typename F>
-// function_ref(F)->function_ref</* deduced if possible */>;
-
 
 template <typename Signature>
 constexpr void swap(
@@ -324,6 +290,6 @@ int main()
     foo(l);
     foo(l);
 
-
-    function_ref<anything() noexcept> fun = F{};
+    // Should not compile:
+    // function_ref<anything() noexcept> fun = F{};
 }
