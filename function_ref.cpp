@@ -8,8 +8,12 @@ template <typename Derived, bool IsConst, bool IsNoexcept, typename Return,
 class function_ref_impl
 {
 private:
+    using erased_fn_type = Return (*)(void*, Args...);
+    using final_erased_fn_type = std::conditional_t<IsNoexcept,
+        boost::callable_traits::add_noexcept_t<erased_fn_type>, erased_fn_type>;
+
     void* _ptr;
-    Return (*_erased_fn)(void*, Args...);
+    final_erased_fn_type _erased_fn;
 
     template <typename T>
     using propagate_const = std::conditional_t<IsConst, std::add_const_t<T>, T>;
@@ -42,7 +46,8 @@ private:
     template <typename T>
     auto make_erased_fn() noexcept
     {
-        return [](void* ptr, Args... xs) noexcept(IsNoexcept) -> Return {
+        return [](void* ptr, Args... xs) noexcept(IsNoexcept)->Return
+        {
             return std::invoke(
                 *reinterpret_cast<std::add_pointer_t<propagate_const<T>>>(ptr),
                 std::forward<Args>(xs)...);
