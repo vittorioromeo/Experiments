@@ -21,9 +21,24 @@ private:
     Return (*_erased_fn)(void*, Args...);
 
     template <typename T>
-    using enable_if_not_self =
-        std::enable_if_t<std::is_invocable_r_v<Return, T&&, Args...> &&
-                         !std::is_same_v<std::decay_t<T>, Derived>>;
+    using propagate_const = std::conditional_t<IsConst, std::add_const_t<T>, T>;
+
+    // template <typename T>
+    // using propagate_noexcept = std::conditional_t<IsNoexcept,
+    //     boost::callable_traits::add_noexcept_t<T>, T>;
+
+    // template <typename T>
+    // using propagated_callable = propagate_const<propagate_noexcept<T>>;
+
+    template <typename... Xs>
+    using invocable_check = std::conditional_t<IsNoexcept,
+        std::is_nothrow_invocable_r<Xs...>, std::is_invocable_r<Xs...>>;
+
+    template <typename T>
+    using enable_if_not_self = std::enable_if_t<
+        invocable_check<Return, std::add_lvalue_reference_t<propagate_const<T>>,
+            Args...>::value &&
+        !std::is_same_v<std::decay_t<T>, Derived>>;
 
     template <typename T>
     using enable_if_compatible_const =
@@ -44,7 +59,8 @@ private:
     auto make_erased_fn() noexcept
     {
         return [](void* ptr, Args... xs) -> Return {
-            return std::invoke(*reinterpret_cast<std::add_pointer_t<T>>(ptr),
+            return std::invoke(
+                *reinterpret_cast<std::add_pointer_t<propagate_const<T>>>(ptr),
                 std::forward<Args>(xs)...);
         };
     }
@@ -300,6 +316,7 @@ struct anything
     {
     }
 };
+
 int main()
 {
     auto l = [i = 0]() mutable { std::cout << i++ << "\n"; };
