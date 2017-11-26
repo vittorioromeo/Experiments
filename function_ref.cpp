@@ -124,11 +124,31 @@ DEFINE_FUNCTION_REF_SPECIALIZATION(false, true, noexcept);
 DEFINE_FUNCTION_REF_SPECIALIZATION(true, true, const noexcept);
 #undef DEFINE_FUNCTION_REF_SPECIALIZATION
 
+template <typename Sig>
+struct remove_first_arg;
+
+template <typename R, typename A, typename... As>
+struct remove_first_arg<R(A, As...)>
+{
+    using type = R(As...);
+};
+
+template <typename Sig>
+using remove_first_arg_t = typename remove_first_arg<Sig>::type;
+
+
+
 template <typename R, typename... Args>
 function_ref(R (*)(Args...))->function_ref<R(Args...)>;
 
 template <typename R, typename... Args>
 function_ref(R (*)(Args...) noexcept)->function_ref<R(Args...) noexcept>;
+
+// TODO: noexcept and const qualifier
+template <typename F, typename S = decltype(&std::decay_t<F>::operator())>
+function_ref(F &&)
+    ->function_ref<
+        remove_first_arg_t<boost::callable_traits::function_type_t<S>>>;
 
 template <typename Signature>
 constexpr void swap(
@@ -297,4 +317,6 @@ int main()
 
     // Should not compile:
     // function_ref<anything() noexcept> fun = F{};
+
+    function_ref f1{[] {}};
 }
