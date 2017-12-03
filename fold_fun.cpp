@@ -1,4 +1,6 @@
 #include <iostream>
+#include <sstream>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -137,9 +139,12 @@ void json_switch(const json& j, Handlers&&... hs)
 // ----------------------------------------------------------------------------
 // Print comma separated
 // ----------------------------------------------------------------------------
-struct todo0
+template <typename T, typename... Ts>
+void csprint(const T& x, const Ts&... xs)
 {
-};
+    std::cout << x;
+    ((std::cout << ", " << xs), ...);
+}
 // ----------------------------------------------------------------------------
 
 
@@ -154,6 +159,32 @@ constexpr auto lfold(F&& f, Acc acc, Ts&&... ts)
     return acc;
 }
 // ----------------------------------------------------------------------------
+
+
+// ----------------------------------------------------------------------------
+// Is any of
+// ----------------------------------------------------------------------------
+template <typename Thing, typename... Ts>
+constexpr bool is_any_of(const Thing& thing, const Ts&... xs)
+{
+    return ((thing == xs) || ...);
+}
+// ----------------------------------------------------------------------------
+
+
+
+// ----------------------------------------------------------------------------
+// Concatenate stuff
+// ----------------------------------------------------------------------------
+template <typename... Ts>
+std::string cat(Ts&&... xs)
+{
+    std::ostringstream oss;
+    (oss << ... << xs);
+    return oss.str();
+}
+// ----------------------------------------------------------------------------
+
 
 int main()
 {
@@ -170,4 +201,8 @@ int main()
     constexpr auto res =
         lfold([](auto& acc, auto x) { acc += x; }, 1, 2, 3, 4, 5, 6);
     static_assert(res == 1 + 2 + 3 + 4 + 5 + 6);
+
+    csprint("hello", "world", 1, 2, 3);
+
+    std::cout << '\n';
 }
