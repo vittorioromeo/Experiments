@@ -206,3 +206,6 @@ int main()
 
     std::cout << '\n';
 }
+
+// TODO:
+// is(foo).any_of(1,2,3)
