@@ -3,45 +3,72 @@
 #include <iostream>
 #include <type_traits>
 
-template <typename Derived, bool IsConst, bool IsNoexcept, typename Return,
-    typename... Args>
+template <            //
+    typename Derived, //
+    bool IsConst,     //
+    bool IsNoexcept,  //
+    typename Return,  //
+    typename... Args  //
+    >
 class function_ref_impl
 {
 private:
     using erased_fn_type = Return (*)(void*, Args...);
-    using final_erased_fn_type = std::conditional_t<IsNoexcept,
-        boost::callable_traits::add_noexcept_t<erased_fn_type>, erased_fn_type>;
+
+    using final_erased_fn_type = std::conditional_t<            //
+        IsNoexcept,                                             //
+        boost::callable_traits::add_noexcept_t<erased_fn_type>, //
+        erased_fn_type                                          //
+        >;
 
     void* _ptr;
     final_erased_fn_type _erased_fn;
 
     template <typename T>
-    using propagate_const = std::conditional_t<IsConst, std::add_const_t<T>, T>;
+    using propagate_const = std::conditional_t< //
+        IsConst,                                //
+        std::add_const_t<T>,                    //
+        T                                       //
+        >;
 
     template <typename... Xs>
-    using invocable_check = std::conditional_t<IsNoexcept,
-        std::is_nothrow_invocable_r<Xs...>, std::is_invocable_r<Xs...>>;
+    using invocable_check = std::conditional_t< //
+        IsNoexcept,                             //
+        std::is_nothrow_invocable_r<Xs...>,     //
+        std::is_invocable_r<Xs...>              //
+        >;
 
     template <typename T>
-    using enable_if_not_self = std::enable_if_t<
-        invocable_check<Return, std::add_lvalue_reference_t<propagate_const<T>>,
-            Args...>::value &&
-        !std::is_same_v<std::decay_t<T>, Derived>>;
+    using is_compatibly_invokable = invocable_check<     //
+        Return,                                          //
+        std::add_lvalue_reference_t<propagate_const<T>>, //
+        Args...>;
 
     template <typename T>
-    using enable_if_compatible_const =
-        std::enable_if_t<boost::callable_traits::is_const_member_v<T> ||
-                         !IsConst ||
-                         std::is_function_v<std::remove_pointer_t<T>>>;
+    using enable_if_not_self = std::enable_if_t<     //
+        is_compatibly_invokable<T>::value            //
+        && !std::is_same_v<std::decay_t<T>, Derived> //
+        >;
 
     template <typename T>
-    using enable_if_compatible_noexcept =
-        std::enable_if_t<boost::callable_traits::is_noexcept_v<T> ||
-                         !IsNoexcept>;
+    using enable_if_compatible_const = std::enable_if_t< //
+        boost::callable_traits::is_const_member_v<T>     //
+        || !IsConst                                      //
+        || std::is_function_v<std::remove_pointer_t<T>>  //
+        >;
 
     template <typename T>
-    using enable_if_valid = std::conjunction<enable_if_not_self<T>,
-        enable_if_compatible_const<T>, enable_if_compatible_noexcept<T>>;
+    using enable_if_compatible_noexcept = std::enable_if_t< //
+        boost::callable_traits::is_noexcept_v<T>            //
+        || !IsNoexcept                                      //
+        >;
+
+    template <typename T>
+    using enable_if_valid = std::conjunction< //
+        enable_if_not_self<T>,                //
+        enable_if_compatible_const<T>,        //
+        enable_if_compatible_noexcept<T>      //
+        >;
 
     template <typename T>
     auto make_erased_fn() noexcept
@@ -67,10 +94,8 @@ public:
     {
     }
 
-    constexpr function_ref_impl(const function_ref_impl& rhs) noexcept
-        : _ptr{rhs._ptr}, _erased_fn{rhs._erased_fn}
-    {
-    }
+    constexpr function_ref_impl(
+        const function_ref_impl& rhs) noexcept = default;
 
     template <typename T, typename = enable_if_valid<T>>
     constexpr function_ref_impl& operator=(T&& x) noexcept
@@ -81,12 +106,7 @@ public:
     }
 
     constexpr function_ref_impl& operator=(
-        const function_ref_impl& rhs) noexcept
-    {
-        _ptr = rhs._ptr;
-        _erased_fn = rhs._erased_fn;
-        return *this;
-    }
+        const function_ref_impl& rhs) noexcept = default;
 
     constexpr void swap(function_ref_impl& rhs) noexcept
     {
@@ -300,6 +320,7 @@ struct F
         return 0;
     }
 };
+
 struct anything
 {
     template <typename T>
@@ -308,6 +329,8 @@ struct anything
     }
 };
 
+
+
 int main()
 {
     auto l = [i = 0]() mutable { std::cout << i++ << "\n"; };
@@ -315,8 +338,35 @@ int main()
     foo(l);
     foo(l);
 
+    std::function<void()> avbxf{function_ref<void()>{[]{}}};
+
     // Should not compile:
     // function_ref<anything() noexcept> fun = F{};
+    // function_ref f1{[] {}};
+}
 
-    function_ref f1{[] {}};
+
+
+#include <cassert>
+
+// `function_ref`: non-owning wrapper over generic `Callable`
+// with a particular signature
+
+int xfoo(function_ref<int()> f)
+{
+    return f();
+}
+
+int xbar()
+{
+    auto l = [i = 0]() mutable { return i++; };
+    assert(xfoo(l) == 0); // <== reference semantics
+    assert(xfoo(l) == 1);
+    assert(xfoo(l) == 2);
+
+    auto g = [](function_ref<int() const> k){ k(); };
+    /* g(l); */ // <== does not compile  ^~~~~
+
+    g([]{ return 0; }); // <== works with temporaries
+    return 0;
 }
