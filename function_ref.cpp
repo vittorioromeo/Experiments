@@ -138,10 +138,10 @@ class function_ref;
     };
 
 
-DEFINE_FUNCTION_REF_SPECIALIZATION(false, false, );
-DEFINE_FUNCTION_REF_SPECIALIZATION(true, false, const);
-DEFINE_FUNCTION_REF_SPECIALIZATION(false, true, noexcept);
-DEFINE_FUNCTION_REF_SPECIALIZATION(true, true, const noexcept);
+DEFINE_FUNCTION_REF_SPECIALIZATION(false, false, )
+DEFINE_FUNCTION_REF_SPECIALIZATION(true, false, const)
+DEFINE_FUNCTION_REF_SPECIALIZATION(false, true, noexcept)
+DEFINE_FUNCTION_REF_SPECIALIZATION(true, true, const noexcept)
 #undef DEFINE_FUNCTION_REF_SPECIALIZATION
 
 template <typename Sig>

@@ -1,0 +1,6 @@
+-std=c++2a
+-Wall
+-Wextra
+-Wpedantic
+-Wextra-semi
+-Wextra-semi-stmt
