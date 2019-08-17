@@ -19,7 +19,7 @@ struct on_scope_success : F
 
     ~on_scope_success()
     {
-        if(_uncaught < std::uncaught_exceptions()) {
+        if(_uncaught == std::uncaught_exceptions()) {
             (*this)();
         }
     }
